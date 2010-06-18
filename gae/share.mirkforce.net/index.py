@@ -95,15 +95,15 @@ class IndexHandler(BaseRequestHandler):
 
 		mk = 'index:' + username
 		files = memcache.get(mk)
-		if files is None:
+		if files is None or type(files) != list:
 			if username:
-				files = File.gql('WHERE user = :1 ORDER BY added DESC', users.User(username + '@gmail.com'))
+				files = File.gql('WHERE user = :1 ORDER BY added DESC', users.User(username + '@gmail.com')).fetch(100)
 			else:
-				files = File.all().order('-added')
+				files = File.all().order('-added').fetch(100)
 			memcache.set(mk, files)
 
 		result = self.generate('index.html', template_values={
-			'files': [{ 'owner': f.user.nickname(), 'url': f.url, 'name': urlparse.urlparse(f.url).path.split('/')[-1], 'size': f.size, 'type': f.mime_type, 'date': str(f.added)[:16] } for f in files.fetch(100)],
+			'files': [{ 'owner': f.user.nickname(), 'url': f.url, 'name': urlparse.urlparse(f.url).path.split('/')[-1], 'size': f.size, 'type': f.mime_type, 'date': str(f.added)[:16] } for f in files],
 			'form': self.get_upload_form(),
 		}, ret=True)
 
