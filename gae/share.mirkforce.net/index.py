@@ -94,18 +94,18 @@ class IndexHandler(BaseRequestHandler):
 		username = self.request.get('user')
 
 		mk = 'index:' + username
-		# отключил кэширование, т.к. на главной странице застревает ссылка на авторизацию.
-		result = None # memcache.get(mk)
-		if result is None:
+		files = memcache.get(mk)
+		if files is None:
 			if username:
 				files = File.gql('WHERE user = :1 ORDER BY added DESC', users.User(username + '@gmail.com'))
 			else:
 				files = File.all().order('-added')
-			result = self.generate('index.html', template_values={
-				'files': [{ 'owner': f.user.nickname(), 'url': f.url, 'name': urlparse.urlparse(f.url).path.split('/')[-1], 'size': f.size, 'type': f.mime_type, 'date': str(f.added)[:16] } for f in files.fetch(100)],
-				'form': self.get_upload_form(),
-			}, ret=True)
-			memcache.set(mk, result)
+			memcache.set(mk, files)
+
+		result = self.generate('index.html', template_values={
+			'files': [{ 'owner': f.user.nickname(), 'url': f.url, 'name': urlparse.urlparse(f.url).path.split('/')[-1], 'size': f.size, 'type': f.mime_type, 'date': str(f.added)[:16] } for f in files.fetch(100)],
+			'form': self.get_upload_form(),
+		}, ret=True)
 
 		self.response.out.write(result)
 
