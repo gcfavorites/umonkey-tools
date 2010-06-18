@@ -1,0 +1,40 @@
+<html>
+	<head>
+		<title>mfSH</title>
+		<style type="text/css">
+			.size { text-align: right }
+			td.url { font-weight: bold }
+		</style>
+	</head>
+	<body>
+		<h1>mIRKfORCE ShareHolder</h1>
+		<p>This is a private web site built to <a href="#form">share files</a> with the public using <a href="http://aws.amazon.com/s3/ ">Amazon S3</a> to host them.</p>
+		<h2>{% block title %}{% endblock %}</h2>
+		{% block content %}{% endblock %}
+		<hr/>
+		{% if user %}
+			{% if is_admin %}
+				<h2 id="form">Upload a new file</h2>
+				<form action="http://{{ form.bucket }}.s3-external-3.amazonaws.com/" method="post" enctype="multipart/form-data">
+					<input type="hidden" name="AWSAccessKeyId" value="{{ form.access_key }}"/>
+					<input type="hidden" name="acl" value="public-read"/>
+					<input type="hidden" name="key" value="{{ form.key }}"/>
+					<input type="hidden" name="policy" value="{{ form.policy }}"/>
+					<input type="hidden" name="signature" value="{{ form.signature }}"/>
+					<input type="hidden" name="success_action_redirect" value="{{ form.base }}/submit"/>
+					<input type="file" name="file"/>
+					<input type="submit" value="Upload"/>
+				</form>
+				<p>Or add a URL:</p>
+				<form action="/submit" method="get">
+					<input type="text" name="url"/>
+					<input type="submit" value="Submit"/>
+				</form>
+			{% else %}
+				<p>You can not upload files, feel free to <a href="{{ log_in_out_url }}">log out</a>.</p>
+			{% endif %}
+		{% else %}
+			<p><a href="{{ log_in_out_url }}">Log in</a> to upload files.</p>
+		{% endif %}
+	</body>
+</html>

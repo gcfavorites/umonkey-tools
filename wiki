@@ -1,0 +1,25 @@
+#!/bin/sh
+# Консольная wiki на базе vim.
+DIR=$(dirname $0)/../txt/wiki
+if [ -d "$DIR" ]; then
+  cd $DIR
+  if [ -z "$1" ]; then
+    PAGE="index.txt"
+  else
+    PAGE=$(find . -iname $1)
+    if [ -z "$PAGE" ]; then
+      PAGE="$1"
+    fi
+  fi
+  vim $PAGE && git add . && git ci . -m "autocommit by wiki"
+else
+  echo "$DIR does not exist."
+  exit 1
+fi
+
+# Для использования автодополнения в .bashrc добавить:
+#_wiki_complete() {
+#  COMPREPLY=( $( compgen -W "$( cd $HOME/backup/txt/wiki && ls * | tr [A-Z] [a-z] )" -- `_get_cword` ) )
+#  return 0
+#}
+#complete -F _wiki_complete wiki

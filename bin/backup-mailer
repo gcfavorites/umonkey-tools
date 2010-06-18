@@ -1,0 +1,87 @@
+#!/bin/sh
+#
+# Simple backup script.  Compresses a folder and sends it to your email
+# address, defined in $MAIL (or $MAILTO, when ran from cron).  If you have
+# a public GnuPG key for that email address, the file will be encrypted.
+#
+# The folder to back up is specified with the BACKUP_DIR environment
+# variable.  The script is most likely to be used with cron, the syntax
+# would be:
+#
+#   MAILTO=john.doe@gmail.com
+#   @daily BACKUP_DIR=/home/xyz/data /path/to/backup-mailer
+#
+# If you have an executable "pre-backup" script in that folder, it will be
+# executed.  If that script quits with a non-zero status, the process is
+# aborted.  Similarly, "post-backup" is executed in the end, to clean things up.
+#
+# ------------------------------------------------------------------------------
+#
+# If you use Gmail, you might want to add a filter that deletes these messages
+# automatically (for your convenience a "+backup" suffix will be automatically
+# added to your email address).  This way you will have 30 days of backups in
+# your trash folder, without having your mailbox filled.  If you do so, you
+# might find the "Quick Links" extension from Gmail Labs handy, to pin
+# a search like:
+#
+#     in:trash to:john.doe+backup@gmail.com
+#
+# You can also filter by the subject line, to delete messages which contain
+# "daily" in it, but not the ones that have "monthly".
+#
+# ------------------------------------------------------------------------------
+#
+# Requiements: nail, tar, bzip2.  The rest is optional.
+#
+# This file belongs to the public domain. The most recent version of it
+# can be found at <http://umonkey-tools.googlecode.com/hg/bin/backup-mailer>.
+
+if [ -z "${BACKUP_DIR}" ]; then
+	echo "\$BACKUP_DIR not set." >&2
+	exit 1
+elif [ ! -d ${BACKUP_DIR} ]; then
+	echo "${BACKUP_DIR} does not exist." >&2
+	exit 1
+fi
+
+if [ -z "$(which nail)" ]; then
+	echo "Please install nail to have backups mailed to you." >&2
+	exit 1
+fi
+
+# Prefer cron's MAILTO.
+test -n ${MAILTO} && MAIL=${MAILTO}
+
+case ${MAIL} in
+*@*) ;;
+*) echo "\$MAIL must contain an email address." >&2; exit 1
+esac
+
+# Add a "backup" suffix to Gmail addresses.
+TO=$(echo ${MAIL} | sed -e 's/@gmail.com/+backup@gmail.com/g')
+
+test $(date +'%d') = '1' && MODE='monthly' || MODE='daily'
+
+FILENAME=$(hostname)-backup-$(date +'%Y%m%d').tar.bz2
+
+if [ -x ${BACKUP_DIR}/pre-backup ]; then
+	${BACKUP_DIR}/pre-backup
+	if [ "$?" != "0" ]; then
+		echo "${BACKUP_DIR}/pre-backup failed."
+		exit 1
+	fi
+fi
+
+tar cfa ${FILENAME} --directory ${BACKUP_DIR} .
+
+gpg -e -r ${MAIL} --batch --yes ${FILENAME} > ${FILENAME}.gpg && rm ${FILENAME}; FILENAME=${FILENAME}.gpg; HADGPG="yes" || rm -f ${FILENAME}.gpg
+
+MESSAGE="Here is your ${MODE} backup from $(hostname) for $(date +'%Y-%m-%d').\nThe file contains the ${BACKUP_DIR} folder."
+if [ -n "${HADGPG}" ]; then
+	MESSAGE=${MESSAGE}"\n\nThe file is encrypted; to decrypt it, use the following command:\n\ngpg --use-agent -d ${FILENAME} > $(basename ${FILENAME} .gpg)"
+fi
+
+echo ${MESSAGE} | nail -s "$(hostname) backup $(date +'%Y-%m-%d')" -a ${FILENAME} ${TO}
+rm ${FILENAME}
+
+test -x ${BACKUP_DIR}/post-backup && ${BACKUP_DIR}/post-backup

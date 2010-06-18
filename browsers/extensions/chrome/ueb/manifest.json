@@ -1,0 +1,31 @@
+{
+  "name": "Universal Edit Button",
+  "version": "1.5",
+  "description": "Simplifies editing web pages that support the UEB.",
+  "permissions": [
+    "tabs",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "icons": {
+    "16": "icon-10.png",
+    "32": "icon-20.png",
+    "128": "icon-80.png"
+  },
+  "page_action": {
+    "id": "uebaction",
+    "icons": [ "icon-10.png" ],
+    "name": "Edit this page"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [ "finder.js" ]
+    }
+  ],
+  "background_page": "background.html",
+  "update_url": "http://umonkey-tools.googlecode.com/hg/chrome/extensions/ueb/updates.xml"
+}

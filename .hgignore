@@ -1,0 +1,2 @@
+.*\.(pem|crx|pyc|deb)
+gae/.*\/config\.py

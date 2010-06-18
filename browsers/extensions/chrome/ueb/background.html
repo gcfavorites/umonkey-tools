@@ -1,0 +1,31 @@
+<html><head><script>
+  var editors = {};
+
+  chrome.extension.onConnect.addListener(function(port) {
+    // This will get called from the content script using PostMessage.
+    port.onMessage.addListener(function(editor) {
+      // Let Chrome know that the PageAction needs to be enabled for this tabId
+      // and for the url of this page.
+      if (editor) {
+        editors[port.tab.id] = editor;
+
+        chrome.pageActions.enableForTab("uebaction", {
+          tabId: port.tab.id,
+          url: port.tab.url,
+          title: "Edit this page",
+          iconId: 0
+        });
+      }
+    });
+  });
+
+  chrome.pageAction.onClicked.addListener(function(tab){
+    chrome.tabs.update(tab.id, {
+      url: editors[tab.id]
+    });
+  });
+
+  chrome.tabs.onRemoved.addListener(function(reply) {
+    editors[reply] = null;
+  });
+</script></head></html>
