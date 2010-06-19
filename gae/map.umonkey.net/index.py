@@ -132,44 +132,7 @@ class IndexHandler(webapp.RequestHandler):
 		convert = lambda key, val: converters.has_key(key) and converters[key](val) or val
 		markers = [dict([(x, getattr(obj, x) and convert(x, getattr(obj, x))) for x in obj.fields()]) for obj in objects]
 
-		# Добавление HTML блоков.
-		markers = [self.render_one(marker) for marker in markers]
-
 		return markers
-
-	def render_one(self, marker):
-		html = u'<p class="name"><span>%s</span>%s</p>' % (marker['name'], marker['region'] and u' (%s)' % marker['region'] or u'')
-		# Описание.
-		html += u'<p>'
-		if marker['founded']:
-			html += u'Основано в %sг. ' % marker['founded']
-		tmp = []
-		if marker['area']:
-			tmp.append(u'%sга' % marker['area'])
-		if marker['families']:
-			tmp.append(u'%s семей' % marker['families'])
-		if len(tmp):
-			html += u', '.join(tmp) + u'. '
-		if marker['ownership']:
-			html += u'Земля в собственность. '
-		if marker['residence']:
-			html += u'Жилой дом с правом прописки. '
-		tmp = []
-		for k in (('electricity', u'электричество'), ('water', u'водопровод'), ('communication', u'сотовая связь'), ('internet', u'интернет')):
-			if marker[k[0]]:
-				tmp.append(k[1])
-		if len(tmp):
-			html += u'Есть ' + u', '.join(tmp) + u'. '
-		html += u'</p>'
-		if marker['is_open']:
-			html += u'<p>Приём продолжается.</p>'
-		# Добавление ссылок.
-		mklink = lambda url, cls: u'<a target="_blank" class="%s" href="%s">%s</a>' % (cls, quoteattr(url), urlparse.urlparse(url).netloc)
-		links = [mklink(marker[k], k) for k in marker if k in ('url', 'url_own', 'url_vk') and marker[k]]
-		if len(links):
-			html += u'<p>Ссылки: '+ u', '.join(links) +u'.</p>'
-		marker['html'] = html
-		return marker
 
 	def render_template(self, template_name, vars):
 		data = open(os.path.join(os.path.dirname(__file__), 'templates', template_name), 'r').read()

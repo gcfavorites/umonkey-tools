@@ -69,14 +69,55 @@ function show_map() {
 				title: s.name
 			});
 
-			if (s.html) {
-				google.maps.event.addListener(marker, 'click', function() {
-					iw.setContent("<div class='pos'>" + s.html + "</div>");
-					iw.open(map, marker);
-				});
-			}
+			google.maps.event.addListener(marker, 'click', function() {
+				var html = '<p class="name"><span>' + s.name + '</span>' + s.region + '</p><p>';
+				if (s.founded)
+					html += 'Основано в ' + s.founded + 'г. ';
+				if (s.area)
+					html += 'Площадь: ' + s.area + 'га. ';
+				if (s.families) {
+					html += s.families + ' семей';
+					if (s.winter)
+						html += ', ' + s.winter + ' зимует';
+					html += '. ';
+				}
+				if (s.ownership)
+					html += 'Земля в собственность. ';
+				if (s.residence)
+					html += 'Жилой дом с правом прописки. ';
+				if (s.electricity || s.water || s.communication || s.internet) {
+					var have = new Array();
+					if (s.electricity) have.push('электричество');
+					if (s.water) have.push('водопровод');
+					if (s.communication) have.push('мобильная связь');
+					if (s.internet) have.push('интернет');
+					html += 'Есть ' + have.join(', ') + '.';
+				}
+				html += '</p>';
+
+				if (s.is_open)
+					html += '<p>Приём продолжается.</p>';
+
+				var links = new Array();
+				addurl(links, s.url);
+				addurl(links, s.url_own);
+				addurl(links, s.url_vk);
+				if (links.length)
+					html += '<p>' + links.join(' &middot; ') + '</p>';
+
+				iw.setContent("<div class='pos'>" + html + "</div>");
+				iw.open(map, marker);
+			});
 		}
 	} catch (e) {
 		alert('Error: ' + e);
+	}
+
+	function addurl(ar, url)
+	{
+		if (url) {
+			var u = new URI(url);
+			ar.push('<a target="_blank" href="'+ url +'">'+ u.authority +'</a>')
+		}
 	}
 }
