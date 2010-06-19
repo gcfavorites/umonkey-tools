@@ -11,6 +11,9 @@ handlers:
   static_dir: static
 
 - url: /
+  static_files: static/index.html
+  upload: static/index.html
+- url: /data.js
   script: index.py
 - url: /update
   script: index.py

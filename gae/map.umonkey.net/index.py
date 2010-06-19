@@ -8,6 +8,7 @@ import urlparse
 import wsgiref.handlers
 from xml.sax.saxutils import escape as quoteattr
 
+from google.appengine.api import memcache
 from google.appengine.api import urlfetch
 from google.appengine.ext import db
 from google.appengine.ext import webapp
@@ -60,8 +61,9 @@ class Settlement(db.Model):
 class UpdateHandler(webapp.RequestHandler):
 	def get(self):
 		data = self.convert_to_objects(self.fetch())
+		memcache.set('/data.js', get_data_script())
 		logging.info('Done.')
-		self.response.out.write(unicode(data))
+		self.redirect('/')
 
 	def convert_to_objects(self, rows):
 		logging.info('Deleting old settlements.')
@@ -101,48 +103,51 @@ class UpdateHandler(webapp.RequestHandler):
 			return int(value)
 		return value
 
-class IndexHandler(webapp.RequestHandler):
+class DataHandler(webapp.RequestHandler):
 	def get(self):
-		data = {
-			'bounds': {
-				'latmin': 1000,
-				'latmax': 0,
-				'lonmin': 1000,
-				'lonmax': 0,
-			},
-			'markers': self.get_markers(),
-		}
+		script = memcache.get('/data.js')
+		if script is None:
+			script = get_data_script()
+			print >>sys.stderr, script
+			memcache.set('/data.js', script)
 
-		for marker in data['markers']:
-			if marker['ll']:
-				data['bounds']['latmin'] = min(marker['ll'][0], data['bounds']['latmin'])
-				data['bounds']['lonmin'] = min(marker['ll'][0], data['bounds']['lonmin'])
-				data['bounds']['latmax'] = max(marker['ll'][0], data['bounds']['latmax'])
-				data['bounds']['lonmax'] = max(marker['ll'][0], data['bounds']['lonmax'])
+		self.response.headers['Content-Type'] = 'text/plain'
+		self.response.out.write(script)
 
-		html = self.render_template('index.html', { 'data': simplejson.dumps(data) })
+def get_data_script():
+	# Загрузка объектов, имеющих координаты.
+	objects = [obj for obj in Settlement.all().fetch(1000) if obj.ll]
 
-		self.response.headers['Content-Type'] = 'text/html'
-		self.response.out.write(html)
+	# Преобразование объектов в словари.
+	converters = { 'll': lambda x: (x.lat, x.lon) }
+	convert = lambda key, val: converters.has_key(key) and converters[key](val) or val
+	markers = [dict([(x, getattr(obj, x) and convert(x, getattr(obj, x))) for x in obj.fields()]) for obj in objects]
 
-	def get_markers(self):
-		objects = [obj for obj in Settlement.all().fetch(1000) if obj.ll]
+	# Отдаваемые данные.
+	data = {
+		'bounds': {
+			'latmin': 1000,
+			'latmax': 0,
+			'lonmin': 1000,
+			'lonmax': 0,
+		},
+		'markers': markers,
+	}
 
-		converters = { 'll': lambda x: (x.lat, x.lon) }
-		convert = lambda key, val: converters.has_key(key) and converters[key](val) or val
-		markers = [dict([(x, getattr(obj, x) and convert(x, getattr(obj, x))) for x in obj.fields()]) for obj in objects]
+	# Подсчёт минимальных и максимальных координат, для центрования карты.
+	for marker in data['markers']:
+		if marker['ll']:
+			data['bounds']['latmin'] = min(marker['ll'][0], data['bounds']['latmin'])
+			data['bounds']['lonmin'] = min(marker['ll'][0], data['bounds']['lonmin'])
+			data['bounds']['latmax'] = max(marker['ll'][0], data['bounds']['latmax'])
+			data['bounds']['lonmax'] = max(marker['ll'][0], data['bounds']['lonmax'])
 
-		return markers
-
-	def render_template(self, template_name, vars):
-		data = open(os.path.join(os.path.dirname(__file__), 'templates', template_name), 'r').read()
-		for k in vars:
-			data = data.replace('${'+ k +'}', vars[k])
-		return data
+	# Компоновка результата.
+	return 'var map_data = ' + simplejson.dumps(data) + ';'
 
 if __name__ == '__main__':
 	application = webapp.WSGIApplication([
-		('/', IndexHandler),
+		('/data.js', DataHandler),
 		('/update', UpdateHandler),
 	], debug=True)
 	wsgiref.handlers.CGIHandler().run(application)
