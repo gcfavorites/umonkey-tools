@@ -1,0 +1,16 @@
+application: map-umonkey-net
+version: 1
+runtime: python
+api_version: 1
+
+handlers:
+- url: /favicon.ico
+  static_files: static/favicon.png
+  upload: static/favicon.png
+- url: /static/
+  static_dir: static
+
+- url: /
+  script: index.py
+- url: /update
+  script: index.py

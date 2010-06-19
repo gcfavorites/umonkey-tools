@@ -1,0 +1,25 @@
+body {
+  margin: 0;
+  padding: 0;
+}
+
+#map_canvas {
+  width: 100%;
+  height: 100%;
+}
+
+div.pos {
+	font: normal 10pt/12pt arial, sans-serif;
+	max-width: 300px;
+}
+
+p.name {
+	font-style: italic;
+	font-size: 75%;
+}
+p.name span {
+	font-weight: bold;
+	font-size: 1.5em;
+	font-style: normal;
+	margin-right: 1em;
+}
