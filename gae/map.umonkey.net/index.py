@@ -60,10 +60,19 @@ class Settlement(db.Model):
 
 class UpdateHandler(webapp.RequestHandler):
 	def get(self):
-		data = self.convert_to_objects(self.fetch())
-		memcache.set('/data.js', get_data_script())
-		logging.info('Done.')
-		self.redirect('/')
+		fresh = self.fetch()
+		cached = memcache.get('/data.csv')
+
+		if fresh == cached:
+			status = 'Nothing changed.'
+		else:
+			data = self.convert_to_objects(self.parse_csv(fresh))
+			memcache.set('/data.csv', fresh)
+			memcache.set('/data.js', get_data_script())
+			status = 'Database updated.'
+		logging.info(status)
+		self.response.headers['Content-Type'] = 'text/plain'
+		self.response.out.write(status)
 
 	def convert_to_objects(self, rows):
 		logging.info('Deleting old settlements.')
@@ -88,8 +97,10 @@ class UpdateHandler(webapp.RequestHandler):
 
 	def fetch(self):
 		logging.info('Fetching CSV data.')
-		raw_data = urlfetch.fetch(CSV_URL).content
-		return [self.convert_row(cells) for cells in csv.reader(raw_data.split('\n')[1:])]
+		return urlfetch.fetch(CSV_URL).content
+
+	def parse_csv(self, text):
+		return [self.convert_row(cells) for cells in csv.reader(text.split('\n')[1:])]
 
 	def convert_row(self, cells):
 		return dict([(CSV_FIELDS[idx], idx<len(cells) and self.fix_cell(cells[idx].decode('utf-8')) or None) for idx in range(len(CSV_FIELDS))])
