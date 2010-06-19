@@ -63,7 +63,7 @@ class UpdateHandler(webapp.RequestHandler):
 		fresh = self.fetch()
 		cached = memcache.get('/data.csv')
 
-		if fresh == cached:
+		if fresh == cached and not self.request.get('force'):
 			status = 'Nothing changed.'
 		else:
 			data = self.convert_to_objects(self.parse_csv(fresh))
@@ -119,7 +119,6 @@ class DataHandler(webapp.RequestHandler):
 		script = memcache.get('/data.js')
 		if script is None:
 			script = get_data_script()
-			print >>sys.stderr, script
 			memcache.set('/data.js', script)
 
 		self.response.headers['Content-Type'] = 'text/plain'
