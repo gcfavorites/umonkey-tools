@@ -37,7 +37,10 @@ if __name__ == '__main__':
 	if '--update' in sys.argv:
 		update()
 	else:
-		re = sys.argv[1] == 'all' and None or re.compile(sys.argv[1], re.IGNORECASE)
+		if sys.argv[1] == 'all':
+			re = None
+		else:
+			re = re.compile(sys.argv[1], re.IGNORECASE)
 		for line in open(os.path.expanduser(PATH), 'r').readlines():
 			if re is None or re.search(line):
 				print line.strip()
