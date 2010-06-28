@@ -1,8 +1,14 @@
 #!/bin/sh
 DIR=$HOME/.local/share/wiki
+
+# todo: use ip route
+NETWORK=$(LANG=en_US.UTF-8 ifconfig | grep 'inet addr' | grep -vF 127.0.0.1 | wc -l)
+
 if [ -d "$DIR" ]; then
   cd $DIR
-  git pull -q
+  if [ ${NETWORK} != "0" ]; then
+	  git pull -q
+  fi
   if [ -z "$1" ]; then
     PAGE="index.txt"
   else
@@ -11,7 +17,10 @@ if [ -d "$DIR" ]; then
       PAGE="$1"
     fi
   fi
-  vim $PAGE && git add . && git ci . -m "autocommit by wiki" && git push
+  vim $PAGE && git add . && git ci . -m "autocommit by wiki"
+  if [ ${NETWORK} != "0" ]; then
+	  git push
+  fi
 else
   echo "$DIR does not exist."
   exit 1
