@@ -2,11 +2,11 @@
 DIR=$HOME/.local/share/wiki
 
 # todo: use ip route
-NETWORK=$(LANG=en_US.UTF-8 ifconfig | grep 'inet addr' | grep -vF 127.0.0.1 | wc -l)
+NETWORK=$(ip route)
 
 if [ -d "$DIR" ]; then
   cd $DIR
-  if [ ${NETWORK} != "0" ]; then
+  if [ -n "${NETWORK}" ]; then
 	  git pull -q
   fi
   if [ -z "$1" ]; then
@@ -18,7 +18,7 @@ if [ -d "$DIR" ]; then
     fi
   fi
   vim $PAGE && git add . && git ci . -m "autocommit by wiki"
-  if [ ${NETWORK} != "0" ]; then
+  if [ -n "${NETWORK}" ]; then
 	  git push
   fi
 else
