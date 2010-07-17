@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Добавление новости{% endblock %}
+{% block content %}
+<form class="gen" id="submitform" method="post">
+	<div>
+		<label for="submit-title">Заголовок:</label>
+		<textarea id="submit-title" name="title" class="text"></textarea>
+	</div>
+	<div>
+		<label for="submit-link">Ссылка:</label>
+		<input id="submit-link" name="link" class="text"/>
+	</div>
+	<div>
+		<label for="submit-labels">Метки:</label>
+		<input id="submit-labels" name="labels" class="text"/>
+	</div>
+	<!--
+	<div>
+		<label for="submit-text">Дополнительный текст:</label>
+		<textarea id="submit-text" name="text" class="text"></textarea>
+	</div>
+	-->
+	<div>
+		<button><span>Отправить</span></button>
+	</div>
+</form>
+{% endblock %}

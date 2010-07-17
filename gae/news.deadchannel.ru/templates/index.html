@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Свежие новости <a class="s" href="/submit">прислать свою</a>{% endblock %}
+{% block content %}
+	{% if news %}
+		{% for n in news %}
+			<div class="news" id="news-{{ n.id }}">
+				{% if n.link %}
+					<h3><a href="{{ n.link }}" class="external" target="_blank">{{ n.title }}</a></h3>
+				{% else %}
+					<h3>{{ n.title }}</h3>
+				{% endif %}
+				<div class="meta">
+					<span class="vn"><span class="num">{{ n.likes }}</span> likes</span>
+					<span class="date">{{ n.added|date:"d.m.y" }}</span>
+					{% if n.site %}<span class="site">{{ n.site }}</span>{% endif %}
+					<span class="cn"><a href="node/{{ n.id }}#comments">{{ n.comments }} comments</a></span>
+					<span class="jsonly bury">dislike</span>
+				</div>
+			</div>
+		{% endfor %}
+	{% else %}
+		no news
+	{% endif %}
+{% endblock %}
+
+{% block sidebar %}
+<div>
+	<h2>Новости почтой</h2>
+	<p>Если вы не знакомы с технологией <a href="http://www.orss.ru/" target="_blank">RSS</a>, подпишитесь на ежедневную подборку новостей по старой доброй электронной почте.</p>
+	<form method="post" action="http://feedburner.google.com/fb/a/mailverify" target="_blank">
+		<input type="hidden" name="uri" value="deadchannel"/>
+		<input type="text" name="email" placeholder="Email"/>
+		<input type="hidden" name="loc" value="ru_RU"/>
+		<input type="submit" value="Подписаться"/>
+	</form>
+</div>
+<div>
+	<h2>Календарь <a class="s" href="wiki/календарь">подробнее</a></h2>
+	<iframe src="http://www.google.com/calendar/hosted/deadchannel.ru/embed?showTitle=0&amp;showPrint=1&amp;showNav=1&amp;showDate=0&amp;showTabs=0&amp;mode=AGENDA&amp;height=500&amp;wkst=1&amp;bgcolor=%23FFFFFF&amp;src=deadchannel.ru_80pdjif8dcqkgrsfmea5p2b7bo%40group.calendar.google.com&amp;color=%230D7813&amp;src=deadchannel.ru_lbq6s4keuvv965ttg1cnmj34ko%40group.calendar.google.com&amp;color=%23A32929&amp;src=deadchannel.ru_qn42alsb21p8qtmri5tnkfdn5o%40group.calendar.google.com&amp;color=%235229A3&amp;ctz=Europe%2FMoscow" width="100%" height="500" frameborder="0" scrolling="no"></iframe>
+</div>
+<div>
+	<h2>Расписание релизов</h2>
+	<iframe src="https://www.google.com/calendar/embed?showTitle=0&amp;showNav=0&amp;showDate=0&amp;showPrint=0&amp;showTabs=0&amp;showCalendars=0&amp;showTz=0&amp;mode=AGENDA&amp;height=600&amp;wkst=1&amp;bgcolor=%23FFFFFF&amp;src=deadchannel.ru_44itu069jsscc5fgb6serpi0c4%40group.calendar.google.com&amp;color=%2328754E&amp;ctz=Europe%2FMoscow" style="border-width:0" width="100%" height="300" frameborder="0" scrolling="no"></iframe>
+</div>
+{% endblock %}
