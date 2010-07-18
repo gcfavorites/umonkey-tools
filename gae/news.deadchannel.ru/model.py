@@ -24,11 +24,17 @@ class News(Model):
 	votes = db.IntegerProperty() # количество голосов
 	likes = db.IntegerProperty() # количество положительных голосов
 
-class Comment(db.Model):
+class Comment(Model):
+	id = db.IntegerProperty()
 	added = db.DateTimeProperty(auto_now_add=True, required=True)
 	news = db.ReferenceProperty(News, required=True)
 	author = db.UserProperty(required=True)
 	text = db.TextProperty(required=True)
+
+	def put(self):
+		if not self.id:
+			self.id = self.nextid()
+		return super(Comment, self).put()
 
 class Label(db.Model):
 	name = db.StringProperty(required=True)

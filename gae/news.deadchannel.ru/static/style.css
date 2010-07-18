@@ -102,21 +102,6 @@ h2 a.s {
 /**
  * Comment form.
  */
-#commentform h3 {
-	font-size: 1em;
-	font-weight: normal;
-	margin: .5em 0;
-}
-#commentform h3 span {
-	font-weight: bold;
-}
-#commentform .text {
-	width: 450px;
-	height: 200px;
-	max-width: 450px;
-}
-
-
 .comment {
 	margin-bottom: 1em;
 	border-top: solid 1px #ccc;
@@ -125,12 +110,25 @@ h2 a.s {
 	font-size: 10pt;
 }
 .comment .author {
+	display: inline-block;
 	float: left;
+	width: 130px;
 	line-height: 1.25em;
 }
 .comment .text {
 	margin-left: 150px;
+	width: 450px;
 	white-space: pre-wrap;
+}
+.comment form {
+	margin: 0;
+	padding: 0;
+}
+.comment textarea {
+	width: 450px;
+	height: 200px;
+	margin: 0;
+	font-family: sans-serif;
 }
 .comment .avatar img {
 	padding: 2px;
@@ -141,4 +139,11 @@ h2 a.s {
 .comment .author .date {
 	opacity: 0.5;
 	font-size: .8em;
+}
+.comment .date a {
+	color: inherit;
+	text-decoration: none;
+}
+.comment .date a:hover {
+	text-decoration: underline;
 }

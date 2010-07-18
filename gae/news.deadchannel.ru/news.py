@@ -62,6 +62,9 @@ class NodeHandler(BaseRequestHandler):
 		})
 
 	def post(self, nid):
+		"""
+		Adds a new comment.
+		"""
 		user = users.get_current_user()
 		if not user:
 			raise Exception('Not authorized.')
@@ -69,6 +72,8 @@ class NodeHandler(BaseRequestHandler):
 		if not news:
 			raise Exception('No such node.')
 		comment = model.Comment(author=user, news=news, text=self.request.get('comment')).put()
+		news.comments += 1
+		news.put()
 		self.redirect('/node/' + nid)
 
 

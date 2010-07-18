@@ -1,14 +1,20 @@
 {% extends "base.html" %}
-{% block title %}{{ node.title }}{% endblock %}
+{% block title %}
+	{% if node.link %}<a href="{{ node.link }}" class="external" target="_blank">{% endif %}
+	{{ node.title }}
+	{% if node.link %}</a>{% endif %}
+{% endblock %}
 {% block content %}
 	{% if comments %}
 		<div id="comments">
+			<!--
 			<h2>Комментарии</h2>
+			-->
 			{% for c in comments %}
-				<div class="comment">
+				<div class="comment" id="comment-{{ c.id }}">
 					<div class="author">
-						<span class="avatar"><img src="{{ c.author|gravatar:24 }}"/></span>
-						<span class="name">{{ c.author }}</span><br/><span class="date">{{ c.added|date:"d.m.y" }}</span>
+						<span class="avatar"><img src="{{ c.author|gravatar:24 }}" alt="avatar"/></span>
+						<span class="name">{{ c.author }}</span><br/><span class="date"><a href="#comment-{{ c.id }}">{{ c.added|date:"d.m.y" }}</a></span>
 					</div>
 					<div class="text">{{ c.text }}</div>
 				</div>
@@ -16,14 +22,17 @@
 		</div>
 	{% endif %}
 	{% if user %}
-		<div id="commentform">
-			<form method="post">
-				<div>
-					<h3 class="intro"><span>Прокомментируй новость</span> (HTML не поддерживается):</h3>
-					<textarea class="text" name="comment"></textarea>
-				</div>
-				<button><span>Отправить комментарий</span></button>
-			</form>
+		<div id="commentform" class="comment">
+			<div class="author">
+				<span class="avatar"><img src="{{ user|gravatar:24 }}" alt="avatar"/></span>
+				<span class="name">{{ user }}</span><br/><span class="date">только что</span>
+			</div>
+			<div class="text">
+				<form method="post">
+					<textarea placeholder="Оставь свой комментарий здесь (HTML не поддерживается)." name="comment"></textarea>
+					<button><span>Отправить комментарий</span></button>
+				</form>
+			</div>
 		</div>
 	{% endif %}
 {% endblock %}

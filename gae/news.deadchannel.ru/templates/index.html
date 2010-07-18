@@ -12,7 +12,7 @@
 				<div class="meta">
 					<span class="vn"><span class="num">{{ n.likes }}</span> likes</span>
 					<span class="date">{{ n.added|date:"d.m.y" }}</span>
-					{% if n.site %}<span class="site">{{ n.site }}</span>{% endif %}
+					{% if n.site %}<span class="site">{{ n.link|sitename }}</span>{% endif %}
 					<span class="cn"><a href="node/{{ n.id }}#comments">{{ n.comments }} comments</a></span>
 					<span class="jsonly bury">dislike</span>
 				</div>
