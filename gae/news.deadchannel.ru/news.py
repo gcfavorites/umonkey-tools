@@ -20,6 +20,24 @@ import model
 # Enable custom filters.
 webapp.template.register_template_library('filters')
 
+def add_labels(labels):
+	for label in labels:
+		l = model.Label.gql('WHERE name = :1', label.lower()).get()
+		if not l:
+			l = model.Label(name=label.lower(), count=0)
+		l.count += 1
+		l.put()
+
+def remove_labels(labels):
+	for label in labels:
+		l = model.Label.gql('WHERE name = :1', label.lower()).get()
+		if i is not None:
+			l.count -= 1
+			if l.count > 0:
+				l.put()
+			else:
+				l.delete()
+
 class BaseRequestHandler(webapp.RequestHandler):
 	def generate(self, template_name, template_values={}, ret=False):
 		user = users.get_current_user()
@@ -95,7 +113,8 @@ class ImportHandler(BaseRequestHandler):
 					title=node['title'],
 					text=node['text'])
 				if node.has_key('labels'):
-					news.labels = [l.lower() for l in node['labels']]
+					news.labels = [l.strip().lower() for l in node['labels']]
+					add_labels(news.labels)
 				if node.has_key('link') and node['link']:
 					news.link = node['link']
 					news.site = urlparse.urlparse(node['link']).netloc
