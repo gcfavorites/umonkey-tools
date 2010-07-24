@@ -1,3 +1,5 @@
+# vim: fileencoding=utf-8:
+
 import hashlib
 import logging
 import urllib
@@ -26,7 +28,7 @@ def plural(number, arg):
 	"""
 	words = arg.split(',')
 	suffix = int(str(number)[-1])
-	if siffux == 1:
+	if suffix == 1:
 		return words[0]
 	elif suffix > 1 and suffix < 5:
 		return words[1]
