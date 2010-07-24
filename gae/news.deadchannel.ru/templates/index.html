@@ -10,7 +10,7 @@
 					<h3>{{ n.title }}</h3>
 				{% endif %}
 				<div class="meta">
-					<span class="vn"><span class="num">{{ n.likes }}</span> likes</span>
+					<span class="vn"><span class="num">{{ n.likes }}</span> {{ n.likes|plural:"голос,голоса,голосов" }}</span>
 					<span class="date">{{ n.added|date:"d.m.y" }}</span>
 					{% if n.site %}<span class="site">{{ n.link|sitename }}</span>{% endif %}
 					<span class="cn"><a href="node/{{ n.id }}#comments">{{ n.comments }} comments</a></span>

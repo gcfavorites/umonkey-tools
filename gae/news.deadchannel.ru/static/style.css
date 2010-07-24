@@ -56,8 +56,11 @@ h2 a.s {
 	padding: 4px;
 	border: solid gray 1px;
 }
+#submit-title {
+	height: 6em;
+}
 #submit-text {
-	height: 4em;
+	height: 20em;
 }
 
 .news {

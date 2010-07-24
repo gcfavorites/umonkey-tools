@@ -16,6 +16,23 @@ def sitename(url):
 		host = '.'.join(netloc.split('.')[-3:])
 	return host
 
+def plural(number, arg):
+	"""
+	Поддержка русских числительных.  Фильтр применяется к числу, в качестве
+	параметра используется строка, содержащая — через запятую — формы слова
+	для единицы, двойки и пятёрки.  Пример:
+
+	{{ n.likes|plural:"голос,голоса,голосов" }}
+	"""
+	words = arg.split(',')
+	suffix = int(str(number)[-1])
+	if siffux == 1:
+		return words[0]
+	elif suffix > 1 and suffix < 5:
+		return words[1]
+	return words[2]
+
 register = webapp.template.create_template_register()
 register.filter(gravatar)
 register.filter(sitename)
+register.filter(plural)
