@@ -10,9 +10,9 @@ class Model(db.Model):
 
 class News(Model):
 	id = db.IntegerProperty(required=True)
-	author = db.UserProperty(required=True)
+	author = db.UserProperty()
 	added = db.DateTimeProperty(auto_now_add=True, required=True)
-	title = db.StringProperty(required=True)
+	title = db.StringProperty()
 	link = db.LinkProperty()
 	site = db.StringProperty() # имя домена из link
 	text = db.TextProperty()

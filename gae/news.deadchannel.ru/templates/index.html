@@ -4,11 +4,14 @@
 	{% if news %}
 		{% for n in news %}
 			<div class="news" id="news-{{ n.id }}">
-				{% if n.link %}
-					<h3><a href="{{ n.link }}" class="external" target="_blank">{{ n.title }}</a></h3>
-				{% else %}
-					<h3>{{ n.title }}</h3>
-				{% endif %}
+				<h3>
+					{% if n.link %}
+						<a href="{{ n.link }}" class="external" target="_blank">
+					{% else %}
+						<a href="node/{{ n.id }}">
+					{% endif %}
+					{{ n.title }}</a>
+				</h3>
 				<div class="meta">
 					<span class="vn"><span class="num">{{ n.likes }}</span> {{ n.likes|plural:"голос,голоса,голосов" }}</span>
 					<span class="date">{{ n.added|date:"d.m.y" }}</span>

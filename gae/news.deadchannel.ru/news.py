@@ -100,36 +100,26 @@ class ImportHandler(BaseRequestHandler):
 		self.generate('import.html')
 
 	def post(self):
-		for news in model.News.all().fetch(1000):
-			logging.info('deleted old node/%u' % news.id)
-			news.delete()
-
-		data = simplejson.loads(self.request.get("json"))
-		for node in data:
-			try:
-				news = model.News(id=int(node['id']),
-					author=users.User(node['author']),
-					added=datetime.datetime.strptime(node['added'], '%Y-%m-%d %H:%M:%S'),
-					title=node['title'],
-					text=node['text'])
-				if node.has_key('labels'):
-					news.labels = [l.strip().lower() for l in node['labels']]
-					add_labels(news.labels)
-				if node.has_key('link') and node['link']:
-					news.link = node['link']
-					news.site = urlparse.urlparse(node['link']).netloc
-				if node.has_key('picture'):
-					news.picture = node['picture']
-				news.language = 'ru'
-				if news.labels and 'english' in news.labels:
-					news.language = 'en'
-				news.comments = 0
-				news.votes = 1
-				news.likes = 1
-				news.put()
-				logging.info("node/%s added" % node['id'])
-			except Exception, e:
-				logging.error("node/%s had issues: %s\n%s" % (node['id'], e, traceback.format_exc(e)))
+		news = model.News.gql('WHERE id = :1', int(self.request.get('id'))).get()
+		if not news:
+			news = model.News(id=int(self.request.get('id')))
+		news.author = users.User(self.request.get('author'))
+		news.title = self.request.get('title')
+		news.added = datetime.datetime.strptime(self.request.get('added'), '%Y-%m-%d %H:%M:%S')
+		link = self.request.get('link')
+		if link:
+			news.link = link
+		text = self.request.get('text')
+		if text:
+			news.text = text
+		news.comments = 0
+		news.votes = 1
+		news.likes = 1
+		if self.request.get('labels'):
+			news.labels = [l.strip().lower() for l in self.request.get('labels').split(',')]
+			if 'enlgish' in news.labels:
+				news.language = 'en'
+		news.put()
 
 class SubmitHandler(BaseRequestHandler):
 	def get(self):
