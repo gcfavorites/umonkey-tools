@@ -13,7 +13,12 @@
 					{{ n.title }}</a>
 				</h3>
 				<div class="meta">
+					{% if n.picture_data %}
+						<a class="thumbnail" href="node/{{ n.id }}"><img src="node/image/{{ n.id }}" alt="thumbnail"/></a>
+					{% endif %}
+					<!--
 					<span class="vn"><span class="num">{{ n.likes }}</span> {{ n.likes|plural:"голос,голоса,голосов" }}</span>
+					-->
 					<span class="date">{{ n.added|date:"d.m.y" }}</span>
 					{% if n.site %}<span class="site">{{ n.link|sitename }}</span>{% endif %}
 					<span class="cn"><a href="node/{{ n.id }}#comments">{{ n.comments }} {{ n.comments|plural:"комментарий,комментария,комментариев" }}</a></span>

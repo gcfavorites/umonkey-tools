@@ -10,6 +10,8 @@ import wsgiref.handlers
 
 # GAE imports
 from django.utils import simplejson
+from google.appengine.api import images
+from google.appengine.api import urlfetch
 from google.appengine.api import users
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
@@ -112,6 +114,7 @@ class ImportHandler(BaseRequestHandler):
 		text = self.request.get('text')
 		if text:
 			news.text = text
+		self.add_picture(news, self.request.get('picture'))
 		news.comments = 0
 		news.votes = 1
 		news.likes = 1
@@ -120,6 +123,36 @@ class ImportHandler(BaseRequestHandler):
 			if 'enlgish' in news.labels:
 				news.language = 'en'
 		news.put()
+
+	def add_picture(self, news, picture_url):
+		if picture_url:
+			news.picture = picture_url
+			try:
+				img = images.Image(image_data=urlfetch.Fetch(picture_url).content)
+
+				if img.height > img.width:
+					shift = float(img.height - img.width) / 2 / img.height
+					crop_args = (0.0, shift, 1.0, 1.0 - shift)
+				elif img.width > img.height:
+					shift = float(img.width - img.height) / 2 / img.width
+					crop_args = (shift, 0.0, 1.0 - shift, 1.0)
+				if img.width != img.height:
+					# logging.info('crop=%s, %s, %s, %s' % crop_args)
+					img.crop(*crop_args)
+				# logging.info('width=%s, height=%s' % (img.width, img.height))
+				img.im_feeling_lucky()
+				img.resize(100, 100)
+				news.picture_data = img.execute_transforms(images.JPEG)
+			except TypeError, e:
+				logging.error('Error transforming image at %s: %s' % (picture_url, e))
+
+class NodeImageHandler(BaseRequestHandler):
+	def get(self, id):
+		news = model.News.gql('WHERE id = :1', int(id)).get()
+		if not news or not news.picture_data:
+			raise Exception('Image not found.')
+		self.response.headers['Content-Type'] = 'image/jpeg'
+		self.response.out.write(news.picture_data)
 
 class SubmitHandler(BaseRequestHandler):
 	def get(self):
@@ -140,5 +173,6 @@ if __name__ == '__main__':
 		('/', IndexHandler),
 		('/import', ImportHandler),
 		('/node/(\d+)', NodeHandler),
+		('/node/image/(\d+)', NodeImageHandler),
 		('/submit', SubmitHandler),
 	], debug=True))

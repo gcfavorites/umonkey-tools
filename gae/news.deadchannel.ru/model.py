@@ -18,6 +18,7 @@ class News(Model):
 	text = db.TextProperty()
 	labels = db.StringListProperty()
 	picture = db.LinkProperty() # исходный адрес картинки
+	picture_data = db.BlobProperty(default=None) # содержимое отмасштабированной картинки (JPEG, 100×100)
 	language = db.StringProperty()
 	# информация о голосах
 	comments = db.IntegerProperty() # количество комментариев

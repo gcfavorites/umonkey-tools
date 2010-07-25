@@ -28,7 +28,7 @@ if __name__ == '__main__':
 		print >>sys.stderr, 'File %s not found.' % sys.argv[1]
 	data = simplejson.loads(open(sys.argv[1]).read())
 
-	for news in data:
+	for news in data[-10:]:
 		print 'Updating node/%s' % news['id']
 		try:
 			post(sys.argv[2], news)

@@ -75,6 +75,13 @@ h2 a.s {
 	font-size: 1.25em;
 	font-weight: normal;
 }
+.news .thumbnail img {
+	width: 50px;
+	height: 50px;
+	position: absolute;
+	top: 0;
+	left: 0;
+}
 .news .meta > span {
 	margin-right: 1em;
 }

@@ -8,7 +8,7 @@ handlers:
   script: news.py
 - url: /import
   script: news.py
-- url: /node/\d+
+- url: /node(/image)?/\d+
   script: news.py
 - url: /submit
   script: news.py
