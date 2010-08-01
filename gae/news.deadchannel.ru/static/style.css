@@ -21,10 +21,18 @@ iframe {
 
 #header {
 	margin-bottom: 20px;
+	padding-bottom: .5em;
+	border-bottom: solid 1px #ccc;
 }
 #header h1 {
 	font-size: 10pt;
+	font-weight: normal;
 	margin: 0;
+}
+#header h1 a {
+	color: inherit;
+	text-decoration: none;
+	font-weight: bold;
 }
 
 #sidebar {
@@ -48,6 +56,9 @@ iframe {
 	font-weight: normal;
 	font-size: 1.25em;
 	margin-top: 0;
+}
+#nodepicture img {
+	max-width: 500px;
 }
 
 #submitform label {
@@ -89,10 +100,10 @@ iframe {
 	top: 0;
 	left: 0;
 }
-.news .meta > span {
+.meta > span {
 	margin-right: 1em;
 }
-.news .cn, .news .bury, .news .date, .news .site {
+.meta .cn, .meta .bury, .meta .date, .meta .site {
 	opacity: 0.75;
 	font-size: .75em;
 }
@@ -119,6 +130,9 @@ iframe {
 /**
  * Comment form.
  */
+#comments, #commentform {
+	margin-top: 2em;
+}
 .comment {
 	margin-bottom: 1em;
 	border-top: solid 1px #ccc;

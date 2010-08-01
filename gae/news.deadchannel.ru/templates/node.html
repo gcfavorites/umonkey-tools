@@ -6,7 +6,9 @@
 {% endblock %}
 {% block content %}
 	{% if node.picture %}
-		<img src="{{ node.picture }}" alt="picture"/>
+		<div id="nodepicture">
+			<img src="{{ node.picture }}" alt="picture"/>
+		</div>
 	{% endif %}
 	<div class="meta">
 			<span class="date">{{ node.added|date:"d.m.y" }}</span>
