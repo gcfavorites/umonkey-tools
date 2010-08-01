@@ -1,6 +1,8 @@
-<html>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ru" lang="ru">
 <head>
-<title>Dead Channel</title>
+<meta charset="utf-8"/>
+<title>{% if title %}{{ title }} — {% endif %}Dead Channel</title>
 <link rel="stylesheet" type="text/css" href="/static/style.css"/>
 <link href="/static/favicon.ico" rel="shortcut icon" type="image/png"/>
 </head>
@@ -15,12 +17,14 @@
 	<div id="footer">
 </div>
 {% block footer%}
+<!--
 {% if user %}
 	<a href="{{ log_in_out_url }}">Log out</a> |
 	<a href="/submit">Submit News</a>
 {% else %}
 	<a href="{{ log_in_out_url }}">Log in</a>
 {% endif %}
+-->
 {% endblock %}
 </div>
 </body>

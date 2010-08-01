@@ -77,6 +77,7 @@ class NodeHandler(BaseRequestHandler):
 		if not news:
 			raise Exception('No such node.')
 		self.generate('node.html', {
+			'title': news.title,
 			'node': news,
 			'comments': model.Comment.gql('WHERE news = :1', news).fetch(100),
 		})

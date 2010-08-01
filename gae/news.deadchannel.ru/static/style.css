@@ -15,6 +15,10 @@ h2 a.s {
 	color: green;
 }
 
+iframe {
+	border: none;
+}
+
 #header {
 	margin-bottom: 20px;
 }
@@ -31,6 +35,9 @@ h2 a.s {
 #sidebar > div {
 	margin-bottom: 2em;
 	width: 300px;
+}
+#cal1 {
+	height: 500px;
 }
 
 #content {

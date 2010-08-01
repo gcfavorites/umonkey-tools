@@ -5,6 +5,12 @@
 	{% if node.link %}</a>{% endif %}
 {% endblock %}
 {% block content %}
+	{% if node.picture %}
+		<img src="{{ node.picture }}" alt="picture"/>
+	{% endif %}
+	<div class="meta">
+			<span class="date">{{ node.added|date:"d.m.y" }}</span>
+	</div>
 	{% if comments %}
 		<div id="comments">
 			<!--
@@ -21,8 +27,8 @@
 			{% endfor %}
 		</div>
 	{% endif %}
-	{% if user %}
-		<div id="commentform" class="comment">
+	<div id="commentform" class="comment">
+		{% if user %}
 			<div class="author">
 				<span class="avatar"><img src="{{ user|gravatar:24 }}" alt="avatar"/></span>
 				<span class="name">{{ user }}</span><br/><span class="date">только что</span>
@@ -33,6 +39,8 @@
 					<button><span>Отправить комментарий</span></button>
 				</form>
 			</div>
-		</div>
-	{% endif %}
+		{% else %}
+			<p>Нужно <a href="{{ log_in_out_url }}">залогиниться</a>, чтобы оставить комментарий.</p>
+		{% endif %}
+	</div>
 {% endblock %}
