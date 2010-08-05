@@ -12,6 +12,7 @@
 	{% endif %}
 	<div class="meta">
 			<span class="date">{{ node.added|date:"d.m.y" }}</span>
+			{% if node.link %}<span class="site">{{ node.link|sitename }}</span>{% endif %}
 	</div>
 	{% if comments %}
 		<div id="comments">
