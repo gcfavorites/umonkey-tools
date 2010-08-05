@@ -9,8 +9,8 @@ Depends: sox
 Suggests: saytime
 Installed-Size: 2188
 Description: sayhours is a script that speaks current time (hours only)
-  in Russian.  Unlike saytime, samples are normalized.  Designed to be
-  run as a cron job.  The package contains several samples for each
-  hour, both male and female, chosen randomly each time.  More samples
-  are welcome.
+  in Russian.  Unlike saytime, samples are well processed.  The script is
+  designed to be run as a cron job.  The package contains several samples
+  for each hour, both male and female, chosen randomly each time.  More
+  samples are welcome.
 Homepage: http://umonkey-tools.googlecode.com/

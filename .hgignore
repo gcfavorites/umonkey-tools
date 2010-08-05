@@ -1,2 +1,3 @@
-.*\.(pem|crx|pyc|deb)
+.*\.(pem|crx|pyc)
+(misc|software-installer)/.*\.(deb)
 gae/.*\/config\.py
