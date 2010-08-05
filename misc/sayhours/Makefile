@@ -2,7 +2,14 @@ VERSION=1.0
 
 deb: clean
 	cat debian/DEBIAN/control.in | sed -e "s/VERSION/${VERSION}/g" > debian/DEBIAN/control
-	dpkg -b debian saytime-${VERSION}.deb
+	dpkg -b debian sayhours-${VERSION}.deb
 
 clean:
-	rm -f *deb
+	rm -f *deb *zip
+
+zip:
+	hg archive -t zip sayhours-${VERSION}.zip
+
+release: deb zip
+	googlecode_upload.py -s "sayhours v${VERSION}" -p umonkey-tools -l Featured,Type-Package,OpSys-Linux sayhours-${VERSION}.deb
+	googlecode_upload.py -s "sayhours v${VERSION}" -p umonkey-tools -l Featured,Type-Source,OpSys-All sayhours-${VERSION}.zip
