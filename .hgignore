@@ -1,3 +1,4 @@
 .*\.(pem|crx|pyc)
 (misc|software-installer)/.*\.(deb)
+browser-extensions/ueb/chrome/ueb.zip
 gae/.*\/config\.py

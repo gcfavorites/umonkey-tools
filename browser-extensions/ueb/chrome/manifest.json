@@ -26,6 +26,5 @@
       "js": [ "finder.js" ]
     }
   ],
-  "background_page": "background.html",
-  "update_url": "http://umonkey-tools.googlecode.com/hg/chrome/extensions/ueb/updates.xml"
+  "background_page": "background.html"
 }
