@@ -1,6 +1,6 @@
 {
   "name": "Universal Edit Button",
-  "version": "1.6",
+  "version": "1.7",
   "description": "Simplifies editing web pages that support the UEB.",
   "permissions": [
     "tabs",
