@@ -4,7 +4,7 @@
 
 function findEditor()
 {
-  var result = document.evaluate('//link[@rel="alternate" and (@type="application/x-wiki" or @type="application/wiki")]', document, null, 0, null);
+  var result = document.evaluate('//link[(@rel="alternate" and (@type="application/x-wiki" or @type="application/wiki")) or @rel="edit"]', document, null, 0, null);
   var editor, item;
 
   while (item = result.iterateNext()) {
