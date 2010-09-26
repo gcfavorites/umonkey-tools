@@ -18,7 +18,7 @@ handlers:
 - url: /cron
   script: handlers.py
   login: admin
-- url: /list
+- url: /list.csv
   script: handlers.py
   login: admin
 - url: /notify

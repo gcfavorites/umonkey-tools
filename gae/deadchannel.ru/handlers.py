@@ -216,11 +216,13 @@ class ListHandler(BaseRequestHandler):
 	Выводит список всех подписчиков в формате CSV.
 	"""
 	def get(self):
-		text = 'email,phone\n'
+		text = 'added on,email,phone\n'
 		for email in model.Email.all().order('email').fetch(1000):
-			text += '%s,\n' % email.email
+			date = email.date_added.strftime('%Y-%m-%d')
+			text += '%s,%s,\n' % (date, email.email)
 		for phone in model.Phone.all().order('phone').fetch(1000):
-			text += ',%s\n' % phone.phone
+			date = email.date_added.strftime('%Y-%m-%d')
+			text += '%s,,%s\n' % (date, phone.phone)
 		self.response.headers['Content-Type'] = 'text/plain'
 		self.response.out.write(text)
 
@@ -239,7 +241,7 @@ if __name__ == '__main__':
 	wsgiref.handlers.CGIHandler().run(webapp.WSGIApplication([
 		('/', IndexHandler),
 		('/cron', CronHandler),
-		('/list', ListHandler),
+		('/list.csv', ListHandler),
 		('/notify', NotifyHandler),
 		('/rss.xml', RSSHandler),
 		('/submit', SubmitHandler),
