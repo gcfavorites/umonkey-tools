@@ -24,6 +24,8 @@ handlers:
 - url: /notify
   script: handlers.py
   login: admin
+- url: /rss.xml
+  script: handlers.py
 - url: /submit
   script: handlers.py
   login: admin

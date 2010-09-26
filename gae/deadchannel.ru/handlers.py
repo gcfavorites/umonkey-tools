@@ -25,7 +25,7 @@ import config
 import model
 
 class BaseRequestHandler(webapp.RequestHandler):
-	def render(self, template_name, vars={}, ret=False):
+	def render(self, template_name, vars={}, ret=False, mime_type='text/html'):
 		u"""
 		Вызывает указанный шаблон, возвращает результат.
 		"""
@@ -40,7 +40,7 @@ class BaseRequestHandler(webapp.RequestHandler):
 		path = os.path.join(directory, 'templates', template_name)
 		response = template.render(path, vars)
 		if not ret:
-			self.response.headers['Content-Type'] = 'text/html; charset=utf-8'
+			self.response.headers['Content-Type'] = mime_type + '; charset=utf-8'
 			self.response.out.write(response)
 		return response
 
@@ -225,12 +225,23 @@ class ListHandler(BaseRequestHandler):
 		self.response.out.write(text)
 
 
+class RSSHandler(BaseRequestHandler):
+	"""
+	Выводит RSS ленту со всеми событиями.  В будущем можно будет придумать фильтрацию.
+	"""
+	def get(self):
+		self.render('rss.xml', {
+			'events': model.Event.all().order('-date').fetch(1000),
+		}, mime_type='text/xml')
+
+
 if __name__ == '__main__':
 	wsgiref.handlers.CGIHandler().run(webapp.WSGIApplication([
 		('/', IndexHandler),
 		('/cron', CronHandler),
 		('/list', ListHandler),
 		('/notify', NotifyHandler),
+		('/rss.xml', RSSHandler),
 		('/submit', SubmitHandler),
 		('/subscribe', SubscribeHandler),
 	], debug=config.DEBUG))
