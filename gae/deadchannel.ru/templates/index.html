@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+{% if events %}
+<table id="events" summary="Предстоящие события">
+<tbody>
+{% for event in events %}
+<tr>
+<td class="date">{{ event.date|date:"d.m" }}</td>
+<td class="title"><a href="{{ event.url }}" class="external">{{ event.title }}</a></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% else %}
+<p>Нет событий.</p>
+{% endif %}
+<div id="subscribe">
+<h2>Информационная рассылка</h2>
+{% if status.subscribed %}
+<p class="message">Твои контакты были успешно добавлены в список рассылки, жди вестей!&nbsp; Можешь добавить кого-нибудь ещё. ;)</p>
+{% endif %}
+<p>Мы можем сообщать тебе обо всех событиях за неделю и напоминать за сутки, удобным для тебя способом.</p>
+<form method="post" action="/subscribe">
+<div>
+<label for="sphone">Номер мобильного телефона (для SMS):</label>
+<input id="sphone" name="phone" type="text" class="text"/>
+<p class="hint">Формат: +79112223344</p>
+</div>
+<div>
+<label for="semail">Email:</label>
+<input id="email" name="email" type="text" class="text"/>
+</div>
+<input type="submit" value="Добавить в список"/>
+</form>
+</div>
+{% endblock %}
