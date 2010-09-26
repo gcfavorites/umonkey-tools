@@ -24,6 +24,7 @@ p {
 #wrapper {
 	width: 400px;
 	margin: 0 auto;
+	position: relative;
 }
 
 #motto {
@@ -57,6 +58,16 @@ p {
 }
 #subscribe .message {
 	color: #080;
+}
+
+#sidebar {
+	position: absolute;
+	top: 0;
+	left: 440px;
+	opacity: 0.8;
+}
+#sidebar p {
+	margin: 1em 0 2em;
 }
 
 form {
