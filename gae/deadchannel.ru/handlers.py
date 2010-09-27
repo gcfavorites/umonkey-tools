@@ -64,11 +64,13 @@ class IndexHandler(BaseRequestHandler):
 	def get(self):
 		now = datetime.datetime.now()
 		events = model.Event.gql('WHERE date > :1 ORDER BY date', now).fetch(20)
+		gaid = hasattr(config, 'GA_ID') and config.GA_ID or None
 		self.render('index.html', {
 			'events': events,
 			'status': {
 				'subscribed': self.request.get('status') == 'subscribed',
 			},
+			'gaid': gaid,
 		})
 
 
