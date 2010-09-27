@@ -218,15 +218,19 @@ class ListHandler(BaseRequestHandler):
 	Выводит список всех подписчиков в формате CSV.
 	"""
 	def get(self):
-		text = 'added on,email,phone\n'
+		text = ''
+		mails = phones = 0
 		for email in model.Email.all().order('email').fetch(1000):
 			date = email.date_added.strftime('%Y-%m-%d')
 			text += '%s,%s,\n' % (date, email.email)
+			mails += 1
 		for phone in model.Phone.all().order('phone').fetch(1000):
 			date = email.date_added.strftime('%Y-%m-%d')
 			text += '%s,,%s\n' % (date, phone.phone)
+			phones += 1
+		header = 'added on,email (%u),phone (%u)\n' % (mails, phones)
 		self.response.headers['Content-Type'] = 'text/plain'
-		self.response.out.write(text)
+		self.response.out.write(header + text)
 
 
 class RSSHandler(BaseRequestHandler):
