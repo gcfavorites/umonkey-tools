@@ -102,6 +102,12 @@ class SubscribeHandler(BaseRequestHandler):
 	сохраняя их как одноимённые объекты.  Существующие объекты не дублируются.
 	"""
 	def post(self):
+		if self.request.get('remove'):
+			return self.remove()
+		else:
+			return self.add()
+
+	def add(self):
 		next = '/'
 		email = self.request.get('email')
 		if email:
@@ -118,6 +124,12 @@ class SubscribeHandler(BaseRequestHandler):
 				obj.put()
 			next = '/?status=subscribed'
 		self.redirect(next)
+
+	def remove(self):
+		email = self.request.get('email', 'n/a')
+		phone = self.request.get('phone', 'n/a')
+		text = 'Email: %s\nPhone: %s' % (email, phone)
+		mail.send_mail(sender='justin.forest@gmail.com', to='justin.forest@gmail.com', subject='Unsubscribe request', body=text)
 
 
 class CronHandler(BaseRequestHandler):
