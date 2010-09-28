@@ -201,11 +201,14 @@ class NotifyHandler(BaseRequestHandler):
 		date = event.date.strftime('%d.%m')
 		time = event.date.strftime('%H:%M')
 		text = u'%s в %s %s, см. deadchannel.ru' % (date, time, event.title)
-		self.fetch('http://sms.ru/sms/send', {
+		options = {
 			'api_id': config.SMS_ID,
 			'to': phone,
 			'text': text.encode('utf-8'),
-		})
+		}
+		if hasattr(config, 'SMS_FROM'):
+			options['from'] = config.SMS_FROM
+		self.fetch('http://sms.ru/sms/send', options)
 		logging.info('Sent an SMS to %s' % phone)
 
 	def notify_email(self, event, email):
