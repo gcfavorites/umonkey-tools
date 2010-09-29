@@ -23,6 +23,7 @@ from google.appengine.ext.webapp import template
 # Site imports.
 import config
 import model
+import oauth
 
 class BaseRequestHandler(webapp.RequestHandler):
 	def render(self, template_name, vars={}, ret=False, mime_type='text/html'):
@@ -167,6 +168,7 @@ class CronHandler(BaseRequestHandler):
 
 	def notify(self, event, emails, phones):
 		count = 0
+		twit_event(event)
 		for email in emails:
 			taskqueue.Task(url='/notify', params={ 'event': event.key(), 'email': email.email }).add()
 			count += 1
@@ -283,6 +285,46 @@ class CalHandler(BaseRequestHandler):
 		self.response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
 		self.response.out.write(text)
 
+class TwitterHandler(BaseRequestHandler):
+	def get(self):
+		event = model.Event.all().order('-date').get()
+		twit_event(event)
+
+
+def shorten_url(url):
+	"""
+	Возвращает сокращённый адрес страницы.  Если сокращение не работает —
+	возвращает исходный адрес.
+	"""
+	args = { 'login': config.BITLY_NAME, 'apiKey': config.BITLY_KEY, 'domain': 'j.mp', 'format': 'txt', 'longUrl': url }
+	url = 'http://api.bit.ly/v3/shorten?' + urllib.urlencode(args)
+	result = urlfetch.fetch(url)
+	if result.status_code != 200:
+		return args['longUrl']
+	return result.content
+
+
+def twit(message):
+	"""
+	Отправляет в твиттер произвольное сообщение.
+	"""
+	client = oauth.TwitterClient(config.TWITTER_CONSUMER_KEY, config.TWITTER_CONSUMER_SECRET, 'http://www.deadchannel.ru/verify')
+	result = client.make_request('http://twitter.com/statuses/update.json',
+		token=config.TWITTER_ACCESS_TOKEN_KEY,
+		secret=config.TWITTER_ACCESS_TOKEN_SECRET,
+		additional_params={'status':message},
+		method=urlfetch.POST)
+
+
+def twit_event(event):
+	"""
+	Отправляет в twitter сообщение о событии.
+	"""
+	date = event.date.strftime('%d.%m')
+	time = event.date.strftime('%H:%M')
+	text = u'%s в %s, %s. %s' % (date, time, event.title, shorten_url(event.url))
+	twit(text)
+
 
 if __name__ == '__main__':
 	wsgiref.handlers.CGIHandler().run(webapp.WSGIApplication([
@@ -294,4 +336,5 @@ if __name__ == '__main__':
 		('/rss.xml', RSSHandler),
 		('/submit', SubmitHandler),
 		('/subscribe', SubscribeHandler),
+		('/twitter', TwitterHandler),
 	], debug=config.DEBUG))
