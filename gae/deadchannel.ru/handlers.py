@@ -118,6 +118,8 @@ class SubscribeHandler(BaseRequestHandler):
 			next = '/?status=subscribed'
 		phone = self.request.get('phone')
 		if phone:
+			# Коррекция формата номера.
+			if phone.startswith('8'): phone = '+7' + phone[1:]
 			obj = model.Phone.gql('WHERE phone = :1', phone).get()
 			if obj is None:
 				obj = model.Phone(phone=phone)
@@ -258,9 +260,34 @@ class RSSHandler(BaseRequestHandler):
 		}, mime_type='text/xml')
 
 
+class CalHandler(BaseRequestHandler):
+	"""
+	Выводит календарь со всеми событиями.
+	"""
+	def get(self):
+		text = u'BEGIN:VCALENDAR\n'
+		text += u'VERSION:2.0\n'
+		text += u'PRODID:-//hacksw/handcal//NONSGML v1.0//EN\n'
+		text += u'CALSCALE:GREGORIAN\n'
+		text += u'X-WR-CALNAME:Санкт-Петербург\n'
+		text += u'X-WR-TIMEZONE:Europe/Moscow\n'
+		text += u'X-WR-CALDESC:Афиша тёмной сцены Санкт-Петербурга.\n'
+		for event in model.Event.all().order('-date').fetch(1000):
+			text += u'BEGIN:VEVENT\n'
+			text += u'DTSTAMP:%sZ\n' % event.date.strftime('%Y%m%dT%H%M%S')
+			text += u'DTSTART:%sZ\n' % event.date.strftime('%Y%m%dT%H%M%S')
+			text += u'SUMMARY:%s\n' % event.title.replace(',', '\\,')
+			text += u'DESCRIPTION:%s\n' % event.url
+			text += u'END:VEVENT\n'
+		text += u'END:VCALENDAR\n'
+		self.response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
+		self.response.out.write(text)
+
+
 if __name__ == '__main__':
 	wsgiref.handlers.CGIHandler().run(webapp.WSGIApplication([
 		('/', IndexHandler),
+		('/all.ics', CalHandler),
 		('/cron', CronHandler),
 		('/list.csv', ListHandler),
 		('/notify', NotifyHandler),
