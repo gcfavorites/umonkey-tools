@@ -285,11 +285,6 @@ class CalHandler(BaseRequestHandler):
 		self.response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
 		self.response.out.write(text)
 
-class TwitterHandler(BaseRequestHandler):
-	def get(self):
-		event = model.Event.all().order('-date').get()
-		twit_event(event)
-
 
 def shorten_url(url):
 	"""
@@ -336,5 +331,4 @@ if __name__ == '__main__':
 		('/rss.xml', RSSHandler),
 		('/submit', SubmitHandler),
 		('/subscribe', SubscribeHandler),
-		('/twitter', TwitterHandler),
 	], debug=config.DEBUG))

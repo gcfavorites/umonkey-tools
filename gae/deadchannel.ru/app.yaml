@@ -33,5 +33,3 @@ handlers:
   login: admin
 - url: /subscribe
   script: handlers.py
-- url: /twitter
-  script: handlers.py
