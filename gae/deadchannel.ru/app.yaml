@@ -23,6 +23,8 @@ handlers:
 - url: /cron/daily
   script: handlers.py
   login: admin
+- url: /feedback
+  script: handlers.py
 - url: /list.csv
   script: handlers.py
   login: admin

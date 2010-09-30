@@ -280,12 +280,22 @@ class CalHandler(BaseRequestHandler):
 		self.response.out.write(text)
 
 
+class FeedbackHandler(BaseRequestHandler):
+	def post(self):
+		text = self.request.get('text').strip()
+		sender = self.request.get('from').strip()
+		if text and sender:
+			text += u'\n\n---\nFrom: %s\n' % sender
+			mail.send_mail(sender=config.ADMIN, to=config.ADMIN, subject='Feedback', body=text)
+		self.redirect(self.request.get('back'))
+
 if __name__ == '__main__':
 	wsgiref.handlers.CGIHandler().run(webapp.WSGIApplication([
 		('/', IndexHandler),
 		('/all.ics', CalHandler),
 		('/cron/hourly', HourlyCronHandler),
 		('/cron/daily', DailyCronHandler),
+		('/feedback', FeedbackHandler),
 		('/list.csv', ListHandler),
 		('/notify', NotifyHandler),
 		('/rss.xml', RSSHandler),
