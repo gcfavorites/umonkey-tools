@@ -1,3 +1,4 @@
+ADMIN = 'john.doe@gmail.com'
 DEBUG = True
 SMS_ID = '00000000-0000-0000-0000-000000000000'
 # SMS_FROM = 'DeadChannel'

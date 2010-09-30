@@ -133,7 +133,7 @@ class SubscribeHandler(BaseRequestHandler):
 		email = self.request.get('email', 'n/a')
 		phone = self.request.get('phone', 'n/a')
 		text = 'Email: %s\nPhone: %s' % (email, phone)
-		mail.send_mail(sender='justin.forest@gmail.com', to='justin.forest@gmail.com', subject='Unsubscribe request', body=text)
+		mail.send_mail(sender=config.ADMIN, to=config.ADMIN, subject='Unsubscribe request', body=text)
 
 
 class CronHandler(BaseRequestHandler):
@@ -228,7 +228,7 @@ class NotifyHandler(BaseRequestHandler):
 		html = u"<p>Привет.</p><p>Напоминаю, что %s в %s состоится мероприятие: <a href=\"%s\">%s</a>.</p><p>Подробности:<br/>%s</p>" % (date, time, event.url, event.title, event.url)
 
 		# http://code.google.com/intl/ru/appengine/docs/python/mail/emailmessagefields.html
-		mail.send_mail(sender='justin.forest@gmail.com', to=email, subject=u'Напоминание о событии', body=text, html=html)
+		mail.send_mail(sender=config.ADMIN, to=email, subject=u'Напоминание о событии', body=text, html=html)
 
 	def fetch(self, url, data=None):
 		if data is not None:
