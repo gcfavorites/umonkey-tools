@@ -121,6 +121,7 @@ class SubscribeHandler(BaseRequestHandler):
 		if phone:
 			# Коррекция формата номера.
 			if phone.startswith('8'): phone = '+7' + phone[1:]
+			phone = phone.replace(' ', '')
 			obj = model.Phone.gql('WHERE phone = :1', phone).get()
 			if obj is None:
 				obj = model.Phone(phone=phone)
@@ -149,18 +150,17 @@ class CronHandler(BaseRequestHandler):
 
 		# Отправка уведомлений за неделю
 		d1 = datetime.datetime.now() + datetime.timedelta(config.FAR_LIMIT)
-		d2 = datetime.datetime.now() + datetime.timedelta(config.FAR_LIMIT + 1)
-		for event in model.Event.gql('WHERE far_sent = :1 AND date > :2 AND date < :3', False, d1, d2).fetch(10):
+		for event in model.Event.gql('WHERE far_sent = :1 AND date < :2', False, d1).fetch(10):
 			count += self.notify(event, emails, phones)
 			event.far_sent = True
 			event.put()
 
 		# Отправка уведомлений за сутки
 		d1 = datetime.datetime.now() + datetime.timedelta(config.SOON_LIMIT)
-		d2 = datetime.datetime.now() + datetime.timedelta(config.SOON_LIMIT + 1)
-		for event in model.Event.gql('WHERE soon_sent = :1 AND date > :2 AND date < :3', False, d1, d2).fetch(10):
+		for event in model.Event.gql('WHERE soon_sent = :1 AND date < :2', False, d1).fetch(10):
 			count += self.notify(event, emails, phones)
 			event.soon_sent = True
+			event.far_sent = True
 			event.put()
 
 		if count:
