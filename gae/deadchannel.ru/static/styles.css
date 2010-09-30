@@ -29,8 +29,12 @@ p {
 
 #motto {
 	color: gray;
+	font-family: serif;
+}
+
+.oops {
+	color: red;
 	font-style: italic;
-	font-family: Serif;
 }
 
 #events {
