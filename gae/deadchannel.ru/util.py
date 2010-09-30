@@ -10,6 +10,7 @@ from google.appengine.api import urlfetch
 
 # site imports.
 import config
+import model
 import oauth
 
 def shorten_url(url):
