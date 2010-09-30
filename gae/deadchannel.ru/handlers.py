@@ -147,17 +147,18 @@ class CronHandler(BaseRequestHandler):
 		emails = model.Email.all().fetch(1000)
 		phones = model.Phone.all().fetch(1000)
 		count = 0 # количество поставленных в очередь событий
+		now = datetime.datetime.now()
 
 		# Отправка уведомлений за неделю
-		d1 = datetime.datetime.now() + datetime.timedelta(config.FAR_LIMIT)
-		for event in model.Event.gql('WHERE far_sent = :1 AND date < :2', False, d1).fetch(10):
+		d1 = now + datetime.timedelta(config.FAR_LIMIT)
+		for event in model.Event.gql('WHERE far_sent = :1 AND date < :2 AND date > :3', False, d1, now).fetch(10):
 			count += self.notify(event, emails, phones)
 			event.far_sent = True
 			event.put()
 
 		# Отправка уведомлений за сутки
-		d1 = datetime.datetime.now() + datetime.timedelta(config.SOON_LIMIT)
-		for event in model.Event.gql('WHERE soon_sent = :1 AND date < :2', False, d1).fetch(10):
+		d1 = now + datetime.timedelta(config.SOON_LIMIT)
+		for event in model.Event.gql('WHERE soon_sent = :1 AND date < :2 AND date > :3', False, d1, now).fetch(10):
 			count += self.notify(event, emails, phones)
 			event.soon_sent = True
 			event.far_sent = True
