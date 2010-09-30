@@ -2,5 +2,8 @@
 
 cron:
 - description: send notifications
-  url: /cron
+  url: /cron/hourly
   schedule: every 1 hours
+- description: backup subscribers
+  url: /cron/daily
+  schedule: every 24 hours

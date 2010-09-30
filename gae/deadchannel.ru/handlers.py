@@ -136,7 +136,7 @@ class SubscribeHandler(BaseRequestHandler):
 		mail.send_mail(sender=config.ADMIN, to=config.ADMIN, subject='Unsubscribe request', body=text)
 
 
-class CronHandler(BaseRequestHandler):
+class HourlyCronHandler(BaseRequestHandler):
 	"""
 	Находит события, по которым ещё не были отправлены уведомления, но уже
 	пора, и добавляет их в очередь.  Количество дней, за которое отправляется
@@ -182,6 +182,15 @@ class CronHandler(BaseRequestHandler):
 			taskqueue.Task(url='/notify', params={ 'event': event.key(), 'phone': phone.phone }).add()
 			count += 1
 		return count
+
+
+class DailyCronHandler(BaseRequestHandler):
+	"""
+	Отправляет администратору список подписчиков в CSV.  Вызывается каждую
+	ночь.  Нужно как архив, на случай повреждения данных на сервере.
+	"""
+	def get(self):
+		mail.send_mail(sender=config.ADMIN, to=config.ADMIN, subject='Backup of list.csv', body=list_csv())
 
 
 class NotifyHandler(BaseRequestHandler):
@@ -338,7 +347,8 @@ if __name__ == '__main__':
 	wsgiref.handlers.CGIHandler().run(webapp.WSGIApplication([
 		('/', IndexHandler),
 		('/all.ics', CalHandler),
-		('/cron', CronHandler),
+		('/cron/hourly', HourlyCronHandler),
+		('/cron/daily', DailyCronHandler),
 		('/list.csv', ListHandler),
 		('/notify', NotifyHandler),
 		('/rss.xml', RSSHandler),
