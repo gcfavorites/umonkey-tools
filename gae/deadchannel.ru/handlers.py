@@ -5,16 +5,12 @@
 import datetime
 import logging
 import os
-import urllib
-import urllib2
 import urlparse
 import wsgiref.handlers
 
 # GAE imports
-from google.appengine.ext.webapp.util import login_required
 from google.appengine.api import mail
 from google.appengine.api import memcache
-from google.appengine.api import urlfetch
 from google.appengine.api import users
 from google.appengine.api.labs import taskqueue
 from google.appengine.ext import webapp
@@ -23,7 +19,7 @@ from google.appengine.ext.webapp import template
 # Site imports.
 import config
 import model
-import oauth
+import util
 
 class BaseRequestHandler(webapp.RequestHandler):
 	def render(self, template_name, vars={}, ret=False, mime_type='text/html'):
@@ -174,7 +170,7 @@ class HourlyCronHandler(BaseRequestHandler):
 
 	def notify(self, event, emails, phones):
 		count = 0
-		twit_event(event)
+		util.twit_event(event)
 		for email in emails:
 			taskqueue.Task(url='/notify', params={ 'event': event.key(), 'email': email.email }).add()
 			count += 1
@@ -190,7 +186,8 @@ class DailyCronHandler(BaseRequestHandler):
 	ночь.  Нужно как архив, на случай повреждения данных на сервере.
 	"""
 	def get(self):
-		mail.send_mail(sender=config.ADMIN, to=config.ADMIN, subject='Backup of list.csv', body=list_csv())
+		subject = 'Subscribers.csv from ' + self.request.host
+		mail.send_mail(sender=config.ADMIN, to=config.ADMIN, subject=subject, body=util.get_csv())
 
 
 class NotifyHandler(BaseRequestHandler):
@@ -227,7 +224,7 @@ class NotifyHandler(BaseRequestHandler):
 		}
 		if hasattr(config, 'SMS_FROM'):
 			options['from'] = config.SMS_FROM
-		self.fetch('http://sms.ru/sms/send', options)
+		util.fetch('http://sms.ru/sms/send', options)
 		logging.info('Sent an SMS to %s' % phone)
 
 	def notify_email(self, event, email):
@@ -239,13 +236,6 @@ class NotifyHandler(BaseRequestHandler):
 		# http://code.google.com/intl/ru/appengine/docs/python/mail/emailmessagefields.html
 		mail.send_mail(sender=config.ADMIN, to=email, subject=u'Напоминание о событии', body=text, html=html)
 
-	def fetch(self, url, data=None):
-		if data is not None:
-			url += '?' + urllib.urlencode(data)
-		result = urlfetch.fetch(url)
-		if result.status_code != 200:
-			raise Exception('Could not fetch ' + url)
-
 
 class ListHandler(BaseRequestHandler):
 	"""
@@ -253,7 +243,7 @@ class ListHandler(BaseRequestHandler):
 	"""
 	def get(self):
 		self.response.headers['Content-Type'] = 'text/plain'
-		self.response.out.write(list_csv())
+		self.response.out.write(util.get_csv())
 
 
 class RSSHandler(BaseRequestHandler):
@@ -288,59 +278,6 @@ class CalHandler(BaseRequestHandler):
 		text += u'END:VCALENDAR\n'
 		self.response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
 		self.response.out.write(text)
-
-
-def shorten_url(url):
-	"""
-	Возвращает сокращённый адрес страницы.  Если сокращение не работает —
-	возвращает исходный адрес.
-	"""
-	args = { 'login': config.BITLY_NAME, 'apiKey': config.BITLY_KEY, 'domain': 'j.mp', 'format': 'txt', 'longUrl': url }
-	url = 'http://api.bit.ly/v3/shorten?' + urllib.urlencode(args)
-	result = urlfetch.fetch(url)
-	if result.status_code != 200:
-		return args['longUrl']
-	return result.content
-
-
-def twit(message):
-	"""
-	Отправляет в твиттер произвольное сообщение.
-	"""
-	client = oauth.TwitterClient(config.TWITTER_CONSUMER_KEY, config.TWITTER_CONSUMER_SECRET, 'http://www.deadchannel.ru/verify')
-	result = client.make_request('http://twitter.com/statuses/update.json',
-		token=config.TWITTER_ACCESS_TOKEN_KEY,
-		secret=config.TWITTER_ACCESS_TOKEN_SECRET,
-		additional_params={'status':message},
-		method=urlfetch.POST)
-
-
-def twit_event(event):
-	"""
-	Отправляет в twitter сообщение о событии.
-	"""
-	date = event.date.strftime('%d.%m')
-	time = event.date.strftime('%H:%M')
-	text = u'%s в %s, %s. %s' % (date, time, event.title, shorten_url(event.url))
-	twit(text)
-
-
-def list_csv():
-	"""
-	Формирует CSV файл с подписчиками.
-	"""
-	text = ''
-	mails = phones = 0
-	for email in model.Email.all().order('email').fetch(1000):
-		date = email.date_added.strftime('%Y-%m-%d')
-		text += '%s,%s,\n' % (date, email.email)
-		mails += 1
-	for phone in model.Phone.all().order('phone').fetch(1000):
-		date = phone.date_added.strftime('%Y-%m-%d')
-		text += '%s,,%s\n' % (date, phone.phone)
-		phones += 1
-	header = 'added on,email (%u),phone (%u)\n' % (mails, phones)
-	return header + text
 
 
 if __name__ == '__main__':
