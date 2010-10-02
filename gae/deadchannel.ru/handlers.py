@@ -67,6 +67,7 @@ class IndexHandler(BaseRequestHandler):
 			'events': events,
 			'status': {
 				'subscribed': self.request.get('status') == 'subscribed',
+				'mod': self.request.get('status') == 'mod',
 			},
 			'gaid': gaid,
 		})
@@ -83,16 +84,22 @@ class SubmitHandler(BaseRequestHandler):
 
 	def post(self):
 		date = datetime.datetime.strptime(self.request.get('date'), '%Y-%m-%d %H:%M')
-		title = self.request.get('title')
-		url = self.request.get('url')
-		event = model.Event.gql('WHERE url = :1', url).get()
-		if event is None:
-			event = model.Event(user=users.get_current_user(), url=url, far_sent=False, soon_sent=False)
-		event.short_url = util.shorten_url(url)
-		event.date = date
-		event.title = title
-		event.put()
-		self.redirect('/')
+		title = self.request.get('title').strip()
+		url = self.request.get('url').strip()
+		if users.is_current_user_admin():
+			event = model.Event.gql('WHERE url = :1', url).get()
+			if event is None:
+				event = model.Event(user=users.get_current_user(), url=url, far_sent=False, soon_sent=False)
+			event.short_url = util.shorten_url(url)
+			event.date = date
+			event.title = title
+			event.put()
+			self.redirect('/')
+		else:
+			text = u'Date: %s\nTitle: %s\nURL: %s' % (self.request.get('date'), title, url)
+			html = u'<html><body><table><tr><th>Date:</th><td>%s</td></tr><tr><th>Title:</th><td>%s</td></tr><tr><th>URL:</th><td>%s</td></tr></table></body></html>' % (self.request.get('date'), title, url)
+			mail.send_mail(sender=config.ADMIN, to=config.ADMIN, subject='New event', body=text, html=html)
+			self.redirect('/?status=mod')
 
 
 class SubscribeHandler(BaseRequestHandler):

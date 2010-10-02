@@ -37,6 +37,5 @@ handlers:
   script: handlers.py
 - url: /submit
   script: handlers.py
-  login: admin
 - url: /subscribe
   script: handlers.py
