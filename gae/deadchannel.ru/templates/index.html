@@ -33,6 +33,7 @@
 </div>
 <input type="submit" name="add" value="Добавить в список"/>
 <input type="submit" name="remove" value="Удалить"/>
+{% if admin %}<a href="/list.csv">вывести список</a>{% endif %}
 </form>
 </div>
 {% endblock %}

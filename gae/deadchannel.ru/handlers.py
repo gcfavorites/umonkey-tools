@@ -33,6 +33,7 @@ class BaseRequestHandler(webapp.RequestHandler):
 		#vars['scripts'] = self.get_scripts(vars['host'])
 		#vars['logout_uri'] = users.create_logout_url(self.request.uri)
 		#vars['login_uri'] = users.create_login_url(self.request.uri)
+		vars['admin'] = users.is_current_user_admin()
 		directory = os.path.dirname(__file__)
 		path = os.path.join(directory, 'templates', template_name)
 		response = template.render(path, vars)
