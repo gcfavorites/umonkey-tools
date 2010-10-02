@@ -59,7 +59,7 @@ class IndexHandler(BaseRequestHandler):
 	index.html.
 	"""
 	def get(self):
-		now = datetime.datetime.now()
+		now = util.now()
 		events = model.Event.gql('WHERE date > :1 ORDER BY date', now).fetch(20)
 		gaid = hasattr(config, 'GA_ID') and config.GA_ID or None
 		self.render('index.html', {
@@ -148,7 +148,7 @@ class HourlyCronHandler(BaseRequestHandler):
 		emails = model.Email.all().fetch(1000)
 		phones = model.Phone.all().fetch(1000)
 		count = 0 # количество поставленных в очередь событий
-		now = datetime.datetime.now()
+		now = util.now()
 
 		# Отправка уведомлений за неделю
 		d1 = now + datetime.timedelta(config.FAR_LIMIT)
@@ -292,6 +292,15 @@ class FeedbackHandler(BaseRequestHandler):
 			mail.send_mail(sender=config.ADMIN, to=config.ADMIN, subject='Feedback from ' + site, body=text)
 		self.redirect(self.request.get('back'))
 
+
+class NowHandler(BaseRequestHandler):
+	def get(self):
+		text = 'Real server time: %s.\n' % datetime.datetime.now().strftime('%d.%m.%Y, %H:%M:%S')
+		text += 'Converted time:   %s.' % util.now().strftime('%d.%m.%Y, %H:%M:%S')
+		self.response.headers['Content-Type'] = 'text/plain'
+		self.response.out.write(text)
+
+
 if __name__ == '__main__':
 	wsgiref.handlers.CGIHandler().run(webapp.WSGIApplication([
 		('/', IndexHandler),
@@ -301,6 +310,7 @@ if __name__ == '__main__':
 		('/feedback', FeedbackHandler),
 		('/list.csv', ListHandler),
 		('/notify', NotifyHandler),
+		('/now', NowHandler),
 		('/rss.xml', RSSHandler),
 		('/submit', SubmitHandler),
 		('/subscribe', SubscribeHandler),

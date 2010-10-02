@@ -2,6 +2,7 @@
 # vim: set ts=4 sts=4 sw=4 noet:
 
 # Python imports.
+import datetime
 import urllib
 import urllib2
 
@@ -73,3 +74,8 @@ def fetch(url, data=None):
     if result.status_code != 200:
         raise Exception('Could not fetch ' + url)
     return result.content
+
+
+def now():
+	"""Returns current time, fixes TZ to MSK."""
+	return datetime.datetime.now() + datetime.timedelta(0, 0, 0, 0, 0, config.TZ)
