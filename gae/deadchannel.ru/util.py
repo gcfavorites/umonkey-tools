@@ -45,7 +45,7 @@ def twit_event(event):
 	"""
 	date = event.date.strftime('%d.%m')
 	time = event.date.strftime('%H:%M')
-	text = u'%s в %s, %s. %s' % (date, time, event.title, shorten_url(event.url))
+	text = u'%s в %s, %s. %s' % (date, time, event.title, event.short_url)
 	twit(text)
 
 

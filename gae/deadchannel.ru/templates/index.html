@@ -7,7 +7,7 @@
 {% for event in events %}
 <tr>
 <td class="date">{{ event.date|date:"d.m" }}</td>
-<td class="title"><a href="{{ event.url }}" class="external" target="_blank">{{ event.title }}</a></td>
+<td class="title"><a href="{{ event.short_url }}" class="external" target="_blank">{{ event.title }}</a></td>
 </tr>
 {% endfor %}
 </tbody>

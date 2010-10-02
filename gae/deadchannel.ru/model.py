@@ -7,6 +7,7 @@ class Event(db.Model):
 	date = db.DateTimeProperty()
 	title = db.StringProperty()
 	url = db.LinkProperty()
+	short_url = db.LinkProperty()
 	far_sent = db.BooleanProperty()
 	soon_sent = db.BooleanProperty()
 

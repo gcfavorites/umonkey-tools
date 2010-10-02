@@ -87,6 +87,7 @@ class SubmitHandler(BaseRequestHandler):
 		event = model.Event.gql('WHERE url = :1', url).get()
 		if event is None:
 			event = model.Event(user=users.get_current_user(), url=url, far_sent=False, soon_sent=False)
+		event.short_url = util.shorten_url(url)
 		event.date = date
 		event.title = title
 		event.put()
