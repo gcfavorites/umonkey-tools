@@ -22,12 +22,11 @@
 {% if status.mod %}
 <p class="message">Информация о событии отправлена модератору.</p>
 {% endif %}
-<p>Мы можем сообщать тебе обо всех событиях за неделю и напоминать за сутки, удобным для тебя способом.</p>
+<p>Мы можем сообщать тебе обо всех событиях за неделю и напоминать за сутки, удобным для тебя способом.  Выбери любой, можно оба.</p>
 <form method="post" action="/subscribe">
 <div>
 <label for="sphone">Номер мобильного телефона (для SMS):</label>
 <input id="sphone" name="phone" type="text" class="text"/>
-<p class="hint">Формат: +79112223344</p>
 </div>
 <div>
 <label for="semail">Email:</label>
