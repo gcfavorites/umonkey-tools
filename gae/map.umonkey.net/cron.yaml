@@ -1,0 +1,4 @@
+cron:
+- description: Update from CSV.
+  url: /update
+  schedule: every 15 minutes

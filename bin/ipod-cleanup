@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Removes played episodes from an iPod.
+
+import os
+import sys
+
+try:
+    import gpod
+except:
+    print "Please install python-gpod."
+    sys.exit(1)
+
+def main(argv = sys.argv):
+    mountpoint = argv[1]
+
+    itdb = gpod.itdb_parse(mountpoint, None)
+    if itdb is None:
+        print "iPod files not found."
+    itdb.mountpoint = mountpoint
+
+    playlist = gpod.itdb_playlist_podcasts(itdb)
+
+    save = False
+    tracks = gpod.sw_get_playlist_tracks(playlist)
+    for track in tracks:
+        remove = False
+        filename = gpod.itdb_filename_on_ipod(track)
+        if not filename:
+            print "- %s (no file)" % track.title
+            remove = True
+        elif not os.stat(filename).st_size:
+            print "- %s (bad size)" % track.title
+        elif track.mark_unplayed == 1 and not track.rating:
+            print "- %s (playcount)" % track.title
+            remove = True
+        if remove:
+            gpod.itdb_playlist_remove_track(playlist, track)
+            gpod.itdb_playlist_remove_track(None, track)
+            gpod.itdb_track_unlink(track)
+            if filename:
+                os.unlink(filename)
+            save = True
+        else:
+          pass
+          """
+          print "+ %s (%u)" % (track.title, track.playcount)
+          """
+
+    print "* %u episodes analyzed." % len(tracks)
+
+    if save:
+      print "* writing db..."
+      gpod.itdb_write(itdb, None)
+
+      """
+      print "* writing extended db..."
+      ext_filename = os.path.join(mountpoint, 'iPod_Control', 'iTunes', 'iTunesDB.ext')
+      idb_filename = os.path.join(mountpoint, 'iPod_Control', 'iTunes', 'iTunesDB')
+      if os.path.exists(ext_filename) and os.path.exists(idb_filename):
+          db = gpod.ipod.Database(mountpoint)
+          print db
+          gpod.gtkpod.parse(ext_filename, db, idb_filename)
+          gpod.gtkpod.write(ext_filename, db, idb_filename)
+          db.close()
+      """
+
+      print "* database saved"
+    else:
+      print "* nothing to do"
+
+if __name__ == "__main__":
+    sys.exit( main())

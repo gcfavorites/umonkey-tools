@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Добавление события</h2>
+<form method="post" action="/submit">
+<div>
+<label for="edate">Дата:</label>
+<input id="edate" type="text" class="text" name="date"/>
+<p class="hint">Формат: «ГГГГ-ММ-ДД ЧЧ:ММ», время московское.</p>
+</div>
+<div>
+<label for="etitle">Заголовок:</label>
+<input id="etitle" type="text" class="text" name="title"/>
+</div>
+<div>
+<label for="eurl">URL:</label>
+<input id="eurl" type="text" class="text" name="url"/>
+</div>
+<input type="submit" value="Добавить"/>
+</form>
+{% endblock %}

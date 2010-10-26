@@ -1,0 +1,133 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+# Written by Conman, see
+# http://emkay.unpointless.com/Blog/?p=63#comment-7795
+
+import re
+import urllib
+import sys
+import time
+
+from mechanize import Browser
+
+# global variables
+lastUpdate = 0.0
+progressSize = 0
+
+def reportHook(count, blocksize, totalsize):
+
+    global lastUpdate
+    global progressSize
+
+    # a count of zero value implies a new download has started
+    if count == 0:
+        # initialize the time download has started
+        lastUpdate = time.time()
+        # progress of downloaded file is initially zero
+        progressSize = 0
+        return
+
+    progressSize += blocksize
+
+    # calculate the time elapsed since last progress update
+    # only display progress every X seconds
+    deltaTime = time.time() - lastUpdate
+    if deltaTime > 30:
+        # calculate the file completion progress
+       percent = int(float(count * blocksize * 100) / totalsize)
+       # calculate the download speed in kilobytes/seccond
+       speed = int(progressSize / (1024 * deltaTime))
+       # display progress to console
+       print time.strftime("  %d %b %Y-%m-%d %H:%M:%S"), str(percent) + "% complete @" , str(speed) , "kB/s"
+       # reset the timestamp
+       lastUpdate = time.time()
+       # reset byte counter
+       progressSize = 0
+
+def downloadFile(link):
+    # strip the trailing newline characters (if any)
+    url = link.strip('\n\r ')
+    # parse url for filename
+    filename = url.split('/')[-1]
+    # cleanup from previous call to urlretrieve()
+    urllib.urlcleanup()
+    print "Starting download of: " + filename
+    # open connection to file and download it
+    urllib.urlretrieve(url, filename, reportHook)
+    # display success message
+    print "Download completed:" , filename
+
+def htc(m):
+    return chr(int(m.group(1), 16))
+
+def urldecode(url):
+    rex=re.compile('%([0-9a-hA-H][0-9a-hA-H])', re.M)
+    return rex.sub(htc, url)
+
+def getfile(line):
+    # create instance of browser
+    br = Browser()
+    try:
+        # open first page
+        br.open(line)
+        # select the first form (free download link)
+        br.select_form(nr=0)
+        # submit the form (click the button)
+        response = br.submit()
+        # get the entire string of HTML
+        html = response.read()
+    except:
+        # the file does not exist on server
+        # continue to the next file
+        print '%s: not found' % line.strip()
+        return
+
+    htmlDec = urldecode(html)
+
+    try:
+        # determine wait-time (seconds) for free file by searching JavaScript code for variable 'c'
+        waitTime = re.search('var c=[0-9]*', htmlDec).group(0)[6:]
+    except:
+        tmp = re.search('try again in about (\d+) minutes', htmlDec)
+        if tmp is None:
+            print '%s: don\'t know how long to wait for' % line.strip()
+            return
+
+        delay = int(tmp.group(1)) + 1
+        print '%s: waiting for %u minutes' % (line, delay)
+        time.sleep(delay * 60)
+
+        return getfile(line)
+
+    # wait the required number of seconds
+    print '%s: waiting for %u seconds' % (line, waitTime)
+    time.sleep(int(waitTime) + 1)
+
+    # find the link to the download file
+    url = re.search('action="http://[^"]*', htmlDec).group(0)[8:]
+
+    try:
+        downloadFile(url)
+    except:
+        return
+
+    # close browser session
+    br.close()
+    # delete browser session reference
+    del br
+
+    # sleep for a 15 seconds before attempting to download the next file
+    time.sleep(15)
+
+def main(localfile):
+    f = open(localfile, 'r')
+    for line in f.readlines():
+        getfile(line.strip())
+    f.close()
+
+if __name__ == "__main__":
+  if len(sys.argv) == 1:
+    print "Usage: rapidshare url_list"
+    sys.exit(1)
+  main(sys.argv[1])

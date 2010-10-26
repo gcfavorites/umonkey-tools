@@ -1,0 +1,5 @@
+#!/bin/sh
+SAMPLES=/usr/share/sayhours
+HOURS=$(date +'%H')
+FILE=$(ls $SAMPLES/$HOURS/* | sort -R | head -1)
+play -q "$FILE"

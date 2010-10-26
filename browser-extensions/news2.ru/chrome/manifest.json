@@ -1,0 +1,13 @@
+{
+	"name": "News2.ru extensions",
+	"version": "1.0",
+	"description": "Fixes some problems with the news2.ru web site.",
+	"permissions": [ "http://news2.ru/story/*" ],
+	"icons": { "16": "icon-16x16.png" },
+	"content_scripts": [
+		{
+			"matches": [ "http://news2.ru/story/*" ],
+			"js": [ "fixes.js" ]
+		}
+	]
+}

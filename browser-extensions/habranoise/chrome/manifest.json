@@ -1,0 +1,20 @@
+{
+   "content_scripts": [ {
+      "js": [ "script.js" ],
+      "matches": [ "http://habrahabr.ru/blogs/*/*/" ],
+      "run_at": "document_end"
+   }, {
+      "js": [ "script.js" ],
+      "matches": [ "http://habrahabr.ru/blogs/*/*/" ],
+      "run_at": "document_end"
+   } ],
+   "description": "Hides voted down comments at habrahabr.ru.",
+   "icons": {
+      "128": "i128.png",
+      "16": "i16.png",
+      "32": "i32.png",
+      "64": "i64.png"
+   },
+   "name": "Habrahabr Denoiser",
+   "version": "1.8"
+}

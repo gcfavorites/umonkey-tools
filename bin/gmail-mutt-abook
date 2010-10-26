@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+
+import os
+import re
+import subprocess
+import sys
+
+PATH = '~/.cache/gmail-mutt-contacts.tsv'
+
+def update():
+	contacts = []
+	for line in subprocess.Popen(['google', 'contacts', 'list'], stdout=subprocess.PIPE).communicate()[0].split('\n'):
+		try:
+			name, emails = line.split(',', 1)
+			for email in emails.split(' '):
+				if email and email != 'N/A':
+					if name == 'N/A': contacts.append(email)
+					else: contacts.append(email + '\t' + name)
+		except: pass
+	open(os.path.expanduser(PATH), 'w').write('\n'.join(sorted(contacts)))
+
+if __name__ == '__main__':
+	if len(sys.argv) == 1:
+		print 'Usage:\n'
+		print '%s --update' % os.path.basename(sys.argv[0])
+		print '  Update contact cache using googlecl.'
+		print '  Contacts are stored in %s\n' % PATH
+		print '%s regexp' % os.path.basename(sys.argv[0])
+		print '  Shows contacts matching regexp\n'
+		print 'To use this with mutt, add the following to ~/.muttrc:'
+		print '  set query_command = "%s \'%%s\'"' % os.path.basename(sys.argv[0])
+		print 'Then you can press Q in index to lookup then act on a contact, or'
+		print 'press m to start composing a message, type something then press ^T'
+		print 'for address autocompletion. Use the magic work "all" to show all addresses'
+		sys.exit(1)
+
+	if '--update' in sys.argv:
+		update()
+	else:
+		if sys.argv[1] == 'all':
+			re = None
+		else:
+			re = re.compile(sys.argv[1], re.IGNORECASE)
+		for line in open(os.path.expanduser(PATH), 'r').readlines():
+			if re is None or re.search(line):
+				print line.strip()

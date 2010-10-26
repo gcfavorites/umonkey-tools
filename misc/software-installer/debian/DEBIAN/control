@@ -1,0 +1,12 @@
+Package: umonkey-netbook
+Version: 1.0
+Section: sound
+Priority: optional
+Maintainer: Justin Forest <justin.forest@gmail.com>
+Architecture: all
+Essential: no
+Depends: audacity, lame, vim-nox, mplayer, mp3gain, vorbisgain, flac,
+	htop, ncmpcpp, afuse, sshfs, curlftpfs, git-core, ttf-droid, vorbis-tools,
+	exfalso, mutt, msmtp, gajim-nightly, etckeeper, flip, s3cmd, devtodo
+Description: A collection of software that I use regularly.
+Homepage: http://umonkey-tools.googlecode.com/
