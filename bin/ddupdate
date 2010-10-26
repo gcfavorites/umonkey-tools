@@ -1,4 +1,19 @@
 #!/bin/sh
+# ddupdate: a simple dyndns updating script.
+# Released to public domain.
+#
+# Unlike most other scripts, this is safe to run from cron.  Before updating
+# the host it checks whether the effective IP address differs from the one you
+# really have.  A message is printed when the address changes, so cron can
+# emails the changes to you:
+#
+#   MAILTO=john@example.com
+#   */5 * * * * /home/john/bin/ddupdate
+#
+# Run without arguments and see what happens.
+#
+# Requirements: host, wget (binaries).
+
 CONFILE=$HOME/.ddupdate
 if [ ! -f $CONFILE ]; then
 	echo "username=john" > $CONFILE
