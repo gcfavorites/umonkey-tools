@@ -50,11 +50,11 @@ if [ -z "$(which nail)" ]; then
 fi
 
 # Prefer cron's MAILTO.
-test -n ${MAILTO} && MAIL=${MAILTO}
+test -n "${MAILTO}" && MAIL=${MAILTO}
 
-case ${MAIL} in
+case "${MAIL}" in
 *@*) ;;
-*) echo "\$MAIL must contain an email address." >&2; exit 1
+*) echo "\$MAIL must contain an email address, not ${MAIL}." >&2; exit 1
 esac
 
 # Add a "backup" suffix to Gmail addresses.
@@ -62,7 +62,7 @@ TO=$(echo ${MAIL} | sed -e 's/@gmail.com/+backup@gmail.com/g')
 
 test $(date +'%d') = '1' && MODE='monthly' || MODE='daily'
 
-FILENAME=$(hostname)-backup-$(date +'%Y%m%d').tar.bz2
+FILENAME=$BACKUP_DIR/$(hostname)-backup-$(date +'%Y%m%d').tar.bz2
 
 if [ -x ${BACKUP_DIR}/pre-backup ]; then
 	${BACKUP_DIR}/pre-backup
@@ -72,16 +72,24 @@ if [ -x ${BACKUP_DIR}/pre-backup ]; then
 	fi
 fi
 
-tar cfa ${FILENAME} --directory ${BACKUP_DIR} .
+# Prepare repository archives.
+rm -f $BACKUP_DIR/*.tar
+ARCHIVES=""
+for dir in $BACKUP_DIR/*.git; do
+	ARCHIVE=$(basename $dir).tar
+	git --git-dir=$dir archive --format=tar -o $ARCHIVE HEAD && ARCHIVES="$ARCHIVES $ARCHIVE" || rm -f $ARCHIVE
+done
+tar cfa ${FILENAME} --directory $BACKUP_DIR $ARCHIVES
+rm -f $ARCHIVES
 
 gpg -e -r ${MAIL} --batch --yes ${FILENAME} > ${FILENAME}.gpg && rm ${FILENAME}; FILENAME=${FILENAME}.gpg; HADGPG="yes" || rm -f ${FILENAME}.gpg
 
 MESSAGE="Here is your ${MODE} backup from $(hostname) for $(date +'%Y-%m-%d').\nThe file contains the ${BACKUP_DIR} folder."
 if [ -n "${HADGPG}" ]; then
-	MESSAGE=${MESSAGE}"\n\nThe file is encrypted; to decrypt it, use the following command:\n\ngpg --use-agent -d ${FILENAME} > $(basename ${FILENAME} .gpg)"
+	MESSAGE=${MESSAGE}"\n\nThe file is encrypted; to decrypt it, use the following command:\n\ngpg --use-agent -d $(basename ${FILENAME}) > $(basename ${FILENAME} .gpg)"
 fi
 
+echo "Sending to $TO"
 echo ${MESSAGE} | nail -s "$(hostname) backup $(date +'%Y-%m-%d')" -a ${FILENAME} ${TO}
+test -x ${BACKUP_DIR}/post-backup && ${BACKUP_DIR}/post-backup ${FILENAME}
 rm ${FILENAME}
-
-test -x ${BACKUP_DIR}/post-backup && ${BACKUP_DIR}/post-backup
