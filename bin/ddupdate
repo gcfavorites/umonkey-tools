@@ -10,6 +10,10 @@
 #   MAILTO=john@example.com
 #   */5 * * * * /home/john/bin/ddupdate
 #
+# Or, to collect debug info:
+#
+#   */5 * * * * /home/john/bin/ddupdate debug >> /home/john/ddupdate.log
+#
 # Run without arguments and see what happens.
 #
 # Requirements: host, wget (binaries).
