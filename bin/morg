@@ -1,0 +1,302 @@
+#!/usr/bin/env python
+# vim: ai noci fileencoding=utf-8:
+#
+# morg: a minimalistic organizer.
+#
+# This is command line (for now) file system based organizer which has a wiki
+# and an issue tracker.  Everything is a text file with support for Mardown
+# formatting.  Run without arguments to get help.  More help is on the web:
+# 
+# http://code.google.com/p/umonkey-tools/wiki/morg
+#
+# License: public domain.
+# Author: justin.forest@gmail.com (Justin Forest)
+
+import datetime
+import os
+import re
+import sys
+import subprocess
+
+class morg:
+	def __init__(self):
+		self.config = {}
+
+		# Read default configuration.
+		confile = os.path.expanduser('~/.morg')
+		if os.path.exists(confile):
+			self.config = self._parse_tags(confile)
+
+		# Go to the default project if this folder has no .morg file or if it's
+		# the home dir.
+		if not os.path.exists('.morg') or os.path.realpath('.morg') == os.path.expanduser('~/.morg'):
+			default = os.path.expanduser(self._config('default-path'))
+			if os.path.exists(default):
+				os.chdir(default)
+
+		# Apply local configuration.
+		if os.path.exists('.morg'):
+			self.config.update(self._parse_tags('.morg'))
+
+
+	def run(self, args):
+		if not args and self.config.has_key('default-command'):
+			args = self.config['default-command'].split(' ')
+		if args:
+			if args[0] == 'config':
+				filename = os.path.expanduser('~/.morg')
+				self._edit(filename)
+				sys.exit(0)
+			if args[0] == 'help':
+				pass
+			if args[0] == 'issue':
+				self._issue(args[1:])
+			if args[0] == 'patch':
+				self._patch()
+			if args[0] == 'push':
+				self._push()
+				sys.exit()
+			if args[0] == 'show':
+				self._show()
+		print "Usage: morg wiki|issue command ..."
+		print ""
+		print "Global commands:"
+		print "  config          -- edit your config file"
+		print "  help            -- shows this help"
+		print "  patch           -- edit this script"
+		print "  push            -- push to the remote git/hg repo (if used)"
+		print "  show            -- shows all files"
+		print ""
+		print "Issue management:"
+		print "  issue [list]    -- shows all issues"
+		print "  issue create    -- create a new issue"
+		print "  issue edit id   -- edit an existing issue"
+		sys.exit(1)
+
+
+	def _config(self, arg, default=''):
+		if self.config.has_key(arg):
+			return self.config[arg]
+		return default
+
+
+	def _patch(self):
+		self._edit(sys.argv[0])
+		sys.exit(0)
+
+
+	def _show(self):
+		self._run('find wiki issues -type f | sort -V')
+		sys.exit(0)
+
+
+	def _patch(self):
+		self._edit(sys.argv[0])
+		sys.exit(0)
+
+
+	def _issue(self, args):
+		if not args:
+			args.insert(0, 'list')
+		if 'list' == args[0]:
+			return self._issue_list(args[1:])
+		elif 'edit' == args[0]:
+			return self._issue_edit(args[1:])
+		elif 'create' == args[0]:
+			return self._issue_create()
+
+
+	def _issue_list(self, labels):
+		"""
+		Выводит список задач.  Если массив labels пуст — выводит задачи без метки
+		"closed", если не пуст — выводит задачи с первой указанной меткой.
+		"""
+		issues = self._get_issues()
+
+		# Фильтрация по меткам.
+		if labels:
+			issues = [issue for issue in issues if issue[1].has_key('labels') and labels[0] in issue[1]['labels']]
+		else:
+			issues = [issue for issue in issues if not issue[1].has_key('labels') or 'closed' not in issue[1]['labels']]
+
+		if not issues:
+			print "No issues to show."
+		else:
+			for issue in issues:
+				id, issue = issue
+				line = u'%s%s%5u: %s' % (issue['issue-marker'], issue['priority'], id, issue['title'])
+				if issue['labels']:
+					line += u'  [%s]' % u', '.join(sorted(issue['labels']))
+				print line
+			if not self._config('less-hints'):
+				print "||    |"
+				print "||    +- issue id (use: morg issue edit id)"
+				print "||"
+				print "|+------ priority (lower = higher)"
+				print "+------- type (enhancement, defect, task)"
+
+		sys.exit(0)
+
+
+	def _issue_edit(self, args):
+		"""
+		Открывает указанную задачу в редакторе.
+		"""
+		if args and args[0].isdigit():
+			filename = os.path.join('issues', str(args[0]), 'README.markdown')
+			self._edit(filename)
+			self._commit('%s edited issue %s' % (os.getenv('USER'), args[0]))
+			self._issue_list([])
+
+
+	def _issue_create(self):
+		"""
+		Создаёт шаблон описания проблемы, запускает редактор, затем перемещает
+		созданный файл на постоянное место.  Чтобы прервать процесс нужно убить
+		редактор.
+		"""
+		date = datetime.datetime.now().strftime('%Y-%m-%d')
+		template = u'\n'.join([
+			"title: New issue description...",
+			"labels: private",
+			"created: %s" % date,
+			"---",
+			"Issue description goes here..."
+		])
+
+		issues = self._get_issues(sort=False)
+		if issues: nextid = max([x[0] for x in issues]) + 1
+		else: nextid = 1
+
+		issuedir = os.path.join('issues', str(nextid))
+		if os.path.exists(issuedir):
+			print >>sys.stderr, 'OOPS, there is a %s directory already.' % issuedir
+			sys.exit(1)
+
+		filename = self._edit_text(template)
+		realname = os.path.join(issuedir, 'README.markdown')
+		os.makedirs(issuedir)
+		os.rename(filename, realname)
+		print "New file: %s" % realname
+		self._commit('%s created issue %u' % (os.getenv('USER'), nextid))
+		self._issue_list([])
+
+
+	def _edit(self, filename):
+		editor = os.getenv('EDITOR')
+		if not editor:
+			for dirname in os.getenv('PATH').split(os.pathsep):
+				cmd = os.path.join(dirname, 'editor')
+				if os.path.exists(cmd):
+					editor = cmd
+					break
+		if not editor:
+			print >>sys.stderr, 'Please define the EDITOR variable.'
+			sys.exit(1)
+		self._run(editor + ' ' + filename)
+
+
+	def _edit_text(self, text):
+		"""
+		Сохраняет текст во временный файл, открывает его на редактирование,
+		возвращает имя файла.
+		"""
+		filename = os.path.expanduser('~/new-morg-issue.markdown')
+		f = open(filename, 'w')
+		f.write(text)
+		f.close()
+		self._edit(filename)
+		return filename
+
+
+	def _commit(self, message='autoupdate'):
+		if self._config('auto-commit'):
+			if os.path.exists('.git'):
+				self._run('git add .')
+				self._run('git commit -am "%s"' % message)
+			elif os.path.exists('.hg'):
+				self._run('hg add .')
+				self._run('hg commit -m "%s"' % message)
+			if self._config('auto-push'):
+				self._push()
+
+
+	def _push(self):
+		if os.path.exists('.git'):
+			self._run('git push')
+		if os.path.exists('.hg'):
+			self._run('hg push')
+
+
+	def _run(self, args):
+		"""
+		dirs = os.getenv('PATH').split(os.pathsep)
+		for dir in dirs:
+			cmd = os.path.join(dir, args[0])
+			if os.path.exists(cmd):
+				args[0] = cmd
+				return subprocess.Popen(args, stdout=None).wait()
+		raise Exception('%s not found.' % args[0])
+		"""
+		os.system(args)
+
+
+	def _parse_tags(self, filename, isissue=False):
+		tags = {
+			u'filename': filename,
+			u'labels': [],
+			u'priority': '3',
+		}
+		f = open(filename, 'r')
+		while True:
+			line = f.readline()
+			if not line or line.strip() == '---':
+				f.close()
+				break
+			if line.startswith('#'):
+				continue
+			parts = line.strip().decode('utf-8').split(':', 1)
+			if len(parts) == 2:
+				k, v = parts[0].strip(), parts[1].strip()
+				if k in ('tags', 'labels'):
+					v = [x for x in re.split('[\s,]+', v) if x]
+				tags[k] = v
+
+		if 'feature' in tags['labels']:
+			tags['issue-marker'] = 'E'
+		elif 'bug' in tags['labels']:
+			tags['issue-marker'] = 'D'
+		else:
+			tags['issue-marker'] = 'T'
+
+		return tags
+
+
+	def _get_issues(self, sort=True):
+		issues = []
+		for (dirname, dirs, files) in os.walk('issues'):
+			if dirname.startswith('issues/'):
+				issue_id = dirname.split('/', 1)[1]
+				if issue_id.isdigit():
+					description = [x for x in files if x.startswith('README.')][0:1]
+					if description:
+						issues.append((int(issue_id), self._parse_tags(os.path.join(dirname, description[0]), isissue=True), ))
+		if sort:
+			issues.sort(cmp=self.__issue_cmp)
+		return issues
+
+
+	def __issue_cmp(self, a, b):
+		"""
+		Сравнение задач для сортировки их списка.  Сортирует сначала по
+		свойству priority, затем по идентификатору.
+		"""
+		value = cmp(int(a[1]['priority']), int(b[1]['priority']))
+		if value == 0:
+			value = cmp(a[0], b[0])
+		return value
+
+
+
+if __name__ == '__main__':
+	morg().run(sys.argv[1:])
