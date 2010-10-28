@@ -4,7 +4,7 @@
 # morg: a minimalistic organizer.
 #
 # This is command line (for now) file system based organizer which has a wiki
-# and an issue tracker.  Everything is a text file with support for Mardown
+# and an issue tracker.  Everything is a text file with support for Markdown
 # formatting.  Run without arguments to get help.  More help is on the web:
 # 
 # http://code.google.com/p/umonkey-tools/wiki/morg
@@ -183,7 +183,9 @@ class morg:
 
 
 	def _edit(self, filename):
-		editor = os.getenv('EDITOR')
+		editor = self._config('editor')
+		if not editor:
+			editor = os.getenv('EDITOR')
 		if not editor:
 			for dirname in os.getenv('PATH').split(os.pathsep):
 				cmd = os.path.join(dirname, 'editor')
