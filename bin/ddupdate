@@ -27,10 +27,16 @@ if [ $username = "john" -a $password="wtf" ]; then
 	exit 1
 fi
 
-LIVE=$(host $hostname ns1.dyndns.org | cut -d' ' -f4)
+LIVE=$(host $hostname ns1.dyndns.org | tail -1 | cut -d' ' -f4)
 REAL=$(wget -qO- http://checkip.dyndns.org:8245/ | sed -re 's@.*Current IP Address: ([^<]+).*@\1@g')
 
-if [ $LIVE != $REAL ]; then
+if [ "$1" = "debug" ]; then
+	echo "LIVE: \"${LIVE}\""
+	echo "REAL: \"${REAL}\""
+	echo ""
+fi
+
+if [ -n "$REAL" -a "$LIVE" != "$REAL" ]; then
 	echo "IP address for ${hostname} changed from $LIVE to $REAL, updating."
 	wget -qO /dev/null "http://${username}:${password}@members.dyndns.org/nic/update?hostname=${hostname}&myip=${REAL}&wildcard=NOCHG&mx=NOCHG&backmx=NOCHG"
 fi
