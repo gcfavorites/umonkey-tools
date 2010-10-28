@@ -142,10 +142,19 @@ class morg:
 		"""
 		Открывает указанную задачу в редакторе.
 		"""
-		if args and args[0].isdigit():
-			filename = os.path.join('issues', str(args[0]), 'README.markdown')
-			self._edit(filename)
-			self._commit('%s edited issue %s' % (os.getenv('USER'), args[0]))
+		ids = []
+		filenames = []
+		for arg in args:
+			if arg.isdigit():
+				filenames.append(os.path.join('issues', str(arg), 'README.markdown'))
+				ids.append(str(arg))
+		if ids:
+			self._edit(' '.join(filenames))
+			if len(ids) == 1:
+				message = '%s edited issue %s' % (os.getenv('USER'), ids[0])
+			else:
+				message = '%s edited issues %s' % (os.getenv('USER'), ', '.join(ids))
+			self._commit(message)
 			self._issue_list([])
 
 
