@@ -43,6 +43,7 @@ class morg:
 	def run(self, args):
 		if not args and self.config.has_key('default-command'):
 			args = self.config['default-command'].split(' ')
+		args = self._translate_aliases(args)
 		if args:
 			if args[0] == 'config':
 				filename = os.path.expanduser('~/.morg')
@@ -73,6 +74,15 @@ class morg:
 		print "  issue create    -- create a new issue"
 		print "  issue edit id   -- edit an existing issue"
 		sys.exit(1)
+
+
+	def _translate_aliases(self, args):
+		_args = ' '.join(args)
+		for k in self.config:
+			if k.startswith('alias-'):
+				if k[6:] == _args:
+					return self.config[k].split(' ')
+		return args
 
 
 	def _config(self, arg, default=''):
