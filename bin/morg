@@ -15,6 +15,7 @@
 import datetime
 import os
 import re
+import shutil
 import sys
 import subprocess
 
@@ -177,15 +178,18 @@ class morg:
 		if issues: nextid = max([x[0] for x in issues]) + 1
 		else: nextid = 1
 
-		issuedir = os.path.join('issues', str(nextid))
-		if os.path.exists(issuedir):
-			print >>sys.stderr, 'OOPS, there is a %s directory already.' % issuedir
+		realname = os.path.join('issues', str(nextid), 'README.markdown')
+		if os.path.exists(realname):
+			print >>sys.stderr, 'OOPS, there is issue %s already.' % nextid
 			sys.exit(1)
 
 		filename = self._edit_text(template)
-		realname = os.path.join(issuedir, 'README.markdown')
-		os.makedirs(issuedir)
-		os.rename(filename, realname)
+
+		if not os.path.exists(os.path.dirname(realname)):
+			os.makedirs(os.path.dirname(realname))
+		shutil.copy(filename, realname)
+		os.unlink(filename)
+
 		print "New file: %s" % realname
 		self._commit('%s created issue %u' % (os.getenv('USER'), nextid))
 		self._issue_list([])
