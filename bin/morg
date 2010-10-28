@@ -113,10 +113,11 @@ class morg:
 		"closed", если не пуст — выводит задачи с первой указанной меткой.
 		"""
 		issues = self._get_issues()
+		label = labels and labels[0] or None
 
 		# Фильтрация по меткам.
-		if labels:
-			issues = [issue for issue in issues if issue[1].has_key('labels') and labels[0] in issue[1]['labels']]
+		if label:
+			issues = [issue for issue in issues if issue[1].has_key('labels') and label in issue[1]['labels']]
 		else:
 			issues = [issue for issue in issues if not issue[1].has_key('labels') or 'closed' not in issue[1]['labels']]
 
@@ -126,8 +127,9 @@ class morg:
 			for issue in issues:
 				id, issue = issue
 				line = u'%s%s%5u: %s' % (issue['issue-marker'], issue['priority'], id, issue['title'])
-				if issue['labels']:
-					line += u'  [%s]' % u', '.join(sorted(issue['labels']))
+				labels = [l for l in issue['labels'] if l != label]
+				if labels:
+					line += u'  [%s]' % u', '.join(sorted(labels))
 				print line
 			if not self._config('less-hints'):
 				print "||    |"
