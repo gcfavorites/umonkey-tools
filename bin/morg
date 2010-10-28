@@ -256,7 +256,6 @@ class morg:
 		tags = {
 			u'filename': filename,
 			u'labels': [],
-			u'priority': '3',
 		}
 		f = open(filename, 'r')
 		while True:
@@ -272,6 +271,11 @@ class morg:
 				if k in ('tags', 'labels'):
 					v = [x for x in re.split('[\s,]+', v) if x]
 				tags[k] = v
+
+		if not tags.has_key('priority') or not tags['priority'].isdigit():
+			tags['priority'] = '3'
+		else:
+			tags['priority'] = max(min(int(tags['priority']), 9), 1)
 
 		if 'feature' in tags['labels']:
 			tags['issue-marker'] = 'E'
