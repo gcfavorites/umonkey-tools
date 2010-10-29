@@ -56,7 +56,7 @@ class morg:
 			if args[0] == 'patch':
 				self._patch()
 			if args[0] == 'push':
-				self._push()
+				self._push(cleanup=True)
 				sys.exit()
 			if args[0] == 'show':
 				self._show()
@@ -248,9 +248,11 @@ class morg:
 				self._push()
 
 
-	def _push(self):
+	def _push(self, cleanup=False):
 		if os.path.exists('.git'):
 			self._run('git push')
+			if cleanup:
+				self._run('git gc')
 		if os.path.exists('.hg'):
 			self._run('hg push')
 
