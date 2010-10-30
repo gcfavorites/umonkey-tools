@@ -206,6 +206,22 @@ class SubscribeHandler(BaseRequestHandler):
 		mail.send_mail(sender=config.ADMIN, to=config.ADMIN, subject='Unsubscribe request', body=text)
 
 
+class UnsubscribeHandler(SubscribeHandler):
+	def get(self):
+		self.render('unsubscribe.html')
+
+	def _process(self, phone, email):
+		redirect = None
+		code = random.randrange(1111, 9999)
+		if email is not None and email.confirmed:
+			email.confirm_code = code
+			email.put()
+			self.send_mail(email.email, u'Подтверждение отказа от напоминаний', 'email_remove', {
+				'code': email.confirm_code,
+			})
+		return redirect
+
+
 class HourlyCronHandler(BaseRequestHandler):
 	"""
 	Находит события, по которым ещё не были отправлены уведомления, но уже
@@ -409,6 +425,21 @@ class ConfirmPhoneHandler(BaseRequestHandler):
 		self.render('confirm_phone_ok.html', { 'action': self.action })
 
 
+class UnsubscribeEmailHandler(BaseRequestHandler):
+	def get(self):
+		address = self.request.get('address')
+		code = self.request.get('code')
+		if not code.isdigit():
+			raise Exception('Wrong confirmation code.')
+		email = model.Email.gql('WHERE email = :1', address).get()
+		if email is None or email.confirm_code != int(code):
+			raise Exception('Wrong confirmation code.')
+		email.confirm_code = None
+		email.confirmed = False
+		email.put()
+		self.render('confirm_email_ok.html', { 'action': 'removed', 'address': address })
+
+
 if __name__ == '__main__':
 	wsgiref.handlers.CGIHandler().run(webapp.WSGIApplication([
 		('/', IndexHandler),
@@ -424,4 +455,6 @@ if __name__ == '__main__':
 		('/rss.xml', RSSHandler),
 		('/submit', SubmitHandler),
 		('/subscribe', SubscribeHandler),
+		('/unsubscribe', UnsubscribeHandler),
+		('/unsubscribe/confirm/email', UnsubscribeEmailHandler),
 	], debug=config.DEBUG))
