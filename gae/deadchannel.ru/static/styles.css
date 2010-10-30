@@ -114,11 +114,9 @@ form .hint {
 	margin: 1em 0;
 	padding: 0;
 	list-style-type: none;
-	font-size: 1.5em;
-	font-weight: bold;
-	text-align: center;
+	font-size: 1.25em;
 }
 .slinks li {
 	display: inline-block;
-	margin: 0 1em;
+	margin: 0 1em 0 0;
 }
