@@ -21,6 +21,10 @@ p {
 	color: #333;
 }
 
+.hidden {
+	display: none;
+}
+
 #wrapper {
 	width: 400px;
 	margin: 0 auto;
@@ -98,4 +102,23 @@ form .hint {
 	font-style: italic;
 	font-size: 80%;
 	font-family: serif;
+}
+
+/**
+ * Ссылки для подписки-отписки на главной странице.
+ */
+.slinks h2 {
+	display: none;
+}
+.slinks ul {
+	margin: 1em 0;
+	padding: 0;
+	list-style-type: none;
+	font-size: 1.5em;
+	font-weight: bold;
+	text-align: center;
+}
+.slinks li {
+	display: inline-block;
+	margin: 0 1em;
 }
