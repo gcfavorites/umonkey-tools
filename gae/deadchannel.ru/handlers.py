@@ -160,8 +160,8 @@ class SubscribeHandler(BaseRequestHandler):
 		if phone is not None and not phone.confirmed:
 			phone.confirm_code = code
 			phone.put()
-			send_sms(phone.phone, u'Код подтверждения подписки на deadchannel.ru: %s.' % code)
-			redirect = '/confirm/sms'
+			send_sms(phone.phone, u'Код подтверждения подписки на deadchannel.ru: %s' % code)
+			redirect = '/subscribe/confirm/phone'
 		if email is not None and not email.confirmed:
 			email.confirm_code = code
 			email.put()
@@ -219,6 +219,11 @@ class UnsubscribeHandler(SubscribeHandler):
 			self.send_mail(email.email, u'Подтверждение отказа от напоминаний', 'email_remove', {
 				'code': email.confirm_code,
 			})
+		if phone is not None and phone.confirmed:
+			phone.confirm_code = code
+			phone.put()
+			send_sms(phone.phone, u'Код подтверждения отказа от напоминаний на deadchannel.ru: %s' % code)
+			redirect = '/unsubscribe/confirm/phone'
 		return redirect
 
 
@@ -405,24 +410,31 @@ class ConfirmHandler(BaseRequestHandler):
 		})
 
 
-class ConfirmPhoneHandler(BaseRequestHandler):
-	action = 'removed'
+class SubscribePhoneHandler(BaseRequestHandler):
+	get_template = 'confirm_phone.html'
+	post_template = 'confirm_phone_ok.htm'
+	confirmed_value = True
 
 	def get(self):
-		self.render('confirm_phone.html')
+		self.render(self.get_template)
 
 	def post(self):
 		code = self.request.get('code')
 		if not code.isdigit():
 			raise Exception('Wrong confirmation code.')
 		phone = model.Phone.gql('WHERE confirm_code = :1', int(code)).get()
-		logging.info('%s/ %s' % (code, phone))
 		if phone is None:
 			raise Exception('Wrong confirmation code.')
-		phone.confirmed = True
+		phone.confirmed = self.confirmed_value
 		phone.confirm_code = None
 		phone.put()
-		self.render('confirm_phone_ok.html', { 'action': self.action })
+		self.render(self.post_template, { 'phone': phone.phone })
+
+
+class UnsubscribePhoneHandler(SubscribePhoneHandler):
+	get_template = 'unsubscribe_phone.html'
+	post_template = 'unsubscribe_phone_ok.html'
+	confirmed_value = False
 
 
 class UnsubscribeEmailHandler(BaseRequestHandler):
@@ -445,7 +457,6 @@ if __name__ == '__main__':
 		('/', IndexHandler),
 		('/all.ics', CalHandler),
 		('/confirm$', ConfirmHandler),
-		('/confirm/sms$', ConfirmPhoneHandler),
 		('/cron/hourly', HourlyCronHandler),
 		('/cron/daily', DailyCronHandler),
 		('/feedback', FeedbackHandler),
@@ -455,6 +466,8 @@ if __name__ == '__main__':
 		('/rss.xml', RSSHandler),
 		('/submit', SubmitHandler),
 		('/subscribe', SubscribeHandler),
+		('/subscribe/confirm/phone$', SubscribePhoneHandler),
 		('/unsubscribe', UnsubscribeHandler),
 		('/unsubscribe/confirm/email', UnsubscribeEmailHandler),
+		('/unsubscribe/confirm/phone', UnsubscribePhoneHandler),
 	], debug=config.DEBUG))
