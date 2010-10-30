@@ -5,6 +5,7 @@
 import datetime
 import logging
 import os
+import random
 import urlparse
 import wsgiref.handlers
 
@@ -20,6 +21,19 @@ from google.appengine.ext.webapp import template
 import config
 import model
 import util
+
+def send_sms(phone, text):
+	options = {
+		'api_id': config.SMS_ID,
+		'to': phone,
+		'text': text.encode('utf-8'),
+	}
+	if hasattr(config, 'SMS_FROM'):
+		options['from'] = config.SMS_FROM
+	util.fetch('http://sms.ru/sms/send', options)
+	logging.info('Sent an SMS to %s' % phone)
+
+
 
 class BaseRequestHandler(webapp.RequestHandler):
 	def render(self, template_name, vars={}, ret=False, mime_type='text/html'):
@@ -41,6 +55,18 @@ class BaseRequestHandler(webapp.RequestHandler):
 			self.response.headers['Content-Type'] = mime_type + '; charset=utf-8'
 			self.response.out.write(response)
 		return response
+
+	def send_mail(self, address, subject, template_name, template_vars=None):
+		if not template_vars:
+			template_vars = dict()
+		template_vars['address'] = address
+		template_vars['base'] = self.getBaseURL()
+		template_vars['host'] = self.getHost()
+		path = os.path.join(os.path.dirname(__file__), 'templates', template_name)
+		text = template.render(path + '.txt', template_vars)
+		html = template.render(path + '.html', template_vars)
+		mail.send_mail(sender=config.ADMIN, to=address, subject=subject, body=text, html=html)
+
 
 	def getBaseURL(self):
 		"""
@@ -111,10 +137,46 @@ class SubscribeHandler(BaseRequestHandler):
 		self.render('subscribe.html')
 
 	def post(self):
-		if self.request.get('remove'):
-			return self.remove()
-		else:
-			return self.add()
+		phone = email = None
+		if self.request.get('email_address'):
+			email = model.Email.gql('WHERE email = :1', self.request.get('email_address')).get()
+			if email is None:
+				email = model.Email(email=self.request.get('email_address'))
+		if self.request.get('phone_number'):
+			number = self.__normalize_phone_number(self.request.get('phone_number'))
+			phone = model.Phone.gql('WHERE phone = :1', number).get()
+			if phone is None:
+				phone = model.Phone(phone=number)
+		response = self._process(phone, email)
+		# DEBUG FIXME
+		self.response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+		self.response.out.write(unicode(response))
+
+
+	def _process(self, phone, email):
+		response = { 'email': False, 'phone': False }
+		code = random.randrange(1111, 9999)
+		if phone is not None and not phone.confirmed:
+			phone.confirm_code = code
+			phone.put()
+			response['phone'] = code
+			send_sms(phone.phone, u'Код подтверждения подписки на deadchannel.ru: %s.' % code)
+		if email is not None and not email.confirmed:
+			email.confirm_code = code
+			email.put()
+			self.send_mail(email.email, u'Подтверждение подписки на deadchannel.ru', 'email_add', {
+				'code': email.confirm_code,
+			})
+			response['email'] = True
+		return response
+
+
+	def __normalize_phone_number(self, number):
+		number = self.request.get('phone_number')
+		if number.startswith('8'): number = '+7' + number[1:]
+		number = number.replace(' ', '')
+		return number
+
 
 	def add(self):
 		next = '/'
@@ -229,15 +291,7 @@ class NotifyHandler(BaseRequestHandler):
 		date = event.date.strftime('%d.%m')
 		time = event.date.strftime('%H:%M')
 		text = u'%s в %s %s, см. deadchannel.ru' % (date, time, event.title)
-		options = {
-			'api_id': config.SMS_ID,
-			'to': phone,
-			'text': text.encode('utf-8'),
-		}
-		if hasattr(config, 'SMS_FROM'):
-			options['from'] = config.SMS_FROM
-		util.fetch('http://sms.ru/sms/send', options)
-		logging.info('Sent an SMS to %s' % phone)
+		send_sms(phone, text)
 
 	def notify_email(self, event, email):
 		date = event.date.strftime('%d.%m.%Y')
@@ -313,10 +367,33 @@ class NowHandler(BaseRequestHandler):
 		self.response.out.write(text)
 
 
+class ConfirmHandler(BaseRequestHandler):
+	def get(self):
+		email = self.request.get('email')
+		if not email:
+			raise Exception('Email address not specified.')
+		code = self.request.get('code')
+		if not code:
+			raise Exception('Confirmation code not specified.')
+		if not code.isdigit():
+			raise Exception('Wrong confirmation code.')
+		email = model.Email.gql('WHERE email = :1', email).get()
+		if not email.confirmed:
+			if email.confirm_code != int(code):
+				raise Exception('Wrong confirmation code.')
+			email.confirm_code = None
+			email.confirmed = True
+			email.put()
+		self.render('confirm.html', {
+			'email': email.email,
+		})
+
+
 if __name__ == '__main__':
 	wsgiref.handlers.CGIHandler().run(webapp.WSGIApplication([
 		('/', IndexHandler),
 		('/all.ics', CalHandler),
+		('/confirm', ConfirmHandler),
 		('/cron/hourly', HourlyCronHandler),
 		('/cron/daily', DailyCronHandler),
 		('/feedback', FeedbackHandler),
