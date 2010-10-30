@@ -23,29 +23,4 @@
 <li><a href="/unsubscribe">Отписаться</a></li>
 </ul>
 </div>
-
-
-<div id="subscribe">
-<h2>Информационная рассылка</h2>
-{% if status.subscribed %}
-<p class="message">Твои контакты были успешно добавлены в список рассылки, жди вестей!&nbsp; Можешь добавить кого-нибудь ещё. ;)</p>
-{% endif %}
-{% if status.mod %}
-<p class="message">Информация о событии отправлена модератору.</p>
-{% endif %}
-<p>Мы можем сообщать тебе обо всех событиях за неделю и напоминать за сутки, удобным для тебя способом.  Выбери любой, можно оба.</p>
-<form method="post" action="/subscribe">
-<div>
-<label for="sphone">Номер мобильного телефона (для SMS):</label>
-<input id="sphone" name="phone" type="text" class="text"/>
-</div>
-<div>
-<label for="semail">Email:</label>
-<input id="email" name="email" type="text" class="text"/>
-</div>
-<input type="submit" name="add" value="Добавить в список"/>
-<input type="submit" name="remove" value="Удалить"/>
-{% if admin %}<a href="/list.csv">вывести список</a>{% endif %}
-</form>
-</div>
 {% endblock %}
