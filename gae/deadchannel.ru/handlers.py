@@ -388,7 +388,7 @@ class NowHandler(BaseRequestHandler):
 		self.response.out.write(text)
 
 
-class ConfirmHandler(BaseRequestHandler):
+class SubscribeEmailHandler(BaseRequestHandler):
 	def get(self):
 		email = self.request.get('email')
 		if not email:
@@ -411,8 +411,8 @@ class ConfirmHandler(BaseRequestHandler):
 
 
 class SubscribePhoneHandler(BaseRequestHandler):
-	get_template = 'confirm_phone.html'
-	post_template = 'confirm_phone_ok.htm'
+	get_template = 'subscribe_phone.html'
+	post_template = 'subscribe_phone_ok.html'
 	confirmed_value = True
 
 	def get(self):
@@ -456,7 +456,6 @@ if __name__ == '__main__':
 	wsgiref.handlers.CGIHandler().run(webapp.WSGIApplication([
 		('/', IndexHandler),
 		('/all.ics', CalHandler),
-		('/confirm$', ConfirmHandler),
 		('/cron/hourly', HourlyCronHandler),
 		('/cron/daily', DailyCronHandler),
 		('/feedback', FeedbackHandler),
@@ -466,6 +465,7 @@ if __name__ == '__main__':
 		('/rss.xml', RSSHandler),
 		('/submit', SubmitHandler),
 		('/subscribe', SubscribeHandler),
+		('/subscribe/confirm/email$', SubscribeEmailHandler),
 		('/subscribe/confirm/phone$', SubscribePhoneHandler),
 		('/unsubscribe', UnsubscribeHandler),
 		('/unsubscribe/confirm/email', UnsubscribeEmailHandler),
