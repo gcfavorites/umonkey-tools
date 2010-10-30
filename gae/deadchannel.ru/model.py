@@ -11,10 +11,19 @@ class Event(db.Model):
 	far_sent = db.BooleanProperty()
 	soon_sent = db.BooleanProperty()
 
+
 class Email(db.Model):
 	date_added = db.DateTimeProperty(auto_now_add=True)
 	email = db.EmailProperty()
+	# Напоминание отправляется только на подтверждённые адреса.
+	confirmed = db.BooleanProperty()
+	confirm_code = db.IntegerProperty()
+
 
 class Phone(db.Model):
 	date_added = db.DateTimeProperty(auto_now_add=True)
 	phone = db.PhoneNumberProperty()
+	# Напоминания отправляются только на подтверждённые номера.
+	confirmed = db.BooleanProperty()
+	# Код подтверждения.  Сохраняется при выдаче, после проверки очищается.
+	confirm_code = db.IntegerProperty()

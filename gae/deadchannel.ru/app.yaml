@@ -13,29 +13,18 @@ handlers:
 - url: /static/
   static_dir: static
 
-- url: /
-  script: handlers.py
-- url: /all.ics
-  script: handlers.py
 - url: /cron/hourly
   script: handlers.py
   login: admin
 - url: /cron/daily
   script: handlers.py
   login: admin
-- url: /feedback
-  script: handlers.py
 - url: /list.csv
   script: handlers.py
   login: admin
 - url: /notify
   script: handlers.py
   login: admin
-- url: /now
-  script: handlers.py
-- url: /rss.xml
-  script: handlers.py
-- url: /submit
-  script: handlers.py
-- url: /subscribe
+
+- url: .*
   script: handlers.py
