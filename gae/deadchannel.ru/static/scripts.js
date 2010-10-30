@@ -1,8 +1,12 @@
 $(document).ready(function(){
 	$('.sform .check').change(check_boxes);
 	$('.sform .text').keyup(check_sbutton);
+
 	// На случай если форма загружена с отмеченными чекбоксами.
 	check_boxes();
+
+	// Передаём фокус первому полю формы, если есть.
+	$('form input:first').focus();
 });
 
 function check_boxes()

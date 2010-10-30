@@ -147,28 +147,28 @@ class SubscribeHandler(BaseRequestHandler):
 			phone = model.Phone.gql('WHERE phone = :1', number).get()
 			if phone is None:
 				phone = model.Phone(phone=number)
-		response = self._process(phone, email)
-		# DEBUG FIXME
-		self.response.headers['Content-Type'] = 'text/plain; charset=utf-8'
-		self.response.out.write(unicode(response))
+		redirect = self._process(phone, email)
+		if redirect:
+			self.redirect(redirect)
+		else:
+			self.render('subscription_ok.html')
 
 
 	def _process(self, phone, email):
-		response = { 'email': False, 'phone': False }
+		redirect = None
 		code = random.randrange(1111, 9999)
 		if phone is not None and not phone.confirmed:
 			phone.confirm_code = code
 			phone.put()
-			response['phone'] = code
 			send_sms(phone.phone, u'Код подтверждения подписки на deadchannel.ru: %s.' % code)
+			redirect = '/confirm/sms'
 		if email is not None and not email.confirmed:
 			email.confirm_code = code
 			email.put()
 			self.send_mail(email.email, u'Подтверждение подписки на deadchannel.ru', 'email_add', {
 				'code': email.confirm_code,
 			})
-			response['email'] = True
-		return response
+		return redirect
 
 
 	def __normalize_phone_number(self, number):
@@ -389,11 +389,32 @@ class ConfirmHandler(BaseRequestHandler):
 		})
 
 
+class ConfirmPhoneHandler(BaseRequestHandler):
+	action = 'removed'
+
+	def get(self):
+		self.render('confirm_phone.html')
+
+	def post(self):
+		code = self.request.get('code')
+		if not code.isdigit():
+			raise Exception('Wrong confirmation code.')
+		phone = model.Phone.gql('WHERE confirm_code = :1', int(code)).get()
+		logging.info('%s/ %s' % (code, phone))
+		if phone is None:
+			raise Exception('Wrong confirmation code.')
+		phone.confirmed = True
+		phone.confirm_code = None
+		phone.put()
+		self.render('confirm_phone_ok.html', { 'action': self.action })
+
+
 if __name__ == '__main__':
 	wsgiref.handlers.CGIHandler().run(webapp.WSGIApplication([
 		('/', IndexHandler),
 		('/all.ics', CalHandler),
-		('/confirm', ConfirmHandler),
+		('/confirm$', ConfirmHandler),
+		('/confirm/sms$', ConfirmPhoneHandler),
 		('/cron/hourly', HourlyCronHandler),
 		('/cron/daily', DailyCronHandler),
 		('/feedback', FeedbackHandler),
