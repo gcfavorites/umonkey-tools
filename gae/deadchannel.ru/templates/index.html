@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 {% if events %}
+<p id="motto">Афиша тёмной сцены Санк-Петербурга.</p>
 <table id="events" summary="Предстоящие события">
 <tbody>
 {% for event in events %}
@@ -14,6 +15,16 @@
 {% else %}
 <p>Нет событий.</p>
 {% endif %}
+
+<div class="slinks">
+<h2>Информационная рассылка</h2>
+<ul>
+<li><a href="/subscribe">Подписаться</a></li>
+<li><a href="/unsubscribe">Отписаться</a></li>
+</ul>
+</div>
+
+
 <div id="subscribe">
 <h2>Информационная рассылка</h2>
 {% if status.subscribed %}

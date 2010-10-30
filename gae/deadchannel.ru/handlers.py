@@ -107,6 +107,9 @@ class SubscribeHandler(BaseRequestHandler):
 	Добавление данных в список рассылки.  Обрабатывает параметры email и phone,
 	сохраняя их как одноимённые объекты.  Существующие объекты не дублируются.
 	"""
+	def get(self):
+		self.render('subscribe.html')
+
 	def post(self):
 		if self.request.get('remove'):
 			return self.remove()
