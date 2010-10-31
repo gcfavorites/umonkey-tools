@@ -405,6 +405,9 @@ class SubscribeEmailHandler(BaseRequestHandler):
 			email.confirm_code = None
 			email.confirmed = True
 			email.put()
+			self.send_mail(config.ADMIN, u'Подписка на напоминания', 'admin_notification', {
+				'email': email,
+			})
 		self.render('confirm.html', {
 			'email': email.email,
 		})
@@ -428,6 +431,9 @@ class SubscribePhoneHandler(BaseRequestHandler):
 		phone.confirmed = self.confirmed_value
 		phone.confirm_code = None
 		phone.put()
+		self.send_mail(config.ADMIN, u'Подписка на напоминания', 'admin_notification', {
+			'phone': phone,
+		})
 		self.render(self.post_template, { 'phone': phone.phone })
 
 
@@ -449,6 +455,9 @@ class UnsubscribeEmailHandler(BaseRequestHandler):
 		email.confirm_code = None
 		email.confirmed = False
 		email.put()
+		self.send_mail(config.ADMIN, u'Подписка на напоминания', 'admin_notification', {
+			'email': email,
+		})
 		self.render('confirm_email_ok.html', { 'action': 'removed', 'address': address })
 
 
