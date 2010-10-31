@@ -86,7 +86,7 @@ class IndexHandler(BaseRequestHandler):
 	index.html.
 	"""
 	def get(self):
-		now = util.now()
+		now = util.now() + datetime.timedelta(-1)
 		events = model.Event.gql('WHERE date > :1 ORDER BY date', now).fetch(20)
 		gaid = hasattr(config, 'GA_ID') and config.GA_ID or None
 		self.render('index.html', {
