@@ -390,7 +390,7 @@ class NowHandler(BaseRequestHandler):
 
 class SubscribeEmailHandler(BaseRequestHandler):
 	def get(self):
-		email = self.request.get('email')
+		email = self.request.get('address')
 		if not email:
 			raise Exception('Email address not specified.')
 		code = self.request.get('code')
