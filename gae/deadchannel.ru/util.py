@@ -56,13 +56,15 @@ def get_csv():
 	text = ''
 	mails = phones = 0
 	for email in model.Email.all().order('email').fetch(1000):
-		date = email.date_added.strftime('%Y-%m-%d')
-		text += '%s,%s,\n' % (date, email.email)
-		mails += 1
+		if email.confirmed:
+			date = email.date_added.strftime('%Y-%m-%d')
+			text += '%s,%s,\n' % (date, email.email)
+			mails += 1
 	for phone in model.Phone.all().order('phone').fetch(1000):
-		date = phone.date_added.strftime('%Y-%m-%d')
-		text += '%s,,%s\n' % (date, phone.phone)
-		phones += 1
+		if phone.confirmed:
+			date = phone.date_added.strftime('%Y-%m-%d')
+			text += '%s,,%s\n' % (date, phone.phone)
+			phones += 1
 	header = 'added on,email (%u),phone (%u)\n' % (mails, phones)
 	return header + text
 
