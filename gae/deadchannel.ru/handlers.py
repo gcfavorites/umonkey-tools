@@ -86,7 +86,7 @@ class IndexHandler(BaseRequestHandler):
 	index.html.
 	"""
 	def get(self):
-		now = util.now() + datetime.timedelta(-1)
+		now = util.now() + datetime.timedelta(0, 0, 0, 0, 0, -8)
 		events = model.Event.gql('WHERE date > :1 ORDER BY date', now).fetch(20)
 		gaid = hasattr(config, 'GA_ID') and config.GA_ID or None
 		self.render('index.html', {
@@ -248,14 +248,14 @@ class HourlyCronHandler(BaseRequestHandler):
 		# Отправка уведомлений за неделю
 		d1 = now + datetime.timedelta(config.FAR_LIMIT)
 		for event in model.Event.gql('WHERE far_sent = :1 AND date < :2 AND date > :3', False, d1, now).fetch(10):
-			count += self.notify(event, emails, phones)
+			count += self.notify(event, emails, phones, True)
 			event.far_sent = True
 			event.put()
 
 		# Отправка уведомлений за сутки
 		d1 = now + datetime.timedelta(config.SOON_LIMIT)
 		for event in model.Event.gql('WHERE soon_sent = :1 AND date < :2 AND date > :3', False, d1, now).fetch(10):
-			count += self.notify(event, emails, phones)
+			count += self.notify(event, emails, phones, False)
 			event.soon_sent = True
 			event.far_sent = True
 			event.put()
@@ -263,14 +263,14 @@ class HourlyCronHandler(BaseRequestHandler):
 		if count:
 			logging.info('Queued %u notifications.' % count)
 
-	def notify(self, event, emails, phones):
+	def notify(self, event, emails, phones, week=False):
 		count = 0
 		util.twit_event(event)
 		for email in emails:
-			taskqueue.Task(url='/notify', params={ 'event': event.key(), 'email': email.email }).add()
+			taskqueue.Task(url='/notify', params={ 'event': event.key(), 'email': email.email, 'week': week }).add()
 			count += 1
 		for phone in phones:
-			taskqueue.Task(url='/notify', params={ 'event': event.key(), 'phone': phone.phone }).add()
+			taskqueue.Task(url='/notify', params={ 'event': event.key(), 'phone': phone.phone, 'week': week }).add()
 			count += 1
 		return count
 
@@ -311,7 +311,10 @@ class NotifyHandler(BaseRequestHandler):
 	def notify_phone(self, event, phone):
 		date = event.date.strftime('%d.%m')
 		time = event.date.strftime('%H:%M')
-		text = u'%s в %s %s, см. deadchannel.ru' % (date, time, event.title)
+		if self.request.get('week'):
+			text = u'%s (через неделю) в %s %s, см. deadchannel.ru' % (date, time, event.title)
+		else:
+			text = u'%s (завтра) в %s %s, см. deadchannel.ru' % (date, time, event.title)
 		send_sms(phone, text)
 
 	def notify_email(self, event, email):
@@ -461,6 +464,21 @@ class UnsubscribeEmailHandler(BaseRequestHandler):
 		self.render('confirm_email_ok.html', { 'action': 'removed', 'address': address })
 
 
+class AdminTaskHandler(BaseRequestHandler):
+	def get(self):
+		if not users.is_current_user_admin():
+			raise Exception('Restricted area.')
+		for phone in model.Phone.all().fetch(1000):
+			if not phone.confirmed:
+				phone.confirmed = True
+				phone.put()
+		for email in model.Email.all().fetch(1000):
+			if not email.confirmed:
+				email.confirmed = True
+				email.put()
+		self.response.out.write('OK')
+
+
 if __name__ == '__main__':
 	wsgiref.handlers.CGIHandler().run(webapp.WSGIApplication([
 		('/', IndexHandler),
@@ -479,4 +497,5 @@ if __name__ == '__main__':
 		('/unsubscribe', UnsubscribeHandler),
 		('/unsubscribe/confirm/email', UnsubscribeEmailHandler),
 		('/unsubscribe/confirm/phone', UnsubscribePhoneHandler),
+		('/zxc', AdminTaskHandler),
 	], debug=config.DEBUG))
