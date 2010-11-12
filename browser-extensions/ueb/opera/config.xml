@@ -4,5 +4,6 @@
 	<description>Adds a toolbar button to pages that can be edited.  Works in most wikis and some other websites.  See UniversalEditButton.org for details.</description>
 	<author href="http://umonkey.net/" email="justin.forest@gmail.com">Justin Forest</author>
 	<icon src="icons/UEB128.png" width="128" height="128"/>
-	<icon src="icons/UEB16.png" width="16" height="16"/>
+	<icon src="icons/UEB64.png" width="64" height="64"/>
+	<icon src="icons/UEB18.png" width="18" height="18"/>
 </widget>

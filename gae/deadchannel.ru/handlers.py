@@ -312,9 +312,11 @@ class NotifyHandler(BaseRequestHandler):
 		date = event.date.strftime('%d.%m')
 		time = event.date.strftime('%H:%M')
 		if self.request.get('week'):
-			text = u'%s (через неделю) в %s %s, см. deadchannel.ru' % (date, time, event.title)
+			text = u'%s в %s %s, см. deadchannel.ru' % (date, time, event.title)
+			# text = u'%s (через неделю) в %s %s, см. deadchannel.ru' % (date, time, event.title)
 		else:
-			text = u'%s (завтра) в %s %s, см. deadchannel.ru' % (date, time, event.title)
+			text = u'%s в %s %s, см. deadchannel.ru' % (date, time, event.title)
+			# text = u'%s (завтра) в %s %s, см. deadchannel.ru' % (date, time, event.title)
 		send_sms(phone, text)
 
 	def notify_email(self, event, email):
