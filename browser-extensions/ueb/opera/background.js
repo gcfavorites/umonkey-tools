@@ -2,7 +2,7 @@ window.addEventListener("load", function(){
 	var button = opera.contexts.toolbar.createItem({
 		disabled: true,
 		title: "Edit this page",
-		icon: "icons/UEB16.png",
+		icon: "icons/UEB18.png",
 		onclick: function () {
 			var tab = opera.extension.tabs.getFocused();
 			if (tab) {
