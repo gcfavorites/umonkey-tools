@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget xmlns="http://www.w3.org/ns/widgets" version="1.0" id="extensions:ueb">
+	<name>Universal Edit Button</name>
+	<description>Adds a toolbar button to pages that can be edited.  Works in most wikis and some other websites.  See UniversalEditButton.org for details.</description>
+	<author href="http://umonkey.net/" email="justin.forest@gmail.com">Justin Forest</author>
+	<icon src="icons/UEB128.png" width="128" height="128"/>
+	<icon src="icons/UEB16.png" width="16" height="16"/>
+</widget>
