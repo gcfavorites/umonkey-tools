@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="sform">
-  {% block sheader %}
-    <h2>Подписка на уведомления</h2>
-    <p>Как вы хотите получать напоминания о событиях?&nbsp; Они отправляются за неделю и за сутки до каждого события, всегда можно <a href="/unsubscribe">отписаться</a>.</p>
-  {% endblock %}
   <form method="post">
+    {% block sheader %}
+      <h2>Подписка на уведомления</h2>
+      <p>Как вы хотите получать напоминания о событиях?&nbsp; Они отправляются за неделю и за сутки до каждого события, всегда можно <a href="/unsubscribe">отписаться</a>.</p>
+    {% endblock %}
     <label><input class="check" type="checkbox" name="phone"/> на мобильный телефон (SMS)</label>
     <div id="phone_div" class="hidden">
       <input class="text" type="text" name="phone_number"/>
@@ -15,7 +15,7 @@
       <input class="text" type="text" name="email_address"/>
     </div>
     <div class="button">
-      <input type="submit" disabled="disabled" value="Подписаться"/>
+      <input type="submit" disabled="disabled" value="Подписаться"/> или <a href="/">вернуться к афише</a>
     </div>
   </form>
 </div>

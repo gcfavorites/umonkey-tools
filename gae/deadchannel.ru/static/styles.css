@@ -72,6 +72,7 @@ p {
 	position: absolute;
 	top: 0;
 	left: 440px;
+	width: 200px;
 	opacity: 0.8;
 }
 #sidebar p {

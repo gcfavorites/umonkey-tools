@@ -45,8 +45,8 @@ class BaseRequestHandler(webapp.RequestHandler):
 		vars['host'] = self.getHost()
 		#vars['styles'] = self.get_styles(vars['host'])
 		#vars['scripts'] = self.get_scripts(vars['host'])
-		#vars['logout_uri'] = users.create_logout_url(self.request.uri)
-		#vars['login_uri'] = users.create_login_url(self.request.uri)
+		vars['logout_uri'] = users.create_logout_url(self.request.uri)
+		vars['login_uri'] = users.create_login_url(self.request.uri)
 		vars['admin'] = users.is_current_user_admin()
 		directory = os.path.dirname(__file__)
 		path = os.path.join(directory, 'templates', template_name)
@@ -86,8 +86,12 @@ class IndexHandler(BaseRequestHandler):
 	index.html.
 	"""
 	def get(self):
-		now = util.now() + datetime.timedelta(0, 0, 0, 0, 0, -8)
-		events = model.Event.gql('WHERE date > :1 ORDER BY date', now).fetch(20)
+		# Считаем количество предстоящих событий.
+		upcoming = model.Event.gql('WHERE date > :1', util.now() + datetime.timedelta(0, 0, 0, 0, 0, -8)).count()
+
+		# Загружаем все события.
+		events = model.Event.all().order('date').fetch(1000)
+
 		gaid = hasattr(config, 'GA_ID') and config.GA_ID or None
 		self.render('index.html', {
 			'events': events,
@@ -95,6 +99,7 @@ class IndexHandler(BaseRequestHandler):
 				'subscribed': self.request.get('status') == 'subscribed',
 				'mod': self.request.get('status') == 'mod',
 			},
+			'start_event': len(events) - upcoming + 1,
 			'gaid': gaid,
 		})
 
@@ -106,26 +111,47 @@ class SubmitHandler(BaseRequestHandler):
 	пользователя отправляют на главную страницу.
 	"""
 	def get(self):
-		self.render('submit.html')
+		if self.request.get('key'):
+			event = model.get_by_key(self.request.get('key'))
+		else:
+			event = None
+		self.render('submit.html', {
+			'wtf': 'hello',
+			'event': event,
+			'event_exists': event and event.is_saved(),
+		})
 
 	def post(self):
-		date = datetime.datetime.strptime(self.request.get('date'), '%Y-%m-%d %H:%M')
+		date = datetime.datetime.strptime(self.request.get('date')[:16], '%Y-%m-%d %H:%M')
 		title = self.request.get('title').strip()
-		url = self.request.get('url').strip()
-		if users.is_current_user_admin():
-			event = model.Event.gql('WHERE url = :1', url).get()
-			if event is None:
-				event = model.Event(user=users.get_current_user(), url=url, far_sent=False, soon_sent=False)
-			event.short_url = util.shorten_url(url)
-			event.date = date
-			event.title = title
-			event.put()
-			self.redirect('/')
+		url = self.request.get('url').strip() or None
+		poster = self.request.get('poster').strip() or None
+		video = self.request.get('video').strip() or None
+		discount = self.request.get('discount') and True or False
+
+		if self.request.get('key'):
+			event = model.get_by_key(self.request.get('key'))
 		else:
-			text = u'Date: %s\nTitle: %s\nURL: %s' % (self.request.get('date'), title, url)
-			html = u'<html><body><table><tr><th>Date:</th><td>%s</td></tr><tr><th>Title:</th><td>%s</td></tr><tr><th>URL:</th><td>%s</td></tr></table></body></html>' % (self.request.get('date'), title, url)
-			mail.send_mail(sender=config.ADMIN, to=config.ADMIN, subject='New event', body=text, html=html)
-			self.redirect('/?status=mod')
+			event = model.Event(user=users.get_current_user())
+			event.far_sent = False
+			event.soon_sent = False
+
+		event.url = url
+		event.short_url = util.shorten_url(url)
+		event.date = date
+		event.title = title
+		event.poster = poster
+		event.video = video
+		event.discount = discount
+		event.put()
+		self.redirect('/')
+
+		"""
+		text = u'Date: %s\nTitle: %s\nURL: %s' % (self.request.get('date'), title, url)
+		html = u'<html><body><table><tr><th>Date:</th><td>%s</td></tr><tr><th>Title:</th><td>%s</td></tr><tr><th>URL:</th><td>%s</td></tr></table></body></html>' % (self.request.get('date'), title, url)
+		mail.send_mail(sender=config.ADMIN, to=config.ADMIN, subject='New event', body=text, html=html)
+		self.redirect('/?status=mod')
+		"""
 
 
 class SubscribeHandler(BaseRequestHandler):

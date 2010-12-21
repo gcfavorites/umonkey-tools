@@ -1,15 +1,49 @@
 # vim: set ts=4 sts=4 sw=4 noet fileencoding=utf-8:
 
+import logging
+
 from google.appengine.ext import db
 
+import util
+
 class Event(db.Model):
-	user = db.UserProperty(required=True) # кто добавил
+	# Добавивший пользователь.
+	user = db.UserProperty(required=True)
+
+	# Время начала события.
 	date = db.DateTimeProperty()
+
+	# Заголовок, выводится в списке и в SMS.
 	title = db.StringProperty()
+
+	# Ссылка на какое-нибудь описание.
 	url = db.LinkProperty()
+
+	# Сокращённая ссылка (для отправки в Twitter).
 	short_url = db.LinkProperty()
+
+	# Иллюстрация.
+	poster = db.LinkProperty()
+
+	# Ссылка на клип.
+	video = db.LinkProperty()
+
+	# True если есть скидки.
+	discount = db.BooleanProperty()
+
+	# True, если отправлено напоминание за неделю.
 	far_sent = db.BooleanProperty()
+
+	# True, если отправлено напоминание за сутки.
 	soon_sent = db.BooleanProperty()
+
+	def css_class(self):
+		classes = ''
+		if self.soon_sent:
+			classes += ' soon'
+		if self.date < util.now():
+			classes += ' past'
+		return classes.strip()
 
 
 class Email(db.Model):
@@ -27,3 +61,6 @@ class Phone(db.Model):
 	confirmed = db.BooleanProperty()
 	# Код подтверждения.  Сохраняется при выдаче, после проверки очищается.
 	confirm_code = db.IntegerProperty()
+
+def get_by_key(key):
+    return db.get(db.Key(key))
