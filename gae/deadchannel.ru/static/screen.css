@@ -13,6 +13,10 @@ a, .fakelink {
 	cursor: pointer;
 }
 
+img {
+	border: 0;
+}
+
 h1 {
 	width: 480px;
 	margin: 10px auto 0;
