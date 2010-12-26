@@ -266,6 +266,12 @@ class HourlyCronHandler(BaseRequestHandler):
 	отправляются для событий, до которых осталось от 23 до 24 часов.
 	"""
 	def get(self):
+		hour = util.now().hour
+		if hour < 8 or hour > 22:
+			self.response.headers['Content-Type'] = 'text/plain'
+			self.response.out.write('Delayed.')
+			return
+
 		emails = model.Email.all().fetch(1000)
 		phones = model.Phone.all().fetch(1000)
 		count = 0 # количество поставленных в очередь событий
@@ -338,11 +344,14 @@ class NotifyHandler(BaseRequestHandler):
 		date = event.date.strftime('%d.%m')
 		time = event.date.strftime('%H:%M')
 		if self.request.get('week'):
-			text = u'%s в %s %s, см. %s' % (date, time, event.title, config.HOSTNAME)
-			# text = u'%s (через неделю) в %s %s, см. %s' % (date, time, event.title, config.HOSTNAME)
+			text = u'%s в %s %s' % (date, time, event.title)
+			# text = u'%s (через неделю) в %s %s' % (date, time, event.title)
 		else:
-			text = u'%s в %s %s, см. %s' % (date, time, event.title, config.HOSTNAME)
-			# text = u'%s (завтра) в %s %s, см. %s' % (date, time, event.title, config.HOSTNAME)
+			text = u'%s в %s %s' % (date, time, event.title)
+			# text = u'%s (завтра) в %s %s' % (date, time, event.title)
+		if event.discount:
+			text += u', скидки по СМС'
+		text += u', см. %s' % config.HOSTNAME
 		send_sms(phone, text)
 
 	def notify_email(self, event, email):
