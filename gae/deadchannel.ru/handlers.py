@@ -186,12 +186,12 @@ class SubscribeHandler(BaseRequestHandler):
 		if phone is not None and not phone.confirmed:
 			phone.confirm_code = code
 			phone.put()
-			send_sms(phone.phone, u'Код подтверждения подписки на deadchannel.ru: %s' % code)
+			send_sms(phone.phone, u'Код подтверждения подписки на %s: %s' % (config.HOSTNAME, code))
 			redirect = '/subscribe/confirm/phone'
 		if email is not None and not email.confirmed:
 			email.confirm_code = code
 			email.put()
-			self.send_mail(email.email, u'Подтверждение подписки на deadchannel.ru', 'email_add', {
+			self.send_mail(email.email, u'Подтверждение подписки на %s' % config.HOSTNAME, 'email_add', {
 				'code': email.confirm_code,
 			})
 		return redirect
@@ -248,7 +248,7 @@ class UnsubscribeHandler(SubscribeHandler):
 		if phone is not None and phone.confirmed:
 			phone.confirm_code = code
 			phone.put()
-			send_sms(phone.phone, u'Код подтверждения отказа от напоминаний на deadchannel.ru: %s' % code)
+			send_sms(phone.phone, u'Код подтверждения отказа от напоминаний на %s: %s' % (config.HOSTNAME, code))
 			redirect = '/unsubscribe/confirm/phone'
 		return redirect
 
@@ -338,11 +338,11 @@ class NotifyHandler(BaseRequestHandler):
 		date = event.date.strftime('%d.%m')
 		time = event.date.strftime('%H:%M')
 		if self.request.get('week'):
-			text = u'%s в %s %s, см. deadchannel.ru' % (date, time, event.title)
-			# text = u'%s (через неделю) в %s %s, см. deadchannel.ru' % (date, time, event.title)
+			text = u'%s в %s %s, см. %s' % (date, time, event.title, config.HOSTNAME)
+			# text = u'%s (через неделю) в %s %s, см. %s' % (date, time, event.title, config.HOSTNAME)
 		else:
-			text = u'%s в %s %s, см. deadchannel.ru' % (date, time, event.title)
-			# text = u'%s (завтра) в %s %s, см. deadchannel.ru' % (date, time, event.title)
+			text = u'%s в %s %s, см. %s' % (date, time, event.title, config.HOSTNAME)
+			# text = u'%s (завтра) в %s %s, см. %s' % (date, time, event.title, config.HOSTNAME)
 		send_sms(phone, text)
 
 	def notify_email(self, event, email):
