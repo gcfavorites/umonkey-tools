@@ -31,7 +31,7 @@ def twit(message):
 	"""
 	Отправляет в твиттер произвольное сообщение.
 	"""
-	client = oauth.TwitterClient(config.TWITTER_CONSUMER_KEY, config.TWITTER_CONSUMER_SECRET, 'http://www.deadchannel.ru/verify')
+	client = oauth.TwitterClient(config.TWITTER_CONSUMER_KEY, config.TWITTER_CONSUMER_SECRET, 'http://%s/verify' % config.HOSTNAME)
 	result = client.make_request('http://twitter.com/statuses/update.json',
 		token=config.TWITTER_ACCESS_TOKEN_KEY,
 		secret=config.TWITTER_ACCESS_TOKEN_SECRET,
