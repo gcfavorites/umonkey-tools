@@ -1,0 +1,310 @@
+#!/usr/bin/env python
+# vim: set fileencoding=utf-8:
+#
+# TODO:
+# http://therning.org/magnus/archives/57 (install schemas)
+
+import datetime
+import re
+import sys
+import traceback
+import urllib
+import xmpp
+
+import gobject
+import pygst
+pygst.require('0.10')
+import gst
+import gconf
+import gtk
+import pygtk
+
+import subprocess
+
+GCONF_ROOT = '/apps/tmradio-client'
+GCONF_STREAM_URI = '/apps/tmradio-client/stream_uri'
+GCONF_JABBER_ID = '/apps/tmradio-client/jabber_id'
+GCONF_JABBER_PASSWORD = '/apps/tmradio-client/jabber_password'
+
+class Jabber:
+    def __init__(self, gui):
+        self.gui = gui
+        self.jid = None
+        self.cli = None
+        self.roster = None
+        self.bot_jid = None
+        self.chat_jid = None
+        # RegExp for parsing the status line
+        self.np_re = re.compile(u'^«(.+)» by (.+) — #(\d+) ♺(\d+) ⚖(\S+) (.+)$')
+        # RegExp for parsing the SHOW command (extracts pro/con lists only).
+        self.show_re = re.compile(u'.* #(\d+).* Pro: (.+), contra: (.+)\.$')
+
+    def connect(self):
+        jid = self.gui.gconf.get_string(GCONF_JABBER_ID)
+        password = self.gui.gconf.get_string(GCONF_JABBER_PASSWORD)
+        if not jid or not password:
+            self.log('Jabber disabled: jid/password not set.')
+            return False
+
+        self.jid = xmpp.protocol.JID(jid)
+        if self.gui.gconf.get_bool('/apps/tmradio-client/jabber_debug'):
+            self.cli = xmpp.Client(self.jid.getDomain())
+        else:
+            self.cli = xmpp.Client(self.jid.getDomain(), debug=[])
+
+        res = self.cli.connect()
+        if not res:
+            self.log('Could not connect to %s.' % self.jid.getDomain())
+            return False
+
+        res = self.cli.auth(self.jid.getNode(), password, 'tmclient/')
+        if not res:
+            self.log('Could not authorize with the server.')
+            return False
+
+        self.cli.sendInitPresence()
+        # self.roster = self.cli.Roster.getRoster()
+        self.cli.RegisterHandler('message', self.on_message)
+        self.cli.RegisterHandler('presence', self.on_presence)
+
+        self.bot_jid = self.gui.gconf.get_string('/apps/tmradio-client/jabber_bot')
+        self.join_chat_room()
+        return True
+
+    def join_chat_room(self):
+        self.chat_jid = self.gui.gconf.get_string('/apps/tmradio-client/jabber_chat_room')
+        nick = self.gui.gconf.get_string('/apps/tmradio-client/jabber_chat_nick')
+        if not nick:
+            nick = unicode(self.jid)
+        self.cli.send(xmpp.Presence(to=u'/'.join((self.chat_jid, nick))))
+
+    def on_message(self, conn, msg):
+        if msg.getType() == 'groupchat':
+            nick = unicode(msg.getFrom()).split('/')[1]
+            self.gui.add_chat(msg.getBody(), nick)
+            return
+
+        elif msg.getFrom().getStripped() == self.bot_jid:
+            text = msg.getBody()
+            if not text:
+                self.log('Empty message received: %s' % msg)
+                return
+            matches = self.show_re.match(msg.getBody())
+            if matches:
+                pro = matches.group(2).split(', ')
+                con = matches.group(3).split(', ')
+                if self.jid in pro:
+                    self.gui.track_vote = 1
+                elif self.jid in con:
+                    self.gui.track_vote = -1
+                else:
+                    self.gui.track_vote = 0
+                return
+        # self.gui.add_chat(msg.getBody(), unicode(msg.getFrom()).split('/')[1])
+        self.log('Unhandled message: %s' % msg.getBody())
+
+    def on_presence(self, conn, msg):
+        sender = msg.getFrom()
+        if self.bot_jid == sender.getStripped():
+            match = self.np_re.match(msg.getStatus())
+            if match:
+                title, artist, track_id, count, weight, tags = match.groups()
+                self.gui.set_track_title(u'%s — %s' % (artist, title))
+                self.gui.set_track_link('http://last.fm/music/%s/' % (urllib.quote(artist.encode('utf-8'))))
+                # self.gui.set_track_link('http://last.fm/music/%s/_/%s' % (urllib.quote(artist.encode('utf-8')), urllib.quote(title.encode('utf-8'))))
+                # Status changed because somebody added labels or voted.  Our
+                # vote did not change, no need to request it.
+                if int(track_id) != self.gui.track_id:
+                    self.message('show ' + track_id)
+                self.gui.set_track_id(int(track_id))
+            else:
+                self.log('Bot status not understood: %s' % msg.getStatus())
+
+    def do_idle(self):
+        self.cli.Process(0)
+
+    def message(self, text):
+        msg = xmpp.protocol.Message(body=text)
+        msg.setTo(self.bot_jid)
+        msg.setType('chat')
+        self.cli.send(msg)
+        self.log('Sent to bot: %s' % text)
+
+    def chat(self, text):
+        msg = xmpp.protocol.Message(body=text)
+        msg.setTo(self.chat_jid)
+        msg.setType('groupchat')
+        self.cli.send(msg)
+        self.log('Sent to chat: %s' % text)
+
+    def log(self, message):
+        print message
+
+
+class MainClient:
+    def __init__(self):
+        self.builder = gtk.Builder()
+        if sys.argv[0].startswith('/usr/bin'):
+            self.builder.add_from_file('/usr/share/tmradio-client/desktop.ui')
+        else:
+            self.builder.add_from_file('desktop.ui')
+        self.window = self.builder.get_object('MainWindow')
+        self.builder.connect_signals(self)
+        self.gconf = gconf.client_get_default()
+        self.jabber = None
+        self.track_id = None
+        self.track_link = None
+        self.track_vote = None
+        # Suppress duplicate nicknames in the chat window.
+        self.last_chat_nick = None
+
+        self.init_player()
+        self.init_chatlog()
+
+        gobject.idle_add(self.on_idle)
+
+    def init_player(self):
+        # CLI analogue:
+        # gst-launch-0.10 playbin uri='http://stream.tmradio.net:8180/live.mp3'
+        # See also:
+        # http://pygstdocs.berlios.de/pygst-tutorial/playbin.html
+        self.is_playing = False
+
+        self.player = gst.element_factory_make('playbin2', 'client')
+
+        bus = self.player.get_bus()
+        bus.add_signal_watch()
+        bus.connect('message', self.on_player_message)
+
+    def init_chatlog(self):
+        tv = self.builder.get_object('chatview')
+
+        cell = gtk.CellRendererText()
+        col = gtk.TreeViewColumn(u'Дата')
+        col.pack_start(cell, True)
+        col.add_attribute(cell, 'text', 0)
+        tv.append_column(col)
+
+        cell = gtk.CellRendererText()
+        col = gtk.TreeViewColumn(u'Ник')
+        col.pack_start(cell, True)
+        col.add_attribute(cell, 'text', 1)
+        tv.append_column(col)
+
+        cell = gtk.CellRendererText()
+        cell.props.wrap_width = 400
+        cell.props.wrap_mode = gtk.WRAP_WORD
+        col = gtk.TreeViewColumn(u'Сообщение')
+        col.pack_start(cell, True)
+        col.add_attribute(cell, 'text', 2)
+        tv.append_column(col)
+
+    def on_MainWindow_destroy(self, widget, data=None):
+        gtk.main_quit()
+
+    def on_play_clicked(self, widget, data=None):
+        if self.is_playing:
+            self.stop_playing()
+        else:
+            self.start_playing()
+
+    def on_settings_clicked(self, widget, data=None):
+        subprocess.Popen(['gconf-editor', '/apps/tmradio-client']).wait()
+
+    def on_player_message(self, bus, message):
+        t = message.type
+        if t == gst.MESSAGE_TAG and self.jabber is None:
+            dtags = {}
+            rtags = message.parse_tag()
+            for key in rtags.keys():
+                dtags[key] = rtags[key]
+            if dtags.has_key('title'):
+                self.set_track_title(dtags['title'])
+        elif t == gst.MESSAGE_BUFFERING:
+            pass
+        elif t == gst.MESSAGE_EOS:
+            self.stop_playing()
+            self.start_playing() # restart
+        else:
+            pass # print message.type
+
+    def stop_playing(self):
+        self.player.set_state(gst.STATE_NULL)
+        self.builder.get_object('play').get_image().set_from_stock('gtk-media-play', gtk.ICON_SIZE_BUTTON)
+        if not self.jabber:
+            self.set_track_title('')
+            sefl.set_track_link('')
+        self.is_playing = False
+
+    def start_playing(self):
+        uri = self.gconf.get_string(GCONF_STREAM_URI) # 'http://stream.tmradio.net:8180/live.mp3'
+        self.player.set_property('uri', uri)
+        self.player.set_state(gst.STATE_PLAYING)
+        self.builder.get_object('play').get_image().set_from_stock('gtk-media-stop', gtk.ICON_SIZE_BUTTON)
+        self.is_playing = True
+
+    def set_track_title(self, title):
+        self.builder.get_object('np').set_label(title)
+
+    def set_track_id(self, track_id):
+        self.track_id = track_id
+
+    def set_track_link(self, track_link):
+        self.track_link = track_link
+
+    def add_chat(self, text, nick=None):
+        time = datetime.datetime.now().strftime('%H:%M')
+        if nick is None:
+            nick = u'Робот'
+        model = self.builder.get_object('chatlog')
+
+        if nick == self.last_chat_nick:
+            nick = ''
+        else:
+            self.last_chat_nick = nick
+
+        row_iter = model.append([time, nick, text])
+        path = model.get_path(row_iter)
+        self.builder.get_object('chatview').scroll_to_cell(path)
+
+    def on_idle(self):
+        # Set control sensitivity.
+        for ctl_name in ('rocks', 'sucks'):
+            ctl = self.builder.get_object(ctl_name).set_sensitive(self.track_id is not None)
+        self.builder.get_object('rocks').set_active(self.track_vote == 1)
+        self.builder.get_object('sucks').set_active(self.track_vote == -1)
+        ctl = self.builder.get_object('np')
+        if ctl.get_uri() != self.track_link:
+            ctl.set_uri(self.track_link or '')
+
+        try:
+            if self.jabber is None:
+                self.jabber = Jabber(self)
+                self.jabber.connect()
+            else:
+                self.jabber.do_idle()
+        except Exception, e:
+            print 'EXCEPTION in Jabber: %s' % e
+            print traceback.format_exc()
+        return True
+
+    def on_rocks_toggled(self, button):
+        if button.get_active() and self.track_id and self.jabber and self.track_vote != 1:
+            self.track_vote = 1
+            self.jabber.message('%u rocks' % self.track_id)
+
+    def on_sucks_toggled(self, button):
+        if button.get_active() and self.track_id and self.jabber and self.track_vote != -1:
+            self.track_vote = -1
+            self.jabber.message('%u sucks' % self.track_id)
+
+    def on_chatmsg_activate(self, field):
+        if self.jabber:
+            text = field.get_text()
+            field.set_text('')
+            self.jabber.chat(text)
+
+if __name__ == '__main__':
+    app = MainClient()
+    app.window.show()
+    gtk.main()

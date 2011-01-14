@@ -1,0 +1,12 @@
+Package: tmradio-client-gtk
+Version: 0.1
+Section: sound
+Priority: optional
+Maintainer: Justin Forest <hex@umonkey.net>
+Architecture: all
+Essential: no
+Depends: python, python-gconf, python-gst0.10, python-xmpp
+Installed-Size: 50
+Description: A single application that lets you listen to the tmradio.net
+  stream, vote for song, stay in the chat room and browse the podcast archive.
+Homepage: http://www.tmradio.net/
