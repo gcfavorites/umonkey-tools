@@ -1,4 +1,4 @@
-VERSION=0.2
+VERSION=0.3
 DEB=tmradio-client-gtk-${VERSION}.deb
 
 all: run
@@ -18,6 +18,8 @@ deb:
 	cp desktop.ui debian/usr/share/tmradio-client/
 	mkdir -p debian/usr/share/gconf/schemas
 	cp tmradio.schemas debian/usr/share/gconf/schemas/
+	mkdir -p debian/usr/share/applications
+	cp tmradio.desktop debian/usr/share/applications/
 	sudo chown -R root:root debian/usr
 	dpkg -b debian ${DEB}
 	sudo rm -rf debian/usr
