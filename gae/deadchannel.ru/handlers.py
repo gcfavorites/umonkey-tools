@@ -412,11 +412,14 @@ class FeedbackHandler(BaseRequestHandler):
 		text = self.request.get('text').strip()
 		sender = self.request.get('from').strip()
 		site = self.request.get('site').strip()
+		to = self.request.get('to').strip()
+		if to not in config.FEEDBACK_RECIPIENTS:
+			to = config.ADMIN
 		if not site:
 			site = self.request.host
 		if text and sender:
 			text += u'\n\n---\nFrom: %s\n' % sender
-			mail.send_mail(sender=config.ADMIN, to=config.ADMIN, subject='Feedback from ' + site, body=text)
+			mail.send_mail(sender=config.ADMIN, to=to, subject='Feedback from ' + site, body=text)
 		self.redirect(self.request.get('back'))
 
 
