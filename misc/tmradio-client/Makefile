@@ -15,8 +15,8 @@ deb:
 	mkdir -p debian/usr/share/gconf/schemas
 	cp tmradio.schemas debian/usr/share/gconf/schemas/
 	sudo chown -R root:root debian/usr
-	dpkg -b debian tmradio-client-gtk-0.1.deb
+	dpkg -b debian tmradio-client-gtk-0.2.deb
 	sudo rm -rf debian/usr
 
 install: deb
-	sudo dpkg -i tmradio-client-gtk-0.1.deb
+	sudo dpkg -i tmradio-client-gtk-0.2.deb
