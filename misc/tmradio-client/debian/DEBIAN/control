@@ -1,5 +1,5 @@
 Package: tmradio-client-gtk
-Version: 0.2
+Version: 0.3
 Section: sound
 Priority: optional
 Maintainer: Justin Forest <hex@umonkey.net>
