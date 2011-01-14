@@ -1,1 +1,7 @@
-Для обновления пакетов выполнить: make update-packages.
+1. Для обновления пакетов выполнить: make update-packages.
+2. Файлы *.deb надо загрузить в Google Code.
+3. В список репозиториев (/etc/apt/sources.list) добавить:
+   deb http://проект.googlecode.com/ hg/
+
+Подробности описаны в блоге:
+http://umonkey.net/blog.2010-08-05.3.repo.html
