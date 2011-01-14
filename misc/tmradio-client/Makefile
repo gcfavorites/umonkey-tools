@@ -28,7 +28,7 @@ deb:
 zip:
 	zip -9 ${ZIP} tmradio-client desktop.ui tmradio.desktop tmradio.schemas Makefile
 
-upload-deb: deb
+upload-deb: deb zip
 	-googlecode_upload.py -s "Version 0.2 of the GTK+ client for tmradio.net" -p umonkey-tools -l tmradio ${DEB}
 	-googlecode_upload.py -s "Version 0.2 of the GTK+ client for tmradio.net" -p umonkey-tools -l tmradio ${ZIP}
 
