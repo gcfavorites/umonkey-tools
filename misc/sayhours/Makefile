@@ -5,8 +5,8 @@ deb: clean
 	dpkg -b debian sayhours-${VERSION}.deb
 
 upload-deb: deb zip
-	googlecode_upload.py -s "sayhours v${VERSION}" -p umonkey-tools -l Featured,Type-Package,OpSys-Linux sayhours-${VERSION}.deb
-	googlecode_upload.py -s "sayhours v${VERSION}" -p umonkey-tools -l Featured,Type-Source,OpSys-All sayhours-${VERSION}.zip
+	-googlecode_upload.py -s "sayhours v${VERSION}" -p umonkey-tools -l Featured,Type-Package,OpSys-Linux sayhours-${VERSION}.deb
+	-googlecode_upload.py -s "sayhours v${VERSION}" -p umonkey-tools -l Featured,Type-Source,OpSys-All sayhours-${VERSION}.zip
 
 clean:
 	rm -f *deb *zip
