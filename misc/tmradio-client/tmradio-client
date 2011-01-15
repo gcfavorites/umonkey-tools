@@ -49,6 +49,7 @@ class ConfigGConf:
     def get_stream_uri(self):
         return self.gconf.get_string('/apps/tmradio-client/stream_uri')
 
+
 class Jabber:
     def __init__(self, gui):
         self.gui = gui
@@ -243,7 +244,7 @@ class MainClient:
         tv = self.builder.get_object('chatview')
 
         cell = gtk.CellRendererText()
-        col = gtk.TreeViewColumn(u'Дата')
+        col = gtk.TreeViewColumn(u'Время')
         col.pack_start(cell, True)
         col.add_attribute(cell, 'text', 0)
         tv.append_column(col)
