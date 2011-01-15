@@ -1,6 +1,7 @@
+(misc|software-installer)/.*\.(deb|zip)
 .*\.(pem|crx|pyc)
-gae/\.gae/
-(misc|software-installer)/.*\.(deb)
+\.oex
 browser-extensions/ueb/chrome/ueb.zip
 gae/.*\/config\.py
-\.oex
+gae/\.gae/
+misc/tmradio-client/debian/DEBIAN/control
