@@ -10,6 +10,9 @@ config:
 test:
 	./tmradio-client
 
+clean:
+	rm -f *.zip *.deb
+
 deb:
 	rm -rf *.deb debian/usr
 	cat debian/DEBIAN/control.in | sed -e "s/VERSION/${VERSION}/g" > debian/DEBIAN/control
