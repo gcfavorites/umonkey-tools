@@ -8,6 +8,9 @@ config:
 	gconf-editor /apps/tmradio-client
 
 test:
+	./tmradio-client
+
+debug:
 	./tmradio-client --debug
 
 clean:
