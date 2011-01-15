@@ -16,6 +16,7 @@ import sys
 import traceback
 import urllib
 import xmpp
+import webbrowser
 
 import gobject
 import pygst
@@ -355,11 +356,6 @@ class MainWindow(BaseWindow):
         else:
             self.start_playing()
 
-    def on_settings_clicked(self, widget, data=None):
-        if not self.pref_window:
-            self.pref_window = Preferences(self.config)
-        self.pref_window.window.show()
-
     def stop_playing(self):
         self.player.stop()
         self.builder.get_object('play').get_image().set_from_stock('gtk-media-play', gtk.ICON_SIZE_BUTTON)
@@ -458,6 +454,17 @@ class MainWindow(BaseWindow):
     def on_skip_clicked(self, button):
         if self.jabber:
             self.jabber.message('skip')
+
+    def on_menu_preferences_activate(self, item):
+        if not self.pref_window:
+            self.pref_window = Preferences(self.config)
+        self.pref_window.window.show()
+
+    def on_menu_quit_activate(self, item):
+        gtk.main_quit()
+
+    def on_menu_about_activate(self, *args):
+        webbrowser.open('http://code.google.com/p/umonkey-tools/wiki/tmradio')
 
     def on_chat_entered(self):
         self.builder.get_object('chatmsg').grab_focus()
