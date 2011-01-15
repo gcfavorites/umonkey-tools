@@ -320,6 +320,9 @@ class MainWindow(BaseWindow):
         self.init_chatlog()
         gobject.idle_add(self.on_idle)
 
+        settings = gtk.settings_get_default()
+        settings.props.gtk_button_images = True
+
     def init_chatlog(self):
         tv = self.builder.get_object('chatview')
 
