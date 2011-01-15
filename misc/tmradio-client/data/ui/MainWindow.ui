@@ -287,6 +287,7 @@ audio-volume-medium</property>
                               <object class="GtkLabel" id="label9">
                                 <property name="visible">True</property>
                                 <property name="xalign">1</property>
+                                <property name="xpad">4</property>
                                 <property name="label" translatable="yes">&#x41D;&#x430;&#x43F;&#x438;&#x441;&#x430;&#x442;&#x44C;:</property>
                               </object>
                               <packing>
@@ -298,6 +299,7 @@ audio-volume-medium</property>
                             <child>
                               <object class="GtkEntry" id="chatmsg">
                                 <property name="visible">True</property>
+                                <property name="sensitive">False</property>
                                 <property name="can_focus">True</property>
                                 <property name="events">GDK_STRUCTURE_MASK | GDK_PROPERTY_CHANGE_MASK</property>
                                 <property name="invisible_char">&#x2022;</property>
