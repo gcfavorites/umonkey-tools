@@ -24,7 +24,7 @@ deb:
 	mkdir -p debian/usr/share/tmradio-client
 	cp data/ui/*.ui debian/usr/share/tmradio-client/
 	mkdir -p debian/usr/share/gconf/schemas
-	cp tmradio.schemas debian/usr/share/gconf/schemas/
+	cp data/tmradio.schemas debian/usr/share/gconf/schemas/
 	mkdir -p debian/usr/share/applications
 	cp data/tmradio.desktop debian/usr/share/applications/
 	sudo chown -R root:root debian/usr
