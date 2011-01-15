@@ -194,18 +194,18 @@
             <child>
               <object class="GtkVolumeButton" id="volume">
                 <property name="visible">True</property>
-                <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="has_tooltip">True</property>
-                <property name="image">volumeIcon</property>
                 <property name="relief">none</property>
                 <property name="focus_on_click">False</property>
                 <property name="orientation">vertical</property>
+                <property name="value">0.75</property>
                 <property name="icons">audio-volume-muted
 audio-volume-high
 audio-volume-low
 audio-volume-medium</property>
+                <signal name="value_changed" handler="on_volume_changed"/>
               </object>
               <packing>
                 <property name="expand">False</property>
