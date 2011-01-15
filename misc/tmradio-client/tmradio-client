@@ -301,19 +301,20 @@ class MainClient:
         self.track_link = track_link
 
     def add_chat(self, text, nick=None):
-        time = datetime.datetime.now().strftime('%H:%M')
-        if nick is None:
-            nick = u'Робот'
-        model = self.builder.get_object('chatlog')
+        if text.strip():
+            time = datetime.datetime.now().strftime('%H:%M')
+            if nick is None:
+                nick = u'Робот'
+            model = self.builder.get_object('chatlog')
 
-        if nick == self.last_chat_nick:
-            nick = ''
-        else:
-            self.last_chat_nick = nick
+            if nick == self.last_chat_nick:
+                nick = ''
+            else:
+                self.last_chat_nick = nick
 
-        row_iter = model.append([time, nick, text])
-        path = model.get_path(row_iter)
-        self.builder.get_object('chatview').scroll_to_cell(path)
+            row_iter = model.append([time, nick, text.strip()])
+            path = model.get_path(row_iter)
+            self.builder.get_object('chatview').scroll_to_cell(path)
 
     def on_idle(self):
         # Set control sensitivity.
