@@ -478,6 +478,14 @@ class MainWindow(BaseWindow):
         else:
             self.window.show()
 
+    def on_tray_scroll(self, icon, event):
+        delta = 0.1
+        if event.direction == gtk.gdk.SCROLL_DOWN:
+            delta = -0.1
+        volume = self.builder.get_object('volume')
+        value = min(max(volume.get_value() + delta, 0.0), 1.0)
+        volume.set_value(value)
+
     def on_menu_preferences_activate(self, item):
         if not self.pref_window:
             self.pref_window = Preferences(self.config)
