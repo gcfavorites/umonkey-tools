@@ -36,7 +36,7 @@ class ConfigGConf:
         return self.gconf.get_string('/apps/tmradio-client/jabber_password')
 
     def get_debug(self):
-        return self.gconf.get_bool('/apps/tmradio-client/jabber_debug')
+        return '--debug' in sys.argv
 
     def get_bot_jid(self):
         return self.gconf.get_string('/apps/tmradio-client/jabber_bot')
@@ -313,7 +313,7 @@ class MainClient:
         self.track_link = track_link
 
     def add_chat(self, text, nick=None):
-        if text.strip():
+        if text and text.strip():
             time = datetime.datetime.now().strftime('%H:%M')
             if nick is None:
                 nick = u'Робот'

@@ -39,16 +39,6 @@
             </locale>
         </schema>
         <schema>
-            <key>/schemas/apps/tmradio-client/jabber_debug</key>
-            <applyto>/apps/tmradio-client/jabber_debug</applyto>
-            <type>bool</type>
-			<default>false</default>
-            <owner>tmradio-client</owner>
-            <locale name="C">
-                <short>Enabled debug output to console.</short>
-            </locale>
-        </schema>
-        <schema>
             <key>/schemas/apps/tmradio-client/jabber_chat_room</key>
             <applyto>/apps/tmradio-client/jabber_chat_room</applyto>
             <type>string</type>
