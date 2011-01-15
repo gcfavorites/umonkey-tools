@@ -19,6 +19,7 @@
     <property name="default_height">350</property>
     <property name="icon_name">preferences-desktop-multimedia</property>
     <signal name="destroy" handler="on_MainWindow_destroy"/>
+    <signal name="delete_event" handler="on_delete"/>
     <child>
       <object class="GtkVBox" id="vbox1">
         <property name="visible">True</property>
@@ -70,7 +71,7 @@
                     <property name="visible">True</property>
                     <child>
                       <object class="GtkImageMenuItem" id="menu_website">
-                        <property name="label" translatable="yes">Radio web site</property>
+                        <property name="label" translatable="yes">Open station web site</property>
                         <property name="visible">True</property>
                         <property name="image">image1</property>
                         <property name="use_stock">False</property>
@@ -288,7 +289,7 @@ audio-volume-medium</property>
                                 <property name="visible">True</property>
                                 <property name="xalign">1</property>
                                 <property name="xpad">4</property>
-                                <property name="label" translatable="yes">&#x41D;&#x430;&#x43F;&#x438;&#x441;&#x430;&#x442;&#x44C;:</property>
+                                <property name="label" translatable="yes">Message:</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -327,7 +328,7 @@ audio-volume-medium</property>
             <child type="tab">
               <object class="GtkLabel" id="label1">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">&#x427;&#x430;&#x442;</property>
+                <property name="label" translatable="yes">Chat</property>
               </object>
               <packing>
                 <property name="tab_fill">False</property>
@@ -375,7 +376,7 @@ audio-volume-medium</property>
             <child type="tab">
               <object class="GtkLabel" id="label3">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">&#x41F;&#x43E;&#x434;&#x43A;&#x430;&#x441;&#x442;&#x44B;</property>
+                <property name="label" translatable="yes">Podcasts</property>
               </object>
               <packing>
                 <property name="position">2</property>
@@ -419,5 +420,12 @@ audio-volume-medium</property>
   <object class="GtkImage" id="image1">
     <property name="visible">True</property>
     <property name="stock">gtk-missing-image</property>
+  </object>
+  <object class="GtkStatusIcon" id="tray">
+    <property name="icon_name">tmradio-client</property>
+    <property name="has_tooltip">True</property>
+    <property name="tooltip_text">&#x41A;&#x43B;&#x438;&#x435;&#x43D;&#x442; tmradio.net</property>
+    <property name="title">tmradio.net</property>
+    <signal name="activate" handler="on_tray_activate"/>
   </object>
 </interface>

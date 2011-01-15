@@ -337,13 +337,13 @@ class MainWindow(BaseWindow):
         tv = self.builder.get_object('chatview')
 
         cell = gtk.CellRendererText()
-        col = gtk.TreeViewColumn(u'Время')
+        col = gtk.TreeViewColumn('Time')
         col.pack_start(cell, True)
         col.add_attribute(cell, 'text', 0)
         tv.append_column(col)
 
         cell = gtk.CellRendererText()
-        col = gtk.TreeViewColumn(u'Ник')
+        col = gtk.TreeViewColumn('Nickname')
         col.pack_start(cell, True)
         col.add_attribute(cell, 'text', 1)
         tv.append_column(col)
@@ -351,10 +351,15 @@ class MainWindow(BaseWindow):
         cell = gtk.CellRendererText()
         cell.props.wrap_width = 400
         cell.props.wrap_mode = gtk.WRAP_WORD
-        col = gtk.TreeViewColumn(u'Сообщение')
+        col = gtk.TreeViewColumn('Message')
         col.pack_start(cell, True)
         col.add_attribute(cell, 'text', 2)
         tv.append_column(col)
+
+    def on_delete(self, *args):
+        """Hide instead of closing."""
+        self.window.hide()
+        return True
 
     def on_MainWindow_destroy(self, widget, data=None):
         gtk.main_quit()
@@ -466,6 +471,12 @@ class MainWindow(BaseWindow):
 
     def on_volume_changed(self, widget, level):
         self.player.set_volume(level)
+
+    def on_tray_activate(self, icon):
+        if self.window.get_visible():
+            self.window.hide()
+        else:
+            self.window.show()
 
     def on_menu_preferences_activate(self, item):
         if not self.pref_window:

@@ -23,6 +23,8 @@ deb:
 	cp tmradio-client debian/usr/bin/tmradio-client
 	mkdir -p debian/usr/share/tmradio-client
 	cp data/ui/*.ui debian/usr/share/tmradio-client/
+	mkdir -p debian/usr/share/icons/hicolor/48x48/apps
+	cp data/logo-48x48.png debian/usr/share/icons/hicolor/48x48/apps/tmradio-client.png
 	mkdir -p debian/usr/share/gconf/schemas
 	cp data/tmradio.schemas debian/usr/share/gconf/schemas/
 	mkdir -p debian/usr/share/applications
