@@ -13,12 +13,11 @@
     </columns>
   </object>
   <object class="GtkWindow" id="MainWindow">
-    <property name="width_request">512</property>
-    <property name="height_request">256</property>
     <property name="border_width">4</property>
     <property name="title" translatable="yes">tmradio.net</property>
-    <property name="default_width">512</property>
-    <property name="default_height">256</property>
+    <property name="window_position">center</property>
+    <property name="default_width">700</property>
+    <property name="default_height">350</property>
     <property name="icon_name">preferences-desktop-multimedia</property>
     <signal name="destroy" handler="on_MainWindow_destroy"/>
     <child>
