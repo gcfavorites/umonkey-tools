@@ -19,7 +19,7 @@ deb:
 	mkdir -p debian/usr/bin
 	cp tmradio-client debian/usr/bin/tmradio-client
 	mkdir -p debian/usr/share/tmradio-client
-	cp desktop.ui debian/usr/share/tmradio-client/
+	cp data/ui/*.ui debian/usr/share/tmradio-client/
 	mkdir -p debian/usr/share/gconf/schemas
 	cp tmradio.schemas debian/usr/share/gconf/schemas/
 	mkdir -p debian/usr/share/applications
@@ -29,7 +29,7 @@ deb:
 	sudo rm -rf debian/usr
 
 zip:
-	zip -9 ${ZIP} tmradio-client desktop.ui tmradio.desktop tmradio.schemas Makefile
+	zip -9 ${ZIP} tmradio-client data tmradio.desktop tmradio.schemas Makefile
 
 upload-deb: deb zip
 	-googlecode_upload.py -s "Version ${VERSION} of the GTK+ client for tmradio.net" -p umonkey-tools -l tmradio ${DEB}
