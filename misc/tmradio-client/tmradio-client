@@ -21,6 +21,8 @@ import pygtk
 
 import subprocess
 
+VERSION = '0.4'
+
 GCONF_ROOT = '/apps/tmradio-client'
 GCONF_STREAM_URI = '/apps/tmradio-client/stream_uri'
 GCONF_JABBER_ID = '/apps/tmradio-client/jabber_id'
@@ -155,10 +157,6 @@ class GstClient:
         self.on_track_change = on_track_change
 
     def play(self, uri):
-        # CLI analogue:
-        # gst-launch-0.10 playbin uri='http://stream.tmradio.net:8180/live.mp3'
-        # See also:
-        # http://pygstdocs.berlios.de/pygst-tutorial/playbin.html
         self.pipeline = self.get_pipeline(uri)
         bus = self.pipeline.get_bus()
         bus.add_signal_watch()
@@ -167,8 +165,9 @@ class GstClient:
         self.stream_uri = uri
 
     def get_pipeline(self, uri):
-        pl = gst.element_factory_make('playbin2', 'client')
-        pl.set_property('uri', uri)
+        pl = gst.Pipeline('pipeline')
+        tmp = gst.parse_launch('souphttpsrc location="%s" user-agent="tmradio-client v%s (Ubuntu Linux, GTK+)" ! decodebin ! autoaudiosink' % (uri, VERSION))
+        pl.add(tmp)
         return pl
 
     def stop(self):
@@ -194,15 +193,6 @@ class GstClient:
             pass # print message.type
 
 
-class GstClient2(GstClient):
-    """Adds custom user agent to the base class."""
-    def get_pipeline(self, uri):
-        pl = gst.Pipeline('pipeline')
-        tmp = gst.parse_launch('souphttpsrc location="%s" user-agent="tmradio-client (Ubuntu Linux, GTK+)" ! decodebin ! autoaudiosink' % uri)
-        pl.add(tmp)
-        return pl
-
-
 class MainClient:
     def __init__(self):
         self.builder = gtk.Builder()
@@ -221,7 +211,7 @@ class MainClient:
         # Suppress duplicate nicknames in the chat window.
         self.last_chat_nick = None
         # Initialize the player.
-        self.player = GstClient2(on_track_change=self.on_stream_track_change)
+        self.player = GstClient(on_track_change=self.on_stream_track_change)
 
         self.init_chatlog()
         gobject.idle_add(self.on_idle)
