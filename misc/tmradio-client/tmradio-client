@@ -472,7 +472,7 @@ class MainWindow(BaseWindow):
     def on_volume_changed(self, widget, level):
         self.player.set_volume(level)
 
-    def on_tray_activate(self, icon):
+    def on_tray_activate(self, *args):
         if self.window.get_visible():
             self.window.hide()
         else:
@@ -485,6 +485,12 @@ class MainWindow(BaseWindow):
         volume = self.builder.get_object('volume')
         value = min(max(volume.get_value() + delta, 0.0), 1.0)
         volume.set_value(value)
+
+    def on_tray_menu(self, icon, *args):
+        self.builder.get_object('tray_menu').popup(None, None, None, 3, 0)
+
+    def on_tray_show(self, *args):
+        self.on_tray_activate()
 
     def on_menu_preferences_activate(self, item):
         if not self.pref_window:
