@@ -6,6 +6,7 @@
 
 import datetime
 import random
+import os
 import re
 import sys
 import traceback
@@ -228,15 +229,37 @@ class GstClient:
             pass # print message.type
 
 
-class MainClient:
+class SettingsWindow():
     def __init__(self):
-        self.builder = gtk.Builder()
-        if sys.argv[0].startswith('/usr/bin'):
-            self.builder.add_from_file('/usr/share/tmradio-client/desktop.ui')
-        else:
-            self.builder.add_from_file('desktop.ui')
-        self.window = self.builder.get_object('MainWindow')
+        self.builder = builder
+        self.window = self.builder.get_object('SettingsWindow')
         self.builder.connect_signals(self)
+
+
+class BaseWindow(object):
+    """Base class for all windows.
+
+    Loads UI definition from data/ui/CLASS_NAME.ui, finds a top-level window
+    named as that class and creates an instance.
+    """
+    def __init__(self):
+        self.builder = self._get_builder(self.__class__.__name__)
+        self.window = self.builder.get_object(self.__class__.__name__)
+        self.builder.connect_signals(self)
+
+    def _get_builder(self, name):
+        builder = gtk.Builder()
+        if sys.argv[0].startswith('/usr/bin'):
+            dirname = '/usr/share/tmradio-client'
+        else:
+            dirname = os.path.join(os.path.dirname(sys.argv[0]), 'data', 'ui')
+        builder.add_from_file(os.path.join(dirname, name + '.ui'))
+        return builder
+
+
+class MainWindow(BaseWindow):
+    def __init__(self):
+        super(MainWindow, self).__init__()
         self.config = ConfigGConf()
         self.jabber = None
         self.track_id = None
@@ -366,6 +389,6 @@ class MainClient:
             self.jabber.chat(text)
 
 if __name__ == '__main__':
-    app = MainClient()
+    app = MainWindow()
     app.window.show()
     gtk.main()
