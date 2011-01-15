@@ -34,3 +34,6 @@ upload-deb: deb zip
 
 install: deb
 	sudo dpkg -i ${DEB}
+
+release:
+	make -C ../.. update-packages
