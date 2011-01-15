@@ -23,7 +23,7 @@ import pygtk
 
 import subprocess
 
-VERSION = '0.4'
+VERSION = '0.5'
 
 class ConfigGConf:
     """GConf interface."""
