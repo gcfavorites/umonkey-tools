@@ -166,7 +166,7 @@ class GstClient:
 
     def get_pipeline(self, uri):
         pl = gst.Pipeline('pipeline')
-        tmp = gst.parse_launch('souphttpsrc location="%s" user-agent="tmradio-client v%s (Ubuntu Linux, GTK+)" ! decodebin ! autoaudiosink' % (uri, VERSION))
+        tmp = gst.parse_launch('souphttpsrc location="%s" user-agent="GTK+ tmradio-client/%s" ! decodebin ! autoaudiosink' % (uri, VERSION))
         pl.add(tmp)
         return pl
 
