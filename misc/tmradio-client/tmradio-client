@@ -4,6 +4,10 @@
 # TODO:
 # http://therning.org/magnus/archives/57 (install schemas)
 
+# Suppress hashlib warnings.
+import warnings
+warnings.filterwarnings("ignore")
+
 import datetime
 import random
 import os
@@ -21,8 +25,6 @@ import gconf
 import gtk
 import pygtk
 
-import subprocess
-
 VERSION = '0.5'
 
 class ConfigGConf:
@@ -33,23 +35,41 @@ class ConfigGConf:
     def get_jabber_id(self):
         return self.gconf.get_string('/apps/tmradio-client/jabber_id')
 
+    def set_jabber_id(self, value):
+        self.gconf.set_string('/apps/tmradio-client/jabber_id', value)
+
     def get_jabber_password(self):
         return self.gconf.get_string('/apps/tmradio-client/jabber_password')
+
+    def set_jabber_password(self, value):
+        self.gconf.set_string('/apps/tmradio-client/jabber_password', value)
 
     def get_debug(self):
         return '--debug' in sys.argv
 
-    def get_bot_jid(self):
+    def get_jabber_bot(self):
         return self.gconf.get_string('/apps/tmradio-client/jabber_bot')
 
-    def get_chat_room(self):
+    def set_jabber_bot(self, value):
+        self.gconf.set_string('/apps/tmradio-client/jabber_bot', value)
+
+    def get_jabber_chat_room(self):
         return self.gconf.get_string('/apps/tmradio-client/jabber_chat_room')
 
-    def get_chat_nick(self):
+    def set_jabber_chat_room(self, value):
+        self.gconf.set_string('/apps/tmradio-client/jabber_chat_room', value)
+
+    def get_jabber_chat_nick(self):
         return self.gconf.get_string('/apps/tmradio-client/jabber_chat_nick')
+
+    def set_jabber_chat_nick(self, value):
+        self.gconf.set_string('/apps/tmradio-client/jabber_chat_nick', value)
 
     def get_stream_uri(self):
         return self.gconf.get_string('/apps/tmradio-client/stream_uri')
+
+    def set_stream_uri(self, value):
+        self.gconf.set_string('/apps/tmradio-client/stream_uri', value)
 
 
 class Jabber:
@@ -94,13 +114,13 @@ class Jabber:
         self.cli.RegisterHandler('message', self.on_message)
         self.cli.RegisterHandler('presence', self.on_presence)
 
-        self.bot_jid = self.config.get_bot_jid()
+        self.bot_jid = self.config.get_jabber_bot()
         self.join_chat_room()
         return True
 
     def join_chat_room(self, suffix=None):
-        self.chat_jid = self.config.get_chat_room()
-        nick = self.config.get_chat_nick()
+        self.chat_jid = self.config.get_jabber_chat_room()
+        nick = self.config.get_jabber_chat_nick()
         if not nick:
             nick = unicode(self.jid)
         if suffix is not None:
@@ -151,7 +171,7 @@ class Jabber:
                 self.log('Bot status not understood: %s' % msg.getStatus())
 
         # Nickname taken in the chat room, append a random number.
-        if sender.getStripped() == self.config.get_chat_room():
+        if sender.getStripped() == self.config.get_jabber_chat_room():
             er = msg.getTag('error')
             if er and er.attrs['code'] == '409':
                 self.gui.add_chat(er.getTag('text').getCDATA(), nick=sender.getResource())
@@ -229,13 +249,6 @@ class GstClient:
             pass # print message.type
 
 
-class SettingsWindow():
-    def __init__(self):
-        self.builder = builder
-        self.window = self.builder.get_object('SettingsWindow')
-        self.builder.connect_signals(self)
-
-
 class BaseWindow(object):
     """Base class for all windows.
 
@@ -266,6 +279,8 @@ class MainWindow(BaseWindow):
         self.track_link = None
         self.track_vote = None
         self.is_playing = False
+        # Other windows.
+        self.pref_window = None
         # Suppress duplicate nicknames in the chat window.
         self.last_chat_nick = None
         # Initialize the player.
@@ -307,7 +322,9 @@ class MainWindow(BaseWindow):
             self.start_playing()
 
     def on_settings_clicked(self, widget, data=None):
-        subprocess.Popen(['gconf-editor', '/apps/tmradio-client']).wait()
+        if not self.pref_window:
+            self.pref_window = Preferences(self.config)
+        self.pref_window.window.show()
 
     def stop_playing(self):
         self.player.stop()
@@ -387,6 +404,34 @@ class MainWindow(BaseWindow):
             text = field.get_text()
             field.set_text('')
             self.jabber.chat(text)
+
+
+class Preferences(BaseWindow):
+    def __init__(self, config):
+        super(self.__class__, self).__init__()
+        self.config = config
+
+    def on_delete(self, *args):
+        self.window.hide()
+        self.save()
+        return True
+
+    def on_show(self, *args):
+        self.load()
+
+    def load(self):
+        """Fills form fields with config options."""
+        for fn in [fn for fn in dir(self.config) if fn.startswith('get_')]:
+            ctl = self.builder.get_object(fn[4:])
+            if ctl:
+                ctl.set_text(getattr(self.config, fn)() or '')
+
+    def save(self):
+        for fn in [fn for fn in dir(self.config) if fn.startswith('set_')]:
+            ctl = self.builder.get_object(fn[4:])
+            if ctl:
+                getattr(self.config, fn)(ctl.get_text())
+
 
 if __name__ == '__main__':
     app = MainWindow()
