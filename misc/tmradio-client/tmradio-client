@@ -125,6 +125,7 @@ class Jabber:
             nick = unicode(self.jid)
         if suffix is not None:
             nick += suffix
+        nick = nick.replace('%R', str(random.randrange(1111, 9999)))
         self.cli.send(xmpp.Presence(to=u'/'.join((self.chat_jid, nick))))
         self.gui.add_chat('Joining...', nick)
 
@@ -175,7 +176,7 @@ class Jabber:
             er = msg.getTag('error')
             if er and er.attrs['code'] == '409':
                 self.gui.add_chat(er.getTag('text').getCDATA(), nick=sender.getResource())
-                self.join_chat_room(suffix=' (%u)' % random.randrange(1111, 9999))
+                self.join_chat_room(suffix=' (%R)')
 
     def do_idle(self):
         if self.cli:
@@ -418,6 +419,9 @@ class Preferences(BaseWindow):
 
     def on_show(self, *args):
         self.load()
+
+    def on_close_clicked(self, *args):
+        self.on_delete(*args)
 
     def load(self):
         """Fills form fields with config options."""
