@@ -203,9 +203,10 @@ class Jabber:
                     if msg.getType() == 'unavailable':
                         self.chat_active = False
                         self.chat_my_name = None
-                        self.gui.clear_chat()
+                        self.gui.on_chat_left()
                     else:
                         self.chat_active = True
+                        self.gui.on_chat_entered()
 
     def do_idle(self):
         if self.cli:
@@ -450,6 +451,12 @@ class MainWindow(BaseWindow):
                 self.jabber.leave_chat_room()
             else:
                 self.jabber.join_chat_room()
+
+    def on_chat_entered(self):
+        pass
+
+    def on_chat_left(self):
+        self.clear_chat()
 
 
 class Preferences(BaseWindow):
