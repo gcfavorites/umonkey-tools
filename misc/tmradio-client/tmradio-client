@@ -242,10 +242,13 @@ class GstClient:
         """
         self.pipeline = None
         self.stream_uri = None
+        self.volume = None
         self.on_track_change = on_track_change
 
-    def play(self, uri):
+    def play(self, uri, volume=None):
         self.pipeline = self.get_pipeline(uri)
+        if volume:
+            self.volume.set_property('volume', volume)
         bus = self.pipeline.get_bus()
         bus.add_signal_watch()
         bus.connect('message', self.on_bus_message)
@@ -254,7 +257,8 @@ class GstClient:
 
     def get_pipeline(self, uri):
         pl = gst.Pipeline('pipeline')
-        tmp = gst.parse_launch('souphttpsrc location="%s" user-agent="tmradio-client/%s" ! decodebin ! autoaudiosink' % (uri, VERSION))
+        tmp = gst.parse_launch('souphttpsrc location="%s" user-agent="tmradio-client/%s" ! decodebin ! volume ! autoaudiosink' % (uri, VERSION))
+        self.volume = list(tmp.elements())[1]
         pl.add(tmp)
         return pl
 
@@ -262,6 +266,7 @@ class GstClient:
         if self.pipeline:
             self.pipeline.set_state(gst.STATE_NULL)
             self.pipeline = None
+            self.sink = None
 
     def on_bus_message(self, bus, message):
         t = message.type
@@ -279,6 +284,10 @@ class GstClient:
             self.play(self.stream_uri)
         else:
             pass # print message.type
+
+    def set_volume(self, level):
+        if self.volume:
+            self.volume.set_property('volume', level)
 
 
 class BaseWindow(object):
@@ -365,7 +374,7 @@ class MainWindow(BaseWindow):
         self.is_playing = False
 
     def start_playing(self):
-        self.player.play(self.config.get_stream_uri())
+        self.player.play(self.config.get_stream_uri(), volume=self.builder.get_object('volume').get_value())
         self.builder.get_object('play').get_image().set_from_stock('gtk-media-stop', gtk.ICON_SIZE_BUTTON)
         self.is_playing = True
 
@@ -454,6 +463,9 @@ class MainWindow(BaseWindow):
     def on_skip_clicked(self, button):
         if self.jabber:
             self.jabber.message('skip')
+
+    def on_volume_changed(self, widget, level):
+        self.player.set_volume(level)
 
     def on_menu_preferences_activate(self, item):
         if not self.pref_window:
