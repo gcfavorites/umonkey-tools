@@ -5,3 +5,4 @@ browser-extensions/ueb/chrome/ueb.zip
 gae/.*\/config\.py
 gae/\.gae/
 misc/tmradio-client/debian/DEBIAN/control
+misc/tmradio-client/debian/usr
