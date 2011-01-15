@@ -8,7 +8,7 @@ config:
 	gconf-editor /apps/tmradio-client
 
 test:
-	./tmradio-client
+	./tmradio-client --debug
 
 clean:
 	rm -f *.zip *.deb
