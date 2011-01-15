@@ -453,7 +453,7 @@ class MainWindow(BaseWindow):
                 self.jabber.join_chat_room()
 
     def on_chat_entered(self):
-        pass
+        self.builder.get_object('chatmsg').grab_focus()
 
     def on_chat_left(self):
         self.clear_chat()
