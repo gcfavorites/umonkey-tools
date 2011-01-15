@@ -23,14 +23,36 @@ import subprocess
 
 VERSION = '0.4'
 
-GCONF_ROOT = '/apps/tmradio-client'
-GCONF_STREAM_URI = '/apps/tmradio-client/stream_uri'
-GCONF_JABBER_ID = '/apps/tmradio-client/jabber_id'
-GCONF_JABBER_PASSWORD = '/apps/tmradio-client/jabber_password'
+class ConfigGConf:
+    """GConf interface."""
+    def __init__(self):
+        self.gconf = gconf.client_get_default()
+
+    def get_jabber_id(self):
+        return self.gconf.get_string('/apps/tmradio-client/jabber_id')
+
+    def get_jabber_password(self):
+        return self.gconf.get_string('/apps/tmradio-client/jabber_password')
+
+    def get_debug(self):
+        return self.gconf.get_bool('/apps/tmradio-client/jabber_debug')
+
+    def get_bot_jid(self):
+        return self.gconf.get_string('/apps/tmradio-client/jabber_bot')
+
+    def get_chat_room(self):
+        return self.gconf.get_string('/apps/tmradio-client/jabber_chat_room')
+
+    def get_chat_nick(self):
+        return self.gconf.get_string('/apps/tmradio-client/jabber_chat_nick')
+
+    def get_stream_uri(self):
+        return self.gconf.get_string('/apps/tmradio-client/stream_uri')
 
 class Jabber:
     def __init__(self, gui):
         self.gui = gui
+        self.config = gui.config
         self.jid = None
         self.cli = None
         self.roster = None
@@ -42,14 +64,14 @@ class Jabber:
         self.show_re = re.compile(u'.* #(\d+).* Pro: (.+), contra: (.+)\.$')
 
     def connect(self):
-        jid = self.gui.gconf.get_string(GCONF_JABBER_ID)
-        password = self.gui.gconf.get_string(GCONF_JABBER_PASSWORD)
+        jid = self.config.get_jabber_id()
+        password = self.config.get_jabber_password()
         if not jid or not password:
             self.log('Jabber disabled: jid/password not set.')
             return False
 
         self.jid = xmpp.protocol.JID(jid)
-        if self.gui.gconf.get_bool('/apps/tmradio-client/jabber_debug'):
+        if self.config.get_debug():
             self.cli = xmpp.Client(self.jid.getDomain())
         else:
             self.cli = xmpp.Client(self.jid.getDomain(), debug=[])
@@ -69,13 +91,13 @@ class Jabber:
         self.cli.RegisterHandler('message', self.on_message)
         self.cli.RegisterHandler('presence', self.on_presence)
 
-        self.bot_jid = self.gui.gconf.get_string('/apps/tmradio-client/jabber_bot')
+        self.bot_jid = self.config.get_bot_jid()
         self.join_chat_room()
         return True
 
     def join_chat_room(self):
-        self.chat_jid = self.gui.gconf.get_string('/apps/tmradio-client/jabber_chat_room')
-        nick = self.gui.gconf.get_string('/apps/tmradio-client/jabber_chat_nick')
+        self.chat_jid = self.config.get_chat_room()
+        nick = self.config.get_chat_nick()
         if not nick:
             nick = unicode(self.jid)
         self.cli.send(xmpp.Presence(to=u'/'.join((self.chat_jid, nick))))
@@ -123,7 +145,8 @@ class Jabber:
                 self.log('Bot status not understood: %s' % msg.getStatus())
 
     def do_idle(self):
-        self.cli.Process(0)
+        if self.cli:
+            self.cli.Process(0)
 
     def message(self, text):
         msg = xmpp.protocol.Message(body=text)
@@ -166,7 +189,7 @@ class GstClient:
 
     def get_pipeline(self, uri):
         pl = gst.Pipeline('pipeline')
-        tmp = gst.parse_launch('souphttpsrc location="%s" user-agent="GTK+ tmradio-client/%s" ! decodebin ! autoaudiosink' % (uri, VERSION))
+        tmp = gst.parse_launch('souphttpsrc location="%s" user-agent="tmradio-client/%s" ! decodebin ! autoaudiosink' % (uri, VERSION))
         pl.add(tmp)
         return pl
 
@@ -202,7 +225,7 @@ class MainClient:
             self.builder.add_from_file('desktop.ui')
         self.window = self.builder.get_object('MainWindow')
         self.builder.connect_signals(self)
-        self.gconf = gconf.client_get_default()
+        self.config = ConfigGConf()
         self.jabber = None
         self.track_id = None
         self.track_link = None
@@ -260,7 +283,7 @@ class MainClient:
         self.is_playing = False
 
     def start_playing(self):
-        self.player.play(self.gconf.get_string(GCONF_STREAM_URI))
+        self.player.play(self.config.get_stream_uri())
         self.builder.get_object('play').get_image().set_from_stock('gtk-media-stop', gtk.ICON_SIZE_BUTTON)
         self.is_playing = True
 
