@@ -191,30 +191,18 @@
             <property name="visible">True</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton" id="ok">
-                <property name="label" translatable="yes">OK</property>
+              <object class="GtkButton" id="close">
+                <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="has_default">True</property>
                 <property name="receives_default">True</property>
+                <signal name="clicked" handler="on_close_clicked"/>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">False</property>
                 <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="cancel">
-                <property name="label" translatable="yes">Cancel</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">1</property>
               </packing>
             </child>
           </object>
@@ -227,8 +215,7 @@
       </object>
     </child>
     <action-widgets>
-      <action-widget response="0">ok</action-widget>
-      <action-widget response="0">cancel</action-widget>
+      <action-widget response="0">close</action-widget>
     </action-widgets>
   </object>
 </interface>
