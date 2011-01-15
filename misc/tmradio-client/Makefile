@@ -1,13 +1,13 @@
-VERSION=0.3
+VERSION=0.4
 DEB=tmradio-client-gtk-${VERSION}.deb
 ZIP=tmradio-client-gtk-${VERSION}.zip
 
-all: run
+all: test
 
 config:
 	gconf-editor /apps/tmradio-client
 
-run:
+test:
 	./tmradio-client
 
 deb:
@@ -29,8 +29,8 @@ zip:
 	zip -9 ${ZIP} tmradio-client desktop.ui tmradio.desktop tmradio.schemas Makefile
 
 upload-deb: deb zip
-	-googlecode_upload.py -s "Version 0.2 of the GTK+ client for tmradio.net" -p umonkey-tools -l tmradio ${DEB}
-	-googlecode_upload.py -s "Version 0.2 of the GTK+ client for tmradio.net" -p umonkey-tools -l tmradio ${ZIP}
+	-googlecode_upload.py -s "Version ${VERSION} of the GTK+ client for tmradio.net" -p umonkey-tools -l tmradio ${DEB}
+	-googlecode_upload.py -s "Version ${VERSION} of the GTK+ client for tmradio.net" -p umonkey-tools -l tmradio ${ZIP}
 
 install: deb
 	sudo dpkg -i ${DEB}
