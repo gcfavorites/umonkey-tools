@@ -5,6 +5,7 @@
 # http://therning.org/magnus/archives/57 (install schemas)
 
 import datetime
+import random
 import re
 import sys
 import traceback
@@ -96,12 +97,15 @@ class Jabber:
         self.join_chat_room()
         return True
 
-    def join_chat_room(self):
+    def join_chat_room(self, suffix=None):
         self.chat_jid = self.config.get_chat_room()
         nick = self.config.get_chat_nick()
         if not nick:
             nick = unicode(self.jid)
+        if suffix is not None:
+            nick += suffix
         self.cli.send(xmpp.Presence(to=u'/'.join((self.chat_jid, nick))))
+        self.gui.add_chat('Joining...', nick)
 
     def on_message(self, conn, msg):
         if msg.getType() == 'groupchat':
@@ -144,6 +148,13 @@ class Jabber:
                 self.gui.set_track_id(int(track_id))
             else:
                 self.log('Bot status not understood: %s' % msg.getStatus())
+
+        # Nickname taken in the chat room, append a random number.
+        if sender.getStripped() == self.config.get_chat_room():
+            er = msg.getTag('error')
+            if er and er.attrs['code'] == '409':
+                self.gui.add_chat(er.getTag('text').getCDATA(), nick=sender.getResource())
+                self.join_chat_room(suffix=' (%u)' % random.randrange(1111, 9999))
 
     def do_idle(self):
         if self.cli:
