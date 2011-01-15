@@ -85,6 +85,9 @@ class Jabber:
         self.np_re = re.compile(u'^«(.+)» by (.+) — #(\d+) ♺(\d+) ⚖(\S+) (.+)$')
         # RegExp for parsing the SHOW command (extracts pro/con lists only).
         self.show_re = re.compile(u'.* #(\d+).* Pro: (.+), contra: (.+)\.$')
+        # Status.
+        self.chat_active = False
+        self.chat_my_name = None
 
     def connect(self):
         jid = self.config.get_jabber_id()
@@ -119,6 +122,10 @@ class Jabber:
         return True
 
     def join_chat_room(self, suffix=None):
+        """Joins you to the chat room."""
+        if self.chat_my_name:
+            self.log('Double chat join prevented.')
+            return
         self.chat_jid = self.config.get_jabber_chat_room()
         nick = self.config.get_jabber_chat_nick()
         if not nick:
@@ -127,7 +134,19 @@ class Jabber:
             nick += suffix
         nick = nick.replace('%R', str(random.randrange(1111, 9999)))
         self.cli.send(xmpp.Presence(to=u'/'.join((self.chat_jid, nick))))
+        self.chat_my_name = nick
         self.gui.add_chat('Joining...', nick)
+
+    def leave_chat_room(self):
+        """Removes you from the chat room."""
+        if not self.chat_my_name or not self.chat_active:
+            self.log('Trying to leave chat while not there')
+        else:
+            self.log('Leaving the chat room.')
+            msg = xmpp.Presence()
+            msg.setTo(u'/'.join((self.chat_jid, self.chat_my_name)))
+            msg.setType('unavailable')
+            self.cli.send(msg)
 
     def on_message(self, conn, msg):
         if msg.getType() == 'groupchat':
@@ -174,9 +193,19 @@ class Jabber:
         # Nickname taken in the chat room, append a random number.
         if sender.getStripped() == self.config.get_jabber_chat_room():
             er = msg.getTag('error')
-            if er and er.attrs['code'] == '409':
-                self.gui.add_chat(er.getTag('text').getCDATA(), nick=sender.getResource())
-                self.join_chat_room(suffix=' (%R)')
+            if er:
+                if er.attrs['code'] == '409':
+                    self.gui.add_chat(er.getTag('text').getCDATA(), nick=sender.getResource())
+                    self.chat_my_name = None
+                    self.join_chat_room(suffix=' (%R)')
+            else:
+                if sender.getResource() == self.chat_my_name:
+                    if msg.getType() == 'unavailable':
+                        self.chat_active = False
+                        self.chat_my_name = None
+                        self.gui.clear_chat()
+                    else:
+                        self.chat_active = True
 
     def do_idle(self):
         if self.cli:
@@ -353,6 +382,9 @@ class MainWindow(BaseWindow):
     def set_track_link(self, track_link):
         self.track_link = track_link
 
+    def clear_chat(self):
+        model = self.builder.get_object('chatlog').clear()
+
     def add_chat(self, text, nick=None):
         if text and text.strip():
             time = datetime.datetime.now().strftime('%H:%M')
@@ -375,6 +407,12 @@ class MainWindow(BaseWindow):
             ctl = self.builder.get_object(ctl_name).set_sensitive(self.track_id is not None)
         self.builder.get_object('rocks').set_active(self.track_vote == 1)
         self.builder.get_object('sucks').set_active(self.track_vote == -1)
+
+        chat_active = self.jabber and self.jabber.chat_active
+        img = self.builder.get_object('chatbtn').get_image()
+        img.set_from_stock(chat_active and gtk.STOCK_DISCONNECT or gtk.STOCK_CONNECT, gtk.ICON_SIZE_BUTTON)
+        self.builder.get_object('chatmsg').set_sensitive(chat_active and 1 or 0)
+
         ctl = self.builder.get_object('np')
         if ctl.get_uri() != self.track_link:
             ctl.set_uri(self.track_link or '')
@@ -405,6 +443,13 @@ class MainWindow(BaseWindow):
             text = field.get_text()
             field.set_text('')
             self.jabber.chat(text)
+
+    def on_chatbtn_clicked(self, *args):
+        if self.jabber:
+            if self.jabber.chat_active:
+                self.jabber.leave_chat_room()
+            else:
+                self.jabber.join_chat_room()
 
 
 class Preferences(BaseWindow):
