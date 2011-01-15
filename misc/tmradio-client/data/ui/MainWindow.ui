@@ -42,6 +42,67 @@
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="skip">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">skipIcon</property>
+                <property name="relief">none</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkVSeparator" id="vseparator2">
+                <property name="visible">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="rocks">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">rocksIcon</property>
+                <property name="relief">none</property>
+                <property name="focus_on_click">False</property>
+                <signal name="toggled" handler="on_rocks_toggled"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="sucks">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">sucksIcon</property>
+                <property name="relief">none</property>
+                <property name="focus_on_click">False</property>
+                <signal name="toggled" handler="on_sucks_toggled"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkVSeparator" id="vseparator3">
+                <property name="visible">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="position">5</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkLinkButton" id="np">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -53,7 +114,7 @@
                 <property name="visited">True</property>
               </object>
               <packing>
-                <property name="position">1</property>
+                <property name="position">6</property>
               </packing>
             </child>
             <child>
@@ -74,39 +135,7 @@ audio-volume-medium</property>
               </object>
               <packing>
                 <property name="expand">False</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkToggleButton" id="rocks">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="image">rocksIcon</property>
-                <property name="relief">none</property>
-                <property name="focus_on_click">False</property>
-                <property name="active">True</property>
-                <signal name="toggled" handler="on_rocks_toggled"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkToggleButton" id="sucks">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="image">sucksIcon</property>
-                <property name="relief">none</property>
-                <property name="focus_on_click">False</property>
-                <property name="active">True</property>
-                <signal name="toggled" handler="on_sucks_toggled"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="position">4</property>
+                <property name="position">7</property>
               </packing>
             </child>
             <child>
@@ -121,7 +150,7 @@ audio-volume-medium</property>
               </object>
               <packing>
                 <property name="expand">False</property>
-                <property name="position">5</property>
+                <property name="position">8</property>
               </packing>
             </child>
           </object>
@@ -167,9 +196,6 @@ audio-volume-medium</property>
                           <packing>
                             <property name="position">0</property>
                           </packing>
-                        </child>
-                        <child>
-                          <placeholder/>
                         </child>
                         <child>
                           <object class="GtkHBox" id="hbox2">
@@ -224,7 +250,7 @@ audio-volume-medium</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
-                            <property name="position">2</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                       </object>
@@ -313,12 +339,12 @@ audio-volume-medium</property>
   <object class="GtkImage" id="rocksIcon">
     <property name="visible">True</property>
     <property name="sensitive">False</property>
-    <property name="stock">gtk-go-up</property>
+    <property name="icon_name">emblem-favorite</property>
   </object>
   <object class="GtkImage" id="sucksIcon">
     <property name="visible">True</property>
     <property name="sensitive">False</property>
-    <property name="stock">gtk-go-down</property>
+    <property name="icon_name">user-trash</property>
   </object>
   <object class="GtkImage" id="settingsIcon">
     <property name="visible">True</property>
@@ -327,5 +353,9 @@ audio-volume-medium</property>
   <object class="GtkImage" id="chatbtnIcon">
     <property name="visible">True</property>
     <property name="stock">gtk-connect</property>
+  </object>
+  <object class="GtkImage" id="skipIcon">
+    <property name="visible">True</property>
+    <property name="stock">gtk-media-forward</property>
   </object>
 </interface>
