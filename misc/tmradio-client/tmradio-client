@@ -455,6 +455,10 @@ class MainWindow(BaseWindow):
             else:
                 self.jabber.join_chat_room()
 
+    def on_skip_clicked(self, button):
+        if self.jabber:
+            self.jabber.message('skip')
+
     def on_chat_entered(self):
         self.builder.get_object('chatmsg').grab_focus()
 
