@@ -29,7 +29,7 @@ import gconf
 import gtk
 import pygtk
 
-VERSION = '0.5'
+VERSION = '0.6'
 USE_THREADING = False
 
 class ConfigGConf:
@@ -155,13 +155,25 @@ class Jabber:
             return False
 
         self.cli.sendInitPresence()
-        # self.roster = self.cli.Roster.getRoster()
+        self.roster = self.cli.Roster.getRoster()
         self.cli.RegisterHandler('message', self._on_message)
         self.cli.RegisterHandler('presence', self._on_presence)
 
         self.bot_jid = self.config.get_jabber_bot()
         self._join_chat_room()
+        self._check_roster()
         return True
+
+    def _check_roster(self):
+        """Checks whether we have the bot on our roster."""
+        know = False
+        for contact in self.roster.getItems():
+            if contact == self.bot_jid:
+                know = True
+        if not know:
+            self._log('Need to make friends with %s' % self.bot_jid)
+            msg = xmpp.Presence(to=self.bot_jid, typ='subscribe', status=u'Hello, I\'m using tmradio-client/' + VERSION)
+            self.cli.send(msg)
 
     def _join_chat_room(self, suffix=None):
         """Joins you to the chat room."""
@@ -406,7 +418,7 @@ class MainWindow(BaseWindow):
         self.track_title = None
         self.track_labels = None
         self.track_labels_original = None # for editing
-        self.track_vote = None
+        self.track_vote = 0
         self.track_link = None
         # Other windows.
         self.pref_window = None
@@ -584,14 +596,16 @@ class MainWindow(BaseWindow):
             print u'Unhandled property:', reply
 
     def on_rocks_toggled(self, button):
-        if button.get_active() and self.track_id and self.jabber and self.track_vote != 1:
-            self.track_vote = 1
-            self.jabber.post_message('%u rocks' % self.track_id)
+        if self.track_id:
+            if button.get_active() and self.track_vote <= 0:
+                self.track_vote = 1
+                self.jabber.post_message('%u rocks' % self.track_id)
 
     def on_sucks_toggled(self, button):
-        if button.get_active() and self.track_id and self.jabber and self.track_vote != -1:
-            self.track_vote = -1
-            self.jabber.post_message('%u sucks' % self.track_id)
+        if self.track_id:
+            if button.get_active() and self.track_vote >= 0:
+                self.track_vote = -1
+                self.jabber.post_message('XXX %u sucks' % self.track_id)
 
     def on_chatmsg_activate(self, field):
         if self.jabber:
