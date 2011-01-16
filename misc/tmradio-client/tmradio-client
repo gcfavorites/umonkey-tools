@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: set fileencoding=utf-8:
+# vim: set noci ai ts=4 sts=4 sw=4 et fileencoding=utf-8:
 #
 # TODO:
 # http://therning.org/magnus/archives/57 (install schemas)
@@ -17,6 +17,7 @@ import traceback
 import urllib
 import xmpp
 import webbrowser
+import Queue
 
 import gobject
 import pygst
@@ -74,6 +75,12 @@ class ConfigGConf:
 
 
 class Jabber:
+    """Simple jabber client.
+
+    Understands some ardj replies and supports MUC.  All interfecence
+    communication is serialized using incoming and outgoing queues, so it's
+    thread safe.
+    """
     def __init__(self, gui):
         self.gui = gui
         self.config = gui.config
@@ -82,19 +89,44 @@ class Jabber:
         self.roster = None
         self.bot_jid = None
         self.chat_jid = None
+        # Outgoing commands, added via post_message().
+        self.out_queue = Queue.Queue()
+        # Incoming commands, accessible via get_messages().
+        self.in_queue = Queue.Queue()
         # RegExp for parsing the status line
         self.np_re = re.compile(u'^«(.+)» by (.+) — #(\d+) ♺(\d+) ⚖(\S+) (.+)$')
         # RegExp for parsing the SHOW command (extracts pro/con lists only).
         self.show_re = re.compile(u'.* #(\d+).* Pro: (.+), contra: (.+)\.$')
         # Status.
+        self.last_track_id = None
         self.chat_active = False
         self.chat_my_name = None
 
-    def connect(self):
+    def post_message(self, text, chat=False, special=False):
+        """Send a message.
+
+        The message is added to the outgoing queue and will be processed asap.
+        If chat is set, the message is sent to the chat room.  If special is
+        set, the message is treated as a command to the jabber client and must
+        be one of: connect, disconnect, join, leave.
+        """
+        self.out_queue.put((text, chat, special))
+
+    def post_replies(self, replies):
+        self.in_queue.put(replies)
+
+    def fetch_replies(self):
+        rep = []
+        while not self.in_queue.empty():
+            rep.append(self.in_queue.get())
+        return rep
+
+    def _connect(self):
+        """Connects to the jabber server."""
         jid = self.config.get_jabber_id()
         password = self.config.get_jabber_password()
         if not jid or not password:
-            self.log('Jabber disabled: jid/password not set.')
+            self._log('Jabber disabled: jid/password not set.')
             return False
 
         self.jid = xmpp.protocol.JID(jid)
@@ -105,27 +137,27 @@ class Jabber:
 
         res = self.cli.connect()
         if not res:
-            self.log('Could not connect to %s.' % self.jid.getDomain())
+            self._log('Could not connect to %s.' % self.jid.getDomain())
             return False
 
         res = self.cli.auth(self.jid.getNode(), password, 'tmclient/')
         if not res:
-            self.log('Could not authorize with the server.')
+            self._log('Could not authorize with the server.')
             return False
 
         self.cli.sendInitPresence()
         # self.roster = self.cli.Roster.getRoster()
-        self.cli.RegisterHandler('message', self.on_message)
-        self.cli.RegisterHandler('presence', self.on_presence)
+        self.cli.RegisterHandler('message', self._on_message)
+        self.cli.RegisterHandler('presence', self._on_presence)
 
         self.bot_jid = self.config.get_jabber_bot()
-        self.join_chat_room()
+        self._join_chat_room()
         return True
 
-    def join_chat_room(self, suffix=None):
+    def _join_chat_room(self, suffix=None):
         """Joins you to the chat room."""
         if self.chat_my_name:
-            self.log('Double chat join prevented.')
+            self._log('Double chat join prevented.')
             return
         self.chat_jid = self.config.get_jabber_chat_room()
         nick = self.config.get_jabber_chat_nick()
@@ -136,97 +168,129 @@ class Jabber:
         nick = nick.replace('%R', str(random.randrange(1111, 9999)))
         self.cli.send(xmpp.Presence(to=u'/'.join((self.chat_jid, nick))))
         self.chat_my_name = nick
-        self.gui.add_chat('Joining...', nick)
 
-    def leave_chat_room(self):
+    def _leave_chat_room(self):
         """Removes you from the chat room."""
         if not self.chat_my_name or not self.chat_active:
-            self.log('Trying to leave chat while not there')
+            self._log('Trying to leave chat while not there')
         else:
-            self.log('Leaving the chat room.')
+            self._log('Leaving the chat room.')
             msg = xmpp.Presence()
             msg.setTo(u'/'.join((self.chat_jid, self.chat_my_name)))
             msg.setType('unavailable')
             self.cli.send(msg)
 
-    def on_message(self, conn, msg):
+    def _on_message(self, conn, msg):
+        """Process chat and group chat messages."""
         if msg.getType() == 'groupchat':
             nick = unicode(msg.getFrom()).split('/')[1]
-            self.gui.add_chat(msg.getBody(), nick)
+            self.post_replies([
+                ('chat', msg.getBody(), nick),
+            ])
             return
 
         elif msg.getFrom().getStripped() == self.bot_jid:
             text = msg.getBody()
             if not text:
-                self.log('Empty message received: %s' % msg)
+                self._log('Empty message received: %s' % msg)
                 return
             matches = self.show_re.match(msg.getBody())
             if matches:
                 pro = matches.group(2).split(', ')
                 con = matches.group(3).split(', ')
+                vote = 0
                 if self.jid in pro:
-                    self.gui.track_vote = 1
+                    vote = 1
                 elif self.jid in con:
-                    self.gui.track_vote = -1
-                else:
-                    self.gui.track_vote = 0
+                    vote = -1
+                self.post_replies([
+                    ('set', 'track_vote', vote),
+                ])
                 return
-        # self.gui.add_chat(msg.getBody(), unicode(msg.getFrom()).split('/')[1])
-        self.log('Unhandled message: %s' % msg.getBody())
+        self._log('Unhandled message: %s' % msg.getBody())
 
-    def on_presence(self, conn, msg):
+    def _on_presence(self, conn, msg):
+        """Process incoming presences."""
         sender = msg.getFrom()
         if self.bot_jid == sender.getStripped():
             match = self.np_re.match(msg.getStatus() or '')
             if match:
                 title, artist, track_id, count, weight, tags = match.groups()
                 tags = [x.lstrip('@').strip() for x in tags.split(u' ')]
-                self.gui.set_track_info(artist, title, track_id, count, weight, tags)
+                self.post_replies([
+                    ('set', 'track_id', track_id),
+                    ('set', 'track_artist', artist),
+                    ('set', 'track_title', title),
+                    ('set', 'track_playcount', count),
+                    ('set', 'track_weight', weight),
+                    ('set', 'track_labels', tags),
+                ])
                 # Status changed because somebody added labels or voted.  Our
                 # vote did not change, no need to request it.
-                if int(track_id) != self.gui.track_id:
-                    self.message('show ' + track_id)
-                self.gui.set_track_id(int(track_id))
+                if track_id != self.last_track_id:
+                    self.post_message('show ' + track_id)
+                    self.last_track_id = track_id
             else:
-                self.log('Bot status not understood: %s' % msg.getStatus())
+                self._log('Bot status not understood: %s' % msg.getStatus())
 
         # Nickname taken in the chat room, append a random number.
         if sender.getStripped() == self.config.get_jabber_chat_room():
             er = msg.getTag('error')
             if er:
                 if er.attrs['code'] == '409':
-                    self.gui.add_chat(er.getTag('text').getCDATA(), nick=sender.getResource())
+                    self.post_replies([
+                        ('chat', er.getTag('text').getCDATA(), sender.getResource()),
+                    ])
                     self.chat_my_name = None
-                    self.join_chat_room(suffix=' (%R)')
+                    self._join_chat_room(suffix=' (%R)')
             else:
                 if sender.getResource() == self.chat_my_name:
                     if msg.getType() == 'unavailable':
                         self.chat_active = False
                         self.chat_my_name = None
-                        self.gui.on_chat_left()
+                        self.post_replies([
+                            ('left', ),
+                        ])
                     else:
                         self.chat_active = True
-                        self.gui.on_chat_entered()
+                        self.post_replies([
+                            ('joined', ),
+                        ])
 
-    def do_idle(self):
+    def process_queue(self):
+        """Process incoming XMPP stream."""
         if self.cli:
             self.cli.Process(0)
+        while not self.out_queue.empty():
+            text, chat, special = self.out_queue.get()
+            self._process_message(text, chat, special)
 
-    def message(self, text):
-        msg = xmpp.protocol.Message(body=text)
-        msg.setTo(self.bot_jid)
-        msg.setType('chat')
-        self.cli.send(msg)
-        self.log('Sent to bot: %s' % text)
+    def _process_message(self, text, chat=False, special=False):
+        self._log('processing message: text="%s" chat=%s special=%s' % (text, chat, special))
 
-    def chat(self, text):
-        msg = xmpp.protocol.Message(body=text)
-        msg.setTo(self.chat_jid)
-        msg.setType('groupchat')
-        self.cli.send(msg)
-        self.log('Sent to chat: %s' % text)
+        if special:
+            if text == 'connect':
+                self._connect()
+            elif text == 'leave':
+                self._leave_chat_room()
+            elif text == 'join':
+                self._join_chat_room()
+            else:
+                self._log('^^^ unknown command.')
+        elif chat:
+            msg = xmpp.protocol.Message(body=text)
+            msg.setTo(self.chat_jid)
+            msg.setType('groupchat')
+            self.cli.send(msg)
+            self._log('Sent to chat: %s' % text)
+        else:
+            msg = xmpp.protocol.Message(body=text)
+            msg.setTo(self.bot_jid)
+            msg.setType('chat')
+            self.cli.send(msg)
+            self._log('Sent to bot: %s' % text)
 
-    def log(self, message):
+    def _log(self, message):
         print message
 
 
@@ -314,11 +378,16 @@ class MainWindow(BaseWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.config = ConfigGConf()
-        self.jabber = None
-        self.track_id = None
-        self.track_link = None
-        self.track_vote = None
+        self.jabber = Jabber(self)
         self.is_playing = False
+        self.is_in_chat = False
+        # Track properties.
+        self.track_id = None
+        self.track_artist = None
+        self.track_title = None
+        self.track_labels = None
+        self.track_vote = None
+        self.track_link = None
         # Other windows.
         self.pref_window = None
         # Suppress duplicate nicknames in the chat window.
@@ -332,6 +401,8 @@ class MainWindow(BaseWindow):
 
         settings = gtk.settings_get_default()
         settings.props.gtk_button_images = True
+
+        self.jabber.post_message('connect', special=True)
 
     def init_chatlog(self):
         tv = self.builder.get_object('chatview')
@@ -424,6 +495,13 @@ class MainWindow(BaseWindow):
             path = model.get_path(row_iter)
             self.builder.get_object('chatview').scroll_to_cell(path)
 
+    def on_idle(self):
+        """Update controls, process xmpp messages.""" 
+        self.update_controls()
+        self.jabber.process_queue()
+        self._process_jabber_replies()
+        return True
+
     def update_controls(self):
         """Disables and enables controls on conditions."""
         # Set control sensitivity.
@@ -432,44 +510,69 @@ class MainWindow(BaseWindow):
         self.builder.get_object('rocks').set_active(self.track_vote == 1)
         self.builder.get_object('sucks').set_active(self.track_vote == -1)
 
-        chat_active = self.jabber and self.jabber.chat_active
         img = self.builder.get_object('chatbtn').get_image()
-        img.set_from_stock(chat_active and gtk.STOCK_DISCONNECT or gtk.STOCK_CONNECT, gtk.ICON_SIZE_BUTTON)
-        self.builder.get_object('chatmsg').set_sensitive(chat_active and 1 or 0)
+        img.set_from_stock(self.is_in_chat and gtk.STOCK_DISCONNECT or gtk.STOCK_CONNECT, gtk.ICON_SIZE_BUTTON)
+        self.builder.get_object('chatmsg').set_sensitive(self.is_in_chat and 1 or 0)
 
         ctl = self.builder.get_object('np')
         if ctl.get_uri() != self.track_link:
             ctl.set_uri(self.track_link or '')
 
-    def on_idle(self):
-        """Update controls, process xmpp messages.""" 
-        self.update_controls()
-        try:
-            if self.jabber is None:
-                self.jabber = Jabber(self)
-                self.jabber.connect()
-            else:
-                self.jabber.do_idle()
-        except Exception, e:
-            print 'EXCEPTION in Jabber: %s' % e
-            print traceback.format_exc()
-        return True
+    def _process_jabber_replies(self):
+        """Process the incoming jabber message queue."""
+        update_track_info = False
+        for replies in self.jabber.fetch_replies():
+            if type(replies) != list:
+                replies = [replies]
+            for reply in replies:
+                if reply[0] == 'set':
+                    self._process_jabber_property(reply)
+                    update_track_info = True
+                elif reply[0] == 'chat':
+                    self.add_chat(reply[1], reply[2])
+                elif reply[0] == 'joined':
+                    self.is_in_chat = True
+                elif reply[0] == 'left':
+                    self.is_in_chat = False
+                else:
+                    print u'Unhandled jabber reply: %s' % reply
+        if update_track_info:
+            self.set_track_info(self.track_artist, self.track_title, self.track_id, 0, 0, self.track_labels)
+
+    def _process_jabber_property(self, reply):
+        key, value = reply[1:]
+        if key == 'track_id':
+            self.track_id = int(value)
+        elif key == 'track_artist':
+            self.track_artist = value
+        elif key == 'track_title':
+            self.track_title = value
+        elif key == 'track_labels':
+            self.track_labels = value
+        elif key == 'track_vote':
+            self.track_vote = int(value)
+        elif key == 'track_weight':
+            pass
+        elif key == 'track_playcount':
+            pass
+        else:
+            print u'Unhandled property:', reply
 
     def on_rocks_toggled(self, button):
         if button.get_active() and self.track_id and self.jabber and self.track_vote != 1:
             self.track_vote = 1
-            self.jabber.message('%u rocks' % self.track_id)
+            self.jabber.post_message('%u rocks' % self.track_id)
 
     def on_sucks_toggled(self, button):
         if button.get_active() and self.track_id and self.jabber and self.track_vote != -1:
             self.track_vote = -1
-            self.jabber.message('%u sucks' % self.track_id)
+            self.jabber.post_message('%u sucks' % self.track_id)
 
     def on_chatmsg_activate(self, field):
         if self.jabber:
             text = field.get_text()
             field.set_text('')
-            self.jabber.chat(text)
+            self.jabber.post_message(text, chat=True)
 
     def on_update_clicked(self, button):
         if not self.jabber:
@@ -477,21 +580,16 @@ class MainWindow(BaseWindow):
         fmap = { 'track_artist': 'set artist to %s for %u', 'track_title': 'set title to %s for %u', 'track_labels': 'tags %s for %u' }
         for key in fmap.keys():
             value = self.builder.get_object(key).get_text()
-            self.jabber.message(fmap[key] % (value, self.track_id))
+            self.jabber.post_message(fmap[key] % (value, self.track_id))
 
     def on_chatbtn_clicked(self, *args):
-        if not self.jabber:
-            self.jabber = Jabber(self)
-            self.jabber.connect()
-        if self.jabber:
-            if self.jabber.chat_active:
-                self.jabber.leave_chat_room()
-            else:
-                self.jabber.join_chat_room()
+        if self.is_in_chat:
+            self.jabber.post_message('leave', special=True)
+        else:
+            self.jabber.post_message('join', special=True)
 
     def on_skip_clicked(self, button):
-        if self.jabber:
-            self.jabber.message('skip')
+        self.jabber.post_message('skip')
 
     def on_volume_changed(self, widget, level):
         self.player.set_volume(level)

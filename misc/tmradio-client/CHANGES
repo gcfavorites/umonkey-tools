@@ -2,3 +2,4 @@ Version 0.6:
 
 - Track info editor introduced.
 - Lower CPU usage.
+- Communication between GUI and the jabber client serialized with two queues.
