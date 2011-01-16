@@ -99,7 +99,7 @@ class Jabber:
         # RegExp for parsing the status line
         self.np_re = re.compile(u'^«(.+)» by (.+) — #(\d+) ♺(\d+) ⚖(\S+) (.+)$')
         # RegExp for parsing the SHOW command (extracts pro/con lists only).
-        self.show_re = re.compile(u'.* #(\d+).* Pro: (.+), contra: (.+)\.$')
+        self.show_re = re.compile(u'.* #(\d+).*editable=(True|False).* Pro: (.+), contra: (.+)\.$')
         # Status.
         self.last_track_id = None
         self.chat_active = False
@@ -217,8 +217,10 @@ class Jabber:
                 return
             matches = self.show_re.match(msg.getBody())
             if matches:
-                pro = matches.group(2).split(', ')
-                con = matches.group(3).split(', ')
+                track_id = int(matches.group(1))
+                editable = matches.group(2) == 'True'
+                pro = matches.group(3).split(', ')
+                con = matches.group(4).split(', ')
                 vote = 0
                 if self.jid in pro:
                     vote = 1
@@ -226,6 +228,7 @@ class Jabber:
                     vote = -1
                 self.post_replies([
                     ('set', 'track_vote', vote),
+                    ('set', 'track_editable', editable),
                 ])
                 return
         self._log('Unhandled message: %s' % msg.getBody())
@@ -420,6 +423,7 @@ class MainWindow(BaseWindow):
         self.track_labels_original = None # for editing
         self.track_vote = 0
         self.track_link = None
+        self.track_editable = False
         # Other windows.
         self.pref_window = None
         # Suppress duplicate nicknames in the chat window.
@@ -550,6 +554,9 @@ class MainWindow(BaseWindow):
         if ctl.get_uri() != self.track_link:
             ctl.set_uri(self.track_link or '')
 
+        for ctl_name in ('skip', 'track_artist', 'track_title', 'track_labels', 'update'):
+            self.builder.get_object(ctl_name).set_sensitive(self.track_editable)
+
     def _process_jabber_replies(self):
         """Process the incoming jabber message queue."""
         update_track_info = False
@@ -588,6 +595,8 @@ class MainWindow(BaseWindow):
             self.track_labels_original = value
         elif key == 'track_vote':
             self.track_vote = int(value)
+        elif key == 'track_editable':
+            self.track_editable = value
         elif key == 'track_weight':
             pass
         elif key == 'track_playcount':

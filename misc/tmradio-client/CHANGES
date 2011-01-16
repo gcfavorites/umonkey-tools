@@ -6,3 +6,4 @@ Version 0.6:
 - Added optional support for threading (--threaded), for testing purposes.
 - Fixed removing track labels.
 - The bot is automatically added to the roster if not there.
+- Dynamic control over administrative functions (only enabled if available).
