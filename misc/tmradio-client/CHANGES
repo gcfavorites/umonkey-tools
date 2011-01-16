@@ -4,3 +4,4 @@ Version 0.6:
 - Fixed high CPU usage.
 - Communication between GUI and the jabber client serialized with two queues.
 - Added optional support for threading (--threaded), for testing purposes.
+- Fixed removing track labels.
