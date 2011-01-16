@@ -521,12 +521,10 @@ audio-volume-medium</property>
   </object>
   <object class="GtkImage" id="rocksIcon">
     <property name="visible">True</property>
-    <property name="sensitive">False</property>
     <property name="icon_name">emblem-favorite</property>
   </object>
   <object class="GtkImage" id="sucksIcon">
     <property name="visible">True</property>
-    <property name="sensitive">False</property>
     <property name="icon_name">user-trash</property>
   </object>
   <object class="GtkImage" id="chatbtnIcon">

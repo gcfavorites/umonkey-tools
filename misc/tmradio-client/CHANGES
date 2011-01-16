@@ -7,3 +7,4 @@ Version 0.6:
 - Fixed removing track labels.
 - The bot is automatically added to the roster if not there.
 - Dynamic control over administrative functions (only enabled if available).
+- Fixed sensitivity problems for sucks/rocks buttons.
