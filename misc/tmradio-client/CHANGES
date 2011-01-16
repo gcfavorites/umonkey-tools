@@ -8,3 +8,4 @@ Version 0.6:
 - The bot is automatically added to the roster if not there.
 - Dynamic control over administrative functions (only enabled if available).
 - Fixed sensitivity problems for sucks/rocks buttons.
+- The chat tab shows nicknames of users currently in the chat room.
