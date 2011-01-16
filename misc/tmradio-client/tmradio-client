@@ -415,7 +415,6 @@ class MainWindow(BaseWindow):
         self.player = GstClient(on_track_change=self.on_stream_track_change)
 
         self.init_chatlog()
-        # gobject.idle_add(self.on_idle)
         gobject.timeout_add(30, self.on_idle)
 
         settings = gtk.settings_get_default()
@@ -517,7 +516,6 @@ class MainWindow(BaseWindow):
 
     def on_idle(self):
         """Update controls, process xmpp messages.""" 
-        self.update_controls()
         self._process_jabber_replies()
         if not USE_THREADING:
             self.jabber.process_queue()
@@ -528,8 +526,8 @@ class MainWindow(BaseWindow):
         # Set control sensitivity.
         for ctl_name in ('rocks', 'sucks'):
             ctl = self.builder.get_object(ctl_name).set_sensitive(self.track_id is not None)
-        self.builder.get_object('rocks').set_active(self.track_vote == 1)
-        self.builder.get_object('sucks').set_active(self.track_vote == -1)
+        self.builder.get_object('rocks').set_active(self.track_vote > 0)
+        self.builder.get_object('sucks').set_active(self.track_vote < 0)
 
         img = self.builder.get_object('chatbtn').get_image()
         img.set_from_stock(self.is_in_chat and gtk.STOCK_DISCONNECT or gtk.STOCK_CONNECT, gtk.ICON_SIZE_BUTTON)
@@ -542,10 +540,12 @@ class MainWindow(BaseWindow):
     def _process_jabber_replies(self):
         """Process the incoming jabber message queue."""
         update_track_info = False
+        update_controls = False
         for replies in self.jabber.fetch_replies():
             if type(replies) != list:
                 replies = [replies]
             for reply in replies:
+                update_controls = True
                 if reply[0] == 'set':
                     self._process_jabber_property(reply)
                     update_track_info = True
@@ -559,6 +559,8 @@ class MainWindow(BaseWindow):
                     print u'Unhandled jabber reply: %s' % reply
         if update_track_info:
             self.set_track_info(self.track_artist, self.track_title, self.track_id, 0, 0, self.track_labels)
+        if update_controls:
+            self.update_controls()
 
     def _process_jabber_property(self, reply):
         key, value = reply[1:]
