@@ -13,6 +13,8 @@ import random
 import os
 import re
 import sys
+import threading
+import time
 import traceback
 import urllib
 import xmpp
@@ -28,6 +30,7 @@ import gtk
 import pygtk
 
 VERSION = '0.5'
+USE_THREADING = False
 
 class ConfigGConf:
     """GConf interface."""
@@ -101,6 +104,12 @@ class Jabber:
         self.last_track_id = None
         self.chat_active = False
         self.chat_my_name = None
+        self.is_shutting_down = False
+
+        if USE_THREADING:
+            self.worker = threading.Thread()
+            self.worker.run = self._thread_worker
+            self.worker.start()
 
     def post_message(self, text, chat=False, special=False):
         """Send a message.
@@ -257,10 +266,17 @@ class Jabber:
                             ('joined', ),
                         ])
 
-    def process_queue(self):
-        """Process incoming XMPP stream."""
+    def _thread_worker(self):
+        while not self.is_shutting_down:
+            self.process_queue(1)
+
+    def process_queue(self, timeout=0):
         if self.cli:
-            self.cli.Process(0)
+            res = self.cli.Process(timeout)
+            if res == 0:
+                self.post_message('connect', special=True)
+        elif timeout:
+            time.sleep(timeout) # prevent spinlocks
         while not self.out_queue.empty():
             text, chat, special = self.out_queue.get()
             self._process_message(text, chat, special)
@@ -275,6 +291,9 @@ class Jabber:
                 self._leave_chat_room()
             elif text == 'join':
                 self._join_chat_room()
+            elif text == 'quit':
+                self.is_shutting_down = True
+                gtk.main_quit() # FIXME: what if we're not connected?
             else:
                 self._log('^^^ unknown command.')
         elif chat:
@@ -433,7 +452,8 @@ class MainWindow(BaseWindow):
         return True
 
     def on_MainWindow_destroy(self, widget, data=None):
-        gtk.main_quit()
+        self.jabber.post_message('quit', special=True)
+        # gtk.main_quit()
 
     def on_play_clicked(self, widget, data=None):
         if self.is_playing:
@@ -498,8 +518,9 @@ class MainWindow(BaseWindow):
     def on_idle(self):
         """Update controls, process xmpp messages.""" 
         self.update_controls()
-        self.jabber.process_queue()
         self._process_jabber_replies()
+        if not USE_THREADING:
+            self.jabber.process_queue()
         return True
 
     def update_controls(self):
@@ -663,6 +684,10 @@ class Preferences(BaseWindow):
 
 
 if __name__ == '__main__':
+    if '--threaded' in sys.argv:
+        USE_THREADING = True
+    if USE_THREADING:
+        gobject.threads_init()
     app = MainWindow()
     app.window.show()
     gtk.main()
