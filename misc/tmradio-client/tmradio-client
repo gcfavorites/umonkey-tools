@@ -405,6 +405,7 @@ class MainWindow(BaseWindow):
         self.track_artist = None
         self.track_title = None
         self.track_labels = None
+        self.track_labels_original = None # for editing
         self.track_vote = None
         self.track_link = None
         # Other windows.
@@ -572,6 +573,7 @@ class MainWindow(BaseWindow):
             self.track_title = value
         elif key == 'track_labels':
             self.track_labels = value
+            self.track_labels_original = value
         elif key == 'track_vote':
             self.track_vote = int(value)
         elif key == 'track_weight':
@@ -603,7 +605,13 @@ class MainWindow(BaseWindow):
         fmap = { 'track_artist': 'set artist to %s for %u', 'track_title': 'set title to %s for %u', 'track_labels': 'tags %s for %u' }
         for key in fmap.keys():
             value = self.builder.get_object(key).get_text()
+            if key == 'track_labels':
+                value = [x.strip() for x in value.split(' ') if x.strip()]
+                for l in [x for x in self.track_labels_original if x not in value]:
+                    value.append(u'-' + l)
+                value = u' '.join(value)
             self.jabber.post_message(fmap[key] % (value, self.track_id))
+        self.jabber.post_message('show ' + str(self.track_id))
 
     def on_chatbtn_clicked(self, *args):
         if self.is_in_chat:
