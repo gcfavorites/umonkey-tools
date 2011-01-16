@@ -424,7 +424,8 @@ class MainWindow(BaseWindow):
             path = model.get_path(row_iter)
             self.builder.get_object('chatview').scroll_to_cell(path)
 
-    def on_idle(self):
+    def update_controls(self):
+        """Disables and enables controls on conditions."""
         # Set control sensitivity.
         for ctl_name in ('rocks', 'sucks'):
             ctl = self.builder.get_object(ctl_name).set_sensitive(self.track_id is not None)
@@ -440,6 +441,9 @@ class MainWindow(BaseWindow):
         if ctl.get_uri() != self.track_link:
             ctl.set_uri(self.track_link or '')
 
+    def on_idle(self):
+        """Update controls, process xmpp messages.""" 
+        self.update_controls()
         try:
             if self.jabber is None:
                 self.jabber = Jabber(self)
