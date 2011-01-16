@@ -327,7 +327,8 @@ class MainWindow(BaseWindow):
         self.player = GstClient(on_track_change=self.on_stream_track_change)
 
         self.init_chatlog()
-        gobject.idle_add(self.on_idle)
+        # gobject.idle_add(self.on_idle)
+        gobject.timeout_add(30, self.on_idle)
 
         settings = gtk.settings_get_default()
         settings.props.gtk_button_images = True
