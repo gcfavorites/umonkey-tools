@@ -430,6 +430,7 @@ class MainWindow(BaseWindow):
         self.track_editable = False
         # Other windows.
         self.pref_window = None
+        self.msg_cell = None
         # Suppress duplicate nicknames in the chat window.
         self.last_chat_nick = None
         # Initialize the player.
@@ -459,7 +460,7 @@ class MainWindow(BaseWindow):
         col.add_attribute(cell, 'text', 1)
         tv.append_column(col)
 
-        cell = gtk.CellRendererText()
+        self.msg_cell = cell = gtk.CellRendererText()
         cell.props.wrap_width = 400
         cell.props.wrap_mode = gtk.WRAP_WORD
         col = gtk.TreeViewColumn('Message')
@@ -710,6 +711,16 @@ class MainWindow(BaseWindow):
 
     def on_chat_left(self):
         self.clear_chat()
+
+    def on_chat_hpaned_notify(self, pane, param):
+        if param.name == 'position':
+            width = pane.get_property('position')
+            tv = self.builder.get_object('chatview')
+            columns = tv.get_columns()
+            fixed = sum([c.get_width() for c in columns[0:-1]])
+            wanted = width - fixed
+            if wanted > 100:
+                self.msg_cell.props.wrap_width = wanted
 
 
 class Preferences(BaseWindow):
