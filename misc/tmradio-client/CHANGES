@@ -5,3 +5,4 @@ Version 0.6:
 - Communication between GUI and the jabber client serialized with two queues.
 - Added optional support for threading (--threaded), for testing purposes.
 - Fixed removing track labels.
+- The bot is automatically added to the roster if not there.
