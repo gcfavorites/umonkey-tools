@@ -258,28 +258,32 @@ class Jabber:
                 self._log('Bot status not understood: %s' % msg.getStatus())
 
         # Nickname taken in the chat room, append a random number.
-        if sender.getStripped() == self.config.get_jabber_chat_room():
-            er = msg.getTag('error')
-            if er:
-                if er.attrs['code'] == '409':
-                    self.post_replies([
-                        ('chat', er.getTag('text').getCDATA(), sender.getResource()),
-                    ])
-                    self.chat_my_name = None
-                    self._join_chat_room(suffix=' (%R)')
+        elif sender.getStripped() == self.config.get_jabber_chat_room():
+            self._check_nickname_taken(sender, msg)
+
+            replies = []
+            myself = sender.getResource() == self.chat_my_name
+            if msg.getType() == 'unavailable':
+                replies.append(('part', sender.getResource()))
+                if myself:
+                    replies.append(('left'), )
+                    self.chat_active = False
             else:
-                if sender.getResource() == self.chat_my_name:
-                    if msg.getType() == 'unavailable':
-                        self.chat_active = False
-                        self.chat_my_name = None
-                        self.post_replies([
-                            ('left', ),
-                        ])
-                    else:
-                        self.chat_active = True
-                        self.post_replies([
-                            ('joined', ),
-                        ])
+                replies.append(('join', sender.getResource()))
+                if myself:
+                    replies.append(('joined', ))
+                    self.chat_active = True
+            if len(replies):
+                self.post_replies(replies)
+
+    def _check_nickname_taken(self, sender, msg):
+        er = msg.getTag('error')
+        if er and er.attrs['code'] == '409':
+            self.post_replies([
+                ('chat', er.getTag('text').getCDATA(), sender.getResource()),
+            ])
+            self.chat_my_name = None
+            self._join_chat_room(suffix=' (%R)')
 
     def _thread_worker(self):
         while not self.is_shutting_down:
@@ -432,6 +436,7 @@ class MainWindow(BaseWindow):
         self.player = GstClient(on_track_change=self.on_stream_track_change)
 
         self.init_chatlog()
+        self.init_nicklist()
         gobject.timeout_add(30, self.on_idle)
 
         settings = gtk.settings_get_default()
@@ -460,6 +465,15 @@ class MainWindow(BaseWindow):
         col = gtk.TreeViewColumn('Message')
         col.pack_start(cell, True)
         col.add_attribute(cell, 'text', 2)
+        tv.append_column(col)
+
+    def init_nicklist(self):
+        tv = self.builder.get_object('userlist')
+
+        cell = gtk.CellRendererText()
+        col = gtk.TreeViewColumn('Nickname')
+        col.pack_start(cell, True)
+        col.add_attribute(cell, 'text', 0)
         tv.append_column(col)
 
     def on_delete(self, *args):
@@ -575,8 +589,12 @@ class MainWindow(BaseWindow):
                     self.is_in_chat = True
                 elif reply[0] == 'left':
                     self.is_in_chat = False
+                elif reply[0] == 'join':
+                    self._add_chat_user(reply[1], True)
+                elif reply[0] == 'part':
+                    self._add_chat_user(reply[1], False)
                 else:
-                    print u'Unhandled jabber reply: %s' % reply
+                    print u'Unhandled jabber reply:', reply
         if update_track_info:
             self.set_track_info(self.track_artist, self.track_title, self.track_id, 0, 0, self.track_labels)
         if update_controls:
@@ -603,6 +621,14 @@ class MainWindow(BaseWindow):
             pass
         else:
             print u'Unhandled property:', reply
+
+    def _add_chat_user(self, name, joined=True):
+        model = self.builder.get_object('nicklist')
+        for iter in model:
+            if iter[0] == name:
+                model.remove(iter.iter)
+        if joined:
+            model.append([name])
 
     def on_rocks_toggled(self, button):
         if self.track_id:
