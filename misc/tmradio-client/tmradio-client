@@ -177,12 +177,11 @@ class Jabber:
     def on_presence(self, conn, msg):
         sender = msg.getFrom()
         if self.bot_jid == sender.getStripped():
-            match = self.np_re.match(msg.getStatus())
+            match = self.np_re.match(msg.getStatus() or '')
             if match:
                 title, artist, track_id, count, weight, tags = match.groups()
-                self.gui.set_track_title(u'%s — %s' % (artist, title))
-                self.gui.set_track_link('http://last.fm/music/%s/' % (urllib.quote(artist.encode('utf-8'))))
-                # self.gui.set_track_link('http://last.fm/music/%s/_/%s' % (urllib.quote(artist.encode('utf-8')), urllib.quote(title.encode('utf-8'))))
+                tags = [x.lstrip('@').strip() for x in tags.split(u' ')]
+                self.gui.set_track_info(artist, title, track_id, count, weight, tags)
                 # Status changed because somebody added labels or voted.  Our
                 # vote did not change, no need to request it.
                 if int(track_id) != self.gui.track_id:
@@ -383,6 +382,15 @@ class MainWindow(BaseWindow):
         self.builder.get_object('play').get_image().set_from_stock('gtk-media-stop', gtk.ICON_SIZE_BUTTON)
         self.is_playing = True
 
+    def set_track_info(self, artist, title, track_id, count, weight, tags):
+        self.set_track_title(u'%s — %s' % (artist, title))
+        self.set_track_link('http://last.fm/music/%s/' % (urllib.quote(artist.encode('utf-8'))))
+        # self.set_track_link('http://last.fm/music/%s/_/%s' % (urllib.quote(artist.encode('utf-8')), urllib.quote(title.encode('utf-8'))))
+
+        self.builder.get_object('track_artist').set_text(artist)
+        self.builder.get_object('track_title').set_text(title)
+        self.builder.get_object('track_labels').set_text(u' '.join(tags))
+
     def set_track_title(self, title):
         self.builder.get_object('np').set_label(title)
 
@@ -458,7 +466,18 @@ class MainWindow(BaseWindow):
             field.set_text('')
             self.jabber.chat(text)
 
+    def on_update_clicked(self, button):
+        if not self.jabber:
+            return # TODO: error message or else.
+        fmap = { 'track_artist': 'set artist to %s for %u', 'track_title': 'set title to %s for %u', 'track_labels': 'tags %s for %u' }
+        for key in fmap.keys():
+            value = self.builder.get_object(key).get_text()
+            self.jabber.message(fmap[key] % (value, self.track_id))
+
     def on_chatbtn_clicked(self, *args):
+        if not self.jabber:
+            self.jabber = Jabber(self)
+            self.jabber.connect()
         if self.jabber:
             if self.jabber.chat_active:
                 self.jabber.leave_chat_room()
