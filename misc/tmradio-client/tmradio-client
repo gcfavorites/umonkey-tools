@@ -187,7 +187,7 @@ class Jabber:
 
     def _join_chat_room(self, suffix=None):
         """Joins you to the chat room."""
-        if self.chat_my_name:
+        if self.chat_active:
             self._log('Double chat join prevented.')
             return
         self.chat_jid = self.config.get_jabber_chat_room()
@@ -276,7 +276,7 @@ class Jabber:
             if msg.getType() == 'unavailable':
                 replies.append(('part', sender.getResource()))
                 if myself:
-                    replies.append(('left'), )
+                    replies.append(('left', ))
                     self.chat_active = False
             else:
                 replies.append(('join', sender.getResource()))
@@ -622,6 +622,8 @@ class MainWindow(BaseWindow):
                     self.is_in_chat = True
                 elif reply[0] == 'left':
                     self.is_in_chat = False
+                    for ctl in ('chatlog', 'nicklist'):
+                        self.builder.get_object(ctl).clear()
                 elif reply[0] == 'join':
                     self._add_chat_user(reply[1], True)
                 elif reply[0] == 'part':
