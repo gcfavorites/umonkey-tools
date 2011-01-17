@@ -1,3 +1,8 @@
+Version 0.7
+
+- Fixed an error when trying to join the chat room while not connected.
+
+
 Version 0.6:
 
 - Track info editor introduced.

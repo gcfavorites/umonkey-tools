@@ -30,7 +30,7 @@ import gconf
 import gtk
 import pygtk
 
-VERSION = '0.6'
+VERSION = '0.7'
 USE_THREADING = False
 
 # Global kill switch.
@@ -320,7 +320,10 @@ class Jabber:
             elif text == 'leave':
                 self._leave_chat_room()
             elif text == 'join':
-                self._join_chat_room()
+                if not self.cli:
+                    self._connect()
+                if self.cli:
+                    self._join_chat_room()
             elif text == 'quit':
                 self.is_shutting_down = True
                 gtk.main_quit() # FIXME: what if we're not connected?
