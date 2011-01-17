@@ -80,6 +80,12 @@ class ConfigGConf:
     def set_stream_uri(self, value):
         self.gconf.set_string('/apps/tmradio-client/stream_uri', value)
 
+    def get_twitter_search(self):
+        return self.gconf.get_string('/apps/tmradio-client/twitter_search')
+
+    def set_twitter_search(self, value):
+        self.gconf.set_string('/apps/tmradio-client/twitter_search', value)
+
 
 class Jabber:
     """Simple jabber client.
@@ -396,19 +402,20 @@ class GstClient:
 
 
 class TwitterClientThread(threading.Thread):
-    def __init__(self):
+    def __init__(self, config):
         threading.Thread.__init__(self)
         self.update = False
         self.response = None
-        self.url = 'http://search.twitter.com/search.atom?q=%23tmradio'
+        self.config = config
 
     def run(self):
         print 'Twitter client thread started.'
         while not shutting_down:
             if self.update:
                 self.update = False
-                print 'Refreshing twitter.'
-                self.response = feedparser.parse(self.url)
+                url = 'http://search.twitter.com/search.atom?q=' + urllib.quote(self.config.get_twitter_search())
+                print 'Refreshing twitter: ' + url
+                self.response = feedparser.parse(url)
             time.sleep(0.1)
         print 'Twitter client thread over.'
 
@@ -439,7 +446,7 @@ class MainWindow(BaseWindow):
         super(MainWindow, self).__init__()
         self.config = ConfigGConf()
         self.jabber = Jabber(self)
-        self.twitter = TwitterClientThread()
+        self.twitter = TwitterClientThread(self.config)
         self.is_playing = False
         self.is_in_chat = False
         # Track properties.

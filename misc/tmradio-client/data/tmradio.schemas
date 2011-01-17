@@ -57,5 +57,15 @@
                 <short>Your nickname in the chat room.</short>
             </locale>
         </schema>
+        <schema>
+            <key>/schemas/apps/tmradio-client/twitter_search</key>
+            <applyto>/apps/tmradio-client/twitter_search</applyto>
+            <type>string</type>
+			<default>#tmradio</default>
+            <owner>tmradio-client</owner>
+            <locale name="C">
+                <short>What to look for in Twitter.</short>
+            </locale>
+        </schema>
 	</schemalist>
 </gconfschemafile>
