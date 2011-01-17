@@ -477,8 +477,8 @@ class MainWindow(BaseWindow):
         settings = gtk.settings_get_default()
         settings.props.gtk_button_images = True
 
-        self.jabber.post_message('connect', special=True)
         self.twitter.start()
+        self._jabber_autoconnect()
 
     def init_chatlog(self):
         tv = self.builder.get_object('chatview')
@@ -511,6 +511,13 @@ class MainWindow(BaseWindow):
         col.pack_start(cell, True)
         col.add_attribute(cell, 'text', 0)
         tv.append_column(col)
+
+    def _jabber_autoconnect(self):
+        """Connects to the jabber server if parameters are OK."""
+        if self.config.get_jabber_id() and self.config.get_jabber_password():
+            self.jabber.post_message('connect', special=True)
+        else:
+            self.on_menu_preferences_activate()
 
     def on_delete(self, *args):
         """Hide instead of closing."""
@@ -748,7 +755,7 @@ class MainWindow(BaseWindow):
     def on_tray_show(self, *args):
         self.on_tray_activate()
 
-    def on_menu_preferences_activate(self, item):
+    def on_menu_preferences_activate(self, item=None):
         if not self.pref_window:
             self.pref_window = Preferences(self.config)
         self.pref_window.window.show()
@@ -812,4 +819,6 @@ if __name__ == '__main__':
     gobject.threads_init()
     app = MainWindow()
     app.window.show()
+    if app.pref_window:
+        app.pref_window.window.present()
     gtk.main()

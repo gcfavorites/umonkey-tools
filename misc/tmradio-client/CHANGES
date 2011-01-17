@@ -1,6 +1,7 @@
 Version 0.7
 
 - Fixed an error when trying to join the chat room while not connected.
+- Preferences dialog pops up on startup if jid/password are not set.
 
 
 Version 0.6:
