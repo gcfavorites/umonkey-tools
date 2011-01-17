@@ -634,7 +634,7 @@ class MainWindow(BaseWindow):
             text = u''
             for item in feed['items']:
                 author = item['author'].split(' ')[0]
-                text += author + u': ' + item['title'] + '\n'
+                text = author + u': ' + item['title'] + '\n' + text
             self.builder.get_object('twitter').set_text(text.strip())
 
     def _process_jabber_property(self, reply):
