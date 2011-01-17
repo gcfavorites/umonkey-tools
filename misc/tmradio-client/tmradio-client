@@ -33,6 +33,9 @@ import pygtk
 VERSION = '0.6'
 USE_THREADING = False
 
+# Global kill switch.
+shutting_down = False
+
 class ConfigGConf:
     """GConf interface."""
     def __init__(self):
@@ -392,6 +395,24 @@ class GstClient:
             self.volume.set_property('volume', level)
 
 
+class TwitterClientThread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.update = False
+        self.response = None
+        self.url = 'http://search.twitter.com/search.atom?q=%23tmradio'
+
+    def run(self):
+        print 'Twitter client thread started.'
+        while not shutting_down:
+            if self.update:
+                self.update = False
+                print 'Refreshing twitter.'
+                self.response = feedparser.parse(self.url)
+            time.sleep(0.1)
+        print 'Twitter client thread over.'
+
+
 class BaseWindow(object):
     """Base class for all windows.
 
@@ -418,6 +439,7 @@ class MainWindow(BaseWindow):
         super(MainWindow, self).__init__()
         self.config = ConfigGConf()
         self.jabber = Jabber(self)
+        self.twitter = TwitterClientThread()
         self.is_playing = False
         self.is_in_chat = False
         # Track properties.
@@ -445,6 +467,7 @@ class MainWindow(BaseWindow):
         settings.props.gtk_button_images = True
 
         self.jabber.post_message('connect', special=True)
+        self.twitter.start()
 
     def init_chatlog(self):
         tv = self.builder.get_object('chatview')
@@ -552,6 +575,7 @@ class MainWindow(BaseWindow):
         self._process_jabber_replies()
         if not USE_THREADING:
             self.jabber.process_queue()
+        self._update_twitter()
         return True
 
     def update_controls(self):
@@ -599,17 +623,19 @@ class MainWindow(BaseWindow):
                     print u'Unhandled jabber reply:', reply
         if update_track_info:
             self.set_track_info(self.track_artist, self.track_title, self.track_id, 0, 0, self.track_labels)
-            self._update_twitter()
+            self.twitter.update = True
         if update_controls:
             self.update_controls()
 
     def _update_twitter(self):
-        feed = feedparser.parse('http://search.twitter.com/search.atom?q=%23tmradio')
-        text = u''
-        for item in feed['items']:
-            author = item['author'].split(' ')[0]
-            text += author + u': ' + item['title'] + '\n'
-        self.builder.get_object('twitter').set_text(text.strip())
+        if self.twitter.response:
+            feed = self.twitter.response
+            self.twitter.response = None
+            text = u''
+            for item in feed['items']:
+                author = item['author'].split(' ')[0]
+                text += author + u': ' + item['title'] + '\n'
+            self.builder.get_object('twitter').set_text(text.strip())
 
     def _process_jabber_property(self, reply):
         key, value = reply[1:]
@@ -711,6 +737,8 @@ class MainWindow(BaseWindow):
         self.pref_window.window.show()
 
     def on_menu_quit_activate(self, item):
+        global shutting_down
+        shutting_down = True
         gtk.main_quit()
 
     def on_menu_about_activate(self, *args):
