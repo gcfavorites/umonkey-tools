@@ -686,7 +686,7 @@ class MainWindow(BaseWindow):
         if self.track_id:
             if button.get_active() and self.track_vote >= 0:
                 self.track_vote = -1
-                self.jabber.post_message('XXX %u sucks' % self.track_id)
+                self.jabber.post_message('%u sucks' % self.track_id)
 
     def on_chatmsg_activate(self, field):
         if self.jabber:
