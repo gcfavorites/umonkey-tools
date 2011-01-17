@@ -9,6 +9,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import datetime
+import feedparser
 import random
 import os
 import re
@@ -598,8 +599,17 @@ class MainWindow(BaseWindow):
                     print u'Unhandled jabber reply:', reply
         if update_track_info:
             self.set_track_info(self.track_artist, self.track_title, self.track_id, 0, 0, self.track_labels)
+            self._update_twitter()
         if update_controls:
             self.update_controls()
+
+    def _update_twitter(self):
+        feed = feedparser.parse('http://search.twitter.com/search.atom?q=%23tmradio')
+        text = u''
+        for item in feed['items']:
+            author = item['author'].split(' ')[0]
+            text += author + u': ' + item['title'] + '\n'
+        self.builder.get_object('twitter').set_text(text.strip())
 
     def _process_jabber_property(self, reply):
         key, value = reply[1:]
@@ -754,10 +764,7 @@ class Preferences(BaseWindow):
 
 
 if __name__ == '__main__':
-    if '--threaded' in sys.argv:
-        USE_THREADING = True
-    if USE_THREADING:
-        gobject.threads_init()
+    gobject.threads_init()
     app = MainWindow()
     app.window.show()
     gtk.main()

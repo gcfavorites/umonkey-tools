@@ -9,3 +9,4 @@ Version 0.6:
 - Dynamic control over administrative functions (only enabled if available).
 - Fixed sensitivity problems for sucks/rocks buttons.
 - The chat tab shows nicknames of users currently in the chat room.
+- Added some basic twitter support.
