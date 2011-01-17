@@ -10,3 +10,5 @@ Version 0.6:
 - Fixed sensitivity problems for sucks/rocks buttons.
 - The chat tab shows nicknames of users currently in the chat room.
 - Added some basic twitter support.
+- The number of current listeners is displayed in the application title and in
+  the indicator icon tooltip.
