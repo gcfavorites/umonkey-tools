@@ -107,7 +107,7 @@ class Jabber:
         # Incoming commands, accessible via get_messages().
         self.in_queue = Queue.Queue()
         # RegExp for parsing the status line
-        self.np_re = re.compile(u'^«(.+)» by (.+) — #(\d+) ♺(\d+) ⚖(\S+) (.+)$')
+        self.np_re = re.compile(u'^«(.+)» by (.+) — #(\d+) ♺(\d+) ⚖(\S+) Σ(\d+)[^@]+(.+)$')
         # RegExp for parsing the SHOW command (extracts pro/con lists only).
         self.show_re = re.compile(u'.* #(\d+).*editable=(True|False).* Pro: (.+), contra: (.+)\.$')
         # Status.
@@ -249,7 +249,7 @@ class Jabber:
         if self.bot_jid == sender.getStripped():
             match = self.np_re.match(msg.getStatus() or '')
             if match:
-                title, artist, track_id, count, weight, tags = match.groups()
+                title, artist, track_id, count, weight, listeners, tags = match.groups()
                 tags = [x.lstrip('@').strip() for x in tags.split(u' ')]
                 self.post_replies([
                     ('set', 'track_id', track_id),
@@ -258,6 +258,7 @@ class Jabber:
                     ('set', 'track_playcount', count),
                     ('set', 'track_weight', weight),
                     ('set', 'track_labels', tags),
+                    ('set', 'track_listeners', int(listeners)),
                 ])
                 # Status changed because somebody added labels or voted.  Our
                 # vote did not change, no need to request it.
@@ -661,6 +662,10 @@ class MainWindow(BaseWindow):
             self.track_vote = int(value)
         elif key == 'track_editable':
             self.track_editable = value
+        elif key == 'track_listeners':
+            title = 'tmradio.net (%u)' % value
+            self.window.set_title(title)
+            self.builder.get_object('tray').set_tooltip(title)
         elif key == 'track_weight':
             pass
         elif key == 'track_playcount':
