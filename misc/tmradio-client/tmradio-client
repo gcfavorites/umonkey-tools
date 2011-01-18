@@ -150,20 +150,22 @@ class Jabber:
 
         self.jid = xmpp.protocol.JID(jid)
         if self.config.get_debug():
-            self.cli = xmpp.Client(self.jid.getDomain())
+            cli = xmpp.Client(self.jid.getDomain())
         else:
-            self.cli = xmpp.Client(self.jid.getDomain(), debug=[])
+            cli = xmpp.Client(self.jid.getDomain(), debug=[])
 
-        res = self.cli.connect()
+        res = cli.connect()
         if not res:
             self._log('Could not connect to %s.' % self.jid.getDomain())
             return False
 
-        res = self.cli.auth(self.jid.getNode(), password, 'tmclient/')
+        res = cli.auth(self.jid.getNode(), password, 'tmclient/')
         if not res:
             self._log('Could not authorize with the server.')
+            self.post_replies(('auth-error', ))
             return False
 
+        self.cli = cli
         self.cli.sendInitPresence()
         self.roster = self.cli.Roster.getRoster()
         self.cli.RegisterHandler('message', self._on_message)
@@ -640,6 +642,8 @@ class MainWindow(BaseWindow):
                     self._add_chat_user(reply[1], True)
                 elif reply[0] == 'part':
                     self._add_chat_user(reply[1], False)
+                elif reply[0] == 'auth-error':
+                    self.on_menu_preferences_activate()
                 else:
                     print u'Unhandled jabber reply:', reply
         if update_track_info:
