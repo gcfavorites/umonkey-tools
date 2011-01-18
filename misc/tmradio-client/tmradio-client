@@ -193,7 +193,7 @@ class Jabber:
         self.chat_jid = self.config.get_jabber_chat_room()
         nick = self.config.get_jabber_chat_nick()
         if not nick:
-            nick = unicode(self.jid)
+            nick = self.jid.getStripped().split('@')[0]
         if suffix is not None:
             nick += suffix
         nick = nick.replace('%R', str(random.randrange(1111, 9999)))
@@ -316,7 +316,8 @@ class Jabber:
 
         if special:
             if text == 'connect':
-                self._connect()
+                if not self.cli:
+                    self._connect()
             elif text == 'leave':
                 self._leave_chat_room()
             elif text == 'join':
@@ -757,7 +758,7 @@ class MainWindow(BaseWindow):
 
     def on_menu_preferences_activate(self, item=None):
         if not self.pref_window:
-            self.pref_window = Preferences(self.config)
+            self.pref_window = Preferences(self)
         self.pref_window.window.show()
 
     def on_menu_quit_activate(self, item):
@@ -786,9 +787,10 @@ class MainWindow(BaseWindow):
 
 
 class Preferences(BaseWindow):
-    def __init__(self, config):
+    def __init__(self, main):
         super(self.__class__, self).__init__()
-        self.config = config
+        self.main = main
+        self.config = main.config
 
     def on_delete(self, *args):
         self.window.hide()
@@ -813,6 +815,7 @@ class Preferences(BaseWindow):
             ctl = self.builder.get_object(fn[4:])
             if ctl:
                 getattr(self.config, fn)(ctl.get_text())
+        self.main.jabber.post_message('connect', special=True)
 
 
 if __name__ == '__main__':
