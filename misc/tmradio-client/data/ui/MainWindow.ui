@@ -12,6 +12,12 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="nicklist">
+    <columns>
+      <!-- column-name Nickname -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="MainWindow">
     <property name="title" translatable="yes">tmradio.net</property>
     <property name="window_position">center</property>
@@ -75,6 +81,7 @@
                         <property name="visible">True</property>
                         <property name="image">image1</property>
                         <property name="use_stock">False</property>
+                        <signal name="activate" handler="on_menu_website_activate"/>
                       </object>
                     </child>
                     <child>
@@ -543,9 +550,9 @@ audio-volume-medium</property>
     <property name="has_tooltip">True</property>
     <property name="tooltip_text">&#x41A;&#x43B;&#x438;&#x435;&#x43D;&#x442; tmradio.net</property>
     <property name="title">tmradio.net</property>
+    <signal name="popup_menu" handler="on_tray_menu"/>
     <signal name="activate" handler="on_tray_activate"/>
     <signal name="scroll_event" handler="on_tray_scroll"/>
-    <signal name="popup_menu" handler="on_tray_menu"/>
   </object>
   <object class="GtkMenu" id="tray_menu">
     <property name="visible">True</property>
@@ -580,12 +587,6 @@ audio-volume-medium</property>
   <object class="GtkImage" id="chatbtnIcon">
     <property name="visible">True</property>
     <property name="stock">gtk-connect</property>
-  </object>
-  <object class="GtkListStore" id="nicklist">
-    <columns>
-      <!-- column-name Nickname -->
-      <column type="gchararray"/>
-    </columns>
   </object>
   <object class="GtkTextBuffer" id="twitter"/>
 </interface>
