@@ -1,7 +1,10 @@
 Version 0.7
 
 - Fixed an error when trying to join the chat room while not connected.
-- Preferences dialog pops up on startup if jid/password are not set.
+- Preferences window pops up on startup if jid/password are not set.
+- If jabber credentials are wrong, the preferences window pops up.
+- Fixed the rocks/sucks buttons being stuck.
+- Fixed station web site not opening.
 
 
 Version 0.6:
