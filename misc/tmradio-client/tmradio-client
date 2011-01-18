@@ -773,6 +773,9 @@ class MainWindow(BaseWindow):
     def on_menu_about_activate(self, *args):
         webbrowser.open('http://code.google.com/p/umonkey-tools/wiki/tmradio')
 
+    def on_menu_website_activate(self, *args):
+        webbrowser.open('http://www.tmradio.net/')
+
     def on_chat_entered(self):
         self.builder.get_object('chatmsg').grab_focus()
 
