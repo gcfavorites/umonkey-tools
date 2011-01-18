@@ -701,12 +701,14 @@ class MainWindow(BaseWindow):
             if button.get_active() and self.track_vote <= 0:
                 self.track_vote = 1
                 self.jabber.post_message('%u rocks' % self.track_id)
+                self.builder.get_object('sucks').set_active(False)
 
     def on_sucks_toggled(self, button):
         if self.track_id:
             if button.get_active() and self.track_vote >= 0:
                 self.track_vote = -1
                 self.jabber.post_message('%u sucks' % self.track_id)
+                self.builder.get_object('rocks').set_active(False)
 
     def on_chatmsg_activate(self, field):
         if self.jabber:
