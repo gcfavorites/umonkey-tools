@@ -1,3 +1,8 @@
+Version 0.8
+
+- Better handling of network failures.
+
+
 Version 0.7
 
 - Fixed an error when trying to join the chat room while not connected.
