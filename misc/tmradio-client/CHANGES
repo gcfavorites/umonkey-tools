@@ -2,6 +2,7 @@ Version 0.8
 
 - Better handling of network failures.
 - Added support for proxies (the http_proxy envar).
+- Fixed hanging after ^C.
 
 
 Version 0.7

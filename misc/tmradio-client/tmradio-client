@@ -845,4 +845,8 @@ if __name__ == '__main__':
     app.window.show()
     if app.pref_window:
         app.pref_window.window.present()
-    gtk.main()
+    try:
+        gtk.main()
+    except KeyboardInterrupt:
+        print >>sys.stderr, 'Shutting down.'
+        shutting_down = True
