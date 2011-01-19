@@ -229,10 +229,14 @@ class Jabber:
     def _on_message(self, conn, msg):
         """Process chat and group chat messages."""
         if msg.getType() == 'groupchat':
-            nick = unicode(msg.getFrom()).split('/')[1]
-            self.post_replies([
-                ('chat', msg.getBody(), nick),
-            ])
+            parts = unicode(msg.getFrom()).split('/')
+            if len(parts) < 2:
+                print msg
+            else:
+                nick = unicode(msg.getFrom()).split('/')[1]
+                self.post_replies([
+                    ('chat', msg.getBody(), nick),
+                ])
             return
 
         elif msg.getFrom().getStripped() == self.bot_jid:
