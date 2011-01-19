@@ -154,7 +154,7 @@ class Jabber:
         else:
             cli = xmpp.Client(self.jid.getDomain(), debug=[])
 
-        res = cli.connect()
+        res = cli.connect() # proxy={'host': '10.26.7.81', 'port': 8118})
         if not res:
             self._log('Could not connect to %s.' % self.jid.getDomain())
             return False
@@ -305,8 +305,10 @@ class Jabber:
     def process_queue(self, timeout=0):
         if self.cli:
             res = self.cli.Process(timeout)
-            if res == 0:
+            if res == 0 or res is None:
+                self.cli = None
                 self.post_message('connect', special=True)
+                return
         elif timeout:
             time.sleep(timeout) # prevent spinlocks
         while not self.out_queue.empty():
