@@ -1,0 +1,41 @@
+Package: sayhours
+Version: 1.0
+Architecture: all
+Essential: no
+Maintainer: Justin Forest <justin.forest@gmail.com>
+Installed-Size: 2188
+Depends: sox
+Suggests: saytime
+Filename: files/sayhours-1.0.deb
+Size: 1519172
+MD5sum: 9cf2de7220b2443543fb941ae50db31a
+SHA1: 794f53f6dd54fcb18975cc7ecdeedcbc7bd74e15
+SHA256: 46539e3a817a8c266ba4f3dd0bdc5dc16cd196b9ce610cb6696dd100019e5697
+Section: sound
+Priority: optional
+Homepage: http://umonkey-tools.googlecode.com/
+Description: sayhours is a script that speaks current time (hours only)
+  in Russian.  Unlike saytime, samples are well processed.  The script is
+  designed to be run as a cron job.  The package contains several samples
+  for each hour, both male and female, chosen randomly each time.  More
+  samples are welcome.
+
+Package: tmradio-client-gtk
+Version: 0.7
+Architecture: all
+Essential: no
+Maintainer: Justin Forest <hex@umonkey.net>
+Installed-Size: 50
+Depends: python, python-gconf, python-gst0.10, python-xmpp, python-feedparser
+Filename: files/tmradio-client-gtk-0.7.deb
+Size: 17576
+MD5sum: ed5774ead9da819192d2a0affe276c23
+SHA1: dec570bfcbe0291655b04a9e7aef2ad92c88da28
+SHA256: bfd13d1a0aa7b24ec49f30af6511e151522ade4fe739c8d790c4ef801c619ff4
+Section: sound
+Priority: optional
+Homepage: http://www.tmradio.net/
+Description: An all-in-one tmradio.net client (player + chat).
+  A simple application that lets you listen to the tmradio.net stream, vote for
+  song, stay in the chat room and browse the podcast archive.
+

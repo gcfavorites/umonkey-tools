@@ -1,0 +1,21 @@
+#!/bin/sh
+if [ -z "$1" ]; then
+	echo "Usage: $0 files..."
+	echo "Files usually are Packages and Packages.gz"
+	exit 1
+fi
+
+grep -vE '^ ' Release > Release.new
+while [ -n "$1" ]; do
+	if [ ! -f "$1" ]; then
+		echo "File not found: $1"
+		exit 1
+	fi
+	HASH=$(md5sum "$1" | awk '{ print $1 }')
+	SIZE=$(ls -l "$1" | awk '{ print $5 }')
+	echo " $HASH $SIZE $1" >> Release.new
+	shift
+done
+mv Release.new Release
+rm -f Release.gpg
+gpg -abs -o Release.gpg Release
