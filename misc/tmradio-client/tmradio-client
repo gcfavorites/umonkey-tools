@@ -18,6 +18,7 @@ import threading
 import time
 import traceback
 import urllib
+import urlparse
 import xmpp
 import webbrowser
 import Queue
@@ -154,7 +155,7 @@ class Jabber:
         else:
             cli = xmpp.Client(self.jid.getDomain(), debug=[])
 
-        res = cli.connect() # proxy={'host': '10.26.7.81', 'port': 8118})
+        res = cli.connect(proxy=self._get_proxy_settings())
         if not res:
             self._log('Could not connect to %s.' % self.jid.getDomain())
             return False
@@ -175,6 +176,12 @@ class Jabber:
         self._join_chat_room()
         self._check_roster()
         return True
+
+    def _get_proxy_settings(self):
+        if not os.environ.has_key('http_proxy'):
+            return None
+        url = urlparse.urlparse(os.environ['http_proxy'])
+        return { 'host': url.hostname, 'port': url.port or 80 }
 
     def _check_roster(self):
         """Checks whether we have the bot on our roster."""
@@ -308,6 +315,7 @@ class Jabber:
             if res == 0 or res is None:
                 self.cli = None
                 self.post_message('connect', special=True)
+                time.sleep(timeout) # prevent spinlocks
                 return
         elif timeout:
             time.sleep(timeout) # prevent spinlocks
