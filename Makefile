@@ -11,7 +11,7 @@ update-release-hash:
 	sh bin/update-release-file Packages Packages.gz
 
 upload-files:
-	hg ci Packages.gz -m "Packages.gz autoupdate."
+	hg ci Packages.gz Release Release.gpg -m "Packages.gz autoupdate."
 	hg push
 
 clean:
