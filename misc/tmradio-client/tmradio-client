@@ -262,26 +262,7 @@ class Jabber:
         """Process incoming presences."""
         sender = msg.getFrom()
         if self.bot_jid == sender.getStripped():
-            match = self.np_re.match(msg.getStatus() or '')
-            if match:
-                title, artist, track_id, count, weight, listeners, tags = match.groups()
-                tags = [x.lstrip('@').strip() for x in tags.split(u' ')]
-                self.post_replies([
-                    ('set', 'track_id', track_id),
-                    ('set', 'track_artist', artist),
-                    ('set', 'track_title', title),
-                    ('set', 'track_playcount', count),
-                    ('set', 'track_weight', weight),
-                    ('set', 'track_labels', tags),
-                    ('set', 'track_listeners', int(listeners)),
-                ])
-                # Status changed because somebody added labels or voted.  Our
-                # vote did not change, no need to request it.
-                if track_id != self.last_track_id:
-                    self.post_message('show ' + track_id)
-                    self.last_track_id = track_id
-            else:
-                self._log('Bot status not understood: %s' % msg.getStatus())
+            self._on_bot_presence(msg)
 
         # Nickname taken in the chat room, append a random number.
         elif sender.getStripped() == self.config.get_jabber_chat_room():
@@ -301,6 +282,33 @@ class Jabber:
                     self.chat_active = True
             if len(replies):
                 self.post_replies(replies)
+
+    def _on_bot_presence(self, msg):
+        if msg.getType() == 'unavailable':
+            self.post_replies(('offline', ))
+            return
+
+        match = self.np_re.match(msg.getStatus() or '')
+        if match:
+            title, artist, track_id, count, weight, listeners, tags = match.groups()
+            tags = [x.lstrip('@').strip() for x in tags.split(u' ')]
+            self.post_replies([
+                ('set', 'track_id', track_id),
+                ('set', 'track_artist', artist),
+                ('set', 'track_title', title),
+                ('set', 'track_playcount', count),
+                ('set', 'track_weight', weight),
+                ('set', 'track_labels', tags),
+                ('set', 'track_listeners', int(listeners)),
+            ])
+            # Status changed because somebody added labels or voted.  Our
+            # vote did not change, no need to request it.
+            if track_id != self.last_track_id:
+                self.post_message('show ' + track_id)
+                self.last_track_id = track_id
+        else:
+            print msg
+            self._log('Bot status not understood: %s' % msg.getStatus())
 
     def _check_nickname_taken(self, sender, msg):
         er = msg.getTag('error')
@@ -480,6 +488,7 @@ class MainWindow(BaseWindow):
         self.twitter = TwitterClientThread(self.config)
         self.is_playing = False
         self.is_in_chat = False
+        self.is_online = False # the bot is available
         # Track properties.
         self.track_id = None
         self.track_artist = None
@@ -629,9 +638,10 @@ class MainWindow(BaseWindow):
 
         # Set control sensitivity.
         for ctl_name in ('rocks', 'sucks'):
-            ctl = self.builder.get_object(ctl_name).set_sensitive(self.track_id is not None and connected)
-        self.builder.get_object('rocks').set_active(self.track_vote > 0)
-        self.builder.get_object('sucks').set_active(self.track_vote < 0)
+            ctl = self.builder.get_object(ctl_name).set_sensitive(self.track_id is not None and connected and self.is_online)
+        vote = (connected and self.is_online) and self.track_vote or 0
+        self.builder.get_object('rocks').set_active(vote > 0)
+        self.builder.get_object('sucks').set_active(vote < 0)
 
         img = self.builder.get_object('chatbtn').get_image()
         img.set_from_stock(self.is_in_chat and gtk.STOCK_DISCONNECT or gtk.STOCK_CONNECT, gtk.ICON_SIZE_BUTTON)
@@ -639,12 +649,12 @@ class MainWindow(BaseWindow):
         self.builder.get_object('chatmsg').set_sensitive(self.is_in_chat and 1 or 0)
 
         ctl = self.builder.get_object('np')
-        ctl.set_sensitive(connected)
+        ctl.set_sensitive(connected and self.is_online)
         if ctl.get_uri() != self.track_link:
             ctl.set_uri(self.track_link or '')
 
         for ctl_name in ('skip', 'track_artist', 'track_title', 'track_labels', 'update'):
-            self.builder.get_object(ctl_name).set_sensitive(self.track_editable and connected)
+            self.builder.get_object(ctl_name).set_sensitive(self.track_editable and connected and self.is_online)
 
     def _process_jabber_replies(self):
         """Process the incoming jabber message queue."""
@@ -656,11 +666,16 @@ class MainWindow(BaseWindow):
             for reply in replies:
                 update_controls = True
                 if reply[0] == 'set':
+                    self.is_online = True
                     self._process_jabber_property(reply)
                     update_track_info = True
+                elif reply[0] == 'offline':
+                    self.is_online = False
                 elif reply[0] == 'chat':
+                    self.is_online = True
                     self.add_chat(reply[1], reply[2])
                 elif reply[0] == 'joined':
+                    self.is_online = True
                     self.is_in_chat = True
                 elif reply[0] == 'left':
                     self.is_in_chat = False
@@ -669,8 +684,10 @@ class MainWindow(BaseWindow):
                 elif reply[0] == 'disconnected':
                     self.track_vote = 0
                 elif reply[0] == 'join':
+                    self.is_online = True
                     self._add_chat_user(reply[1], True)
                 elif reply[0] == 'part':
+                    self.is_online = True
                     self._add_chat_user(reply[1], False)
                 elif reply[0] == 'auth-error':
                     self.on_menu_preferences_activate()

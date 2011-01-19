@@ -1,3 +1,8 @@
+Version 0.9
+
+- Some controls are disabled when the bot is offline.
+
+
 Version 0.8
 
 - Better handling of network failures, automatic reconnecting.
