@@ -116,6 +116,7 @@ class Jabber:
         self.chat_active = False
         self.chat_my_name = None
         self.is_shutting_down = False
+        self.reconnect_time = 0
 
         if USE_THREADING:
             self.worker = threading.Thread()
@@ -140,6 +141,9 @@ class Jabber:
         while not self.in_queue.empty():
             rep.append(self.in_queue.get())
         return rep
+
+    def is_connected(self):
+        return self.cli is not None
 
     def _connect(self):
         """Connects to the jabber server."""
@@ -315,10 +319,10 @@ class Jabber:
         if self.cli:
             res = self.cli.Process(timeout)
             if res == 0 or res is None:
-                self.cli = None
-                self.post_message('connect', special=True)
-                time.sleep(timeout) # prevent spinlocks
-                return
+                self._on_disconnected()
+        elif time.time() > self.reconnect_time:
+            self.reconnect_time = int(time.time()) + 5
+            self.post_message('connect', special=True)
         elif timeout:
             time.sleep(timeout) # prevent spinlocks
         while not self.out_queue.empty():
@@ -359,6 +363,14 @@ class Jabber:
 
     def _log(self, message):
         print message
+
+    def _on_disconnected(self):
+        self._log('Disconnected from the server, reconnecting in 5 seconds.')
+        self.cli = None
+        self.chat_active = False
+        self.chat_my_name = None
+        self.post_replies([('left', ), ('disconnected', )])
+        self.reconnect_time = int(time.time()) + 5
 
 
 class GstClient:
@@ -613,22 +625,26 @@ class MainWindow(BaseWindow):
 
     def update_controls(self):
         """Disables and enables controls on conditions."""
+        connected = self.jabber.is_connected()
+
         # Set control sensitivity.
         for ctl_name in ('rocks', 'sucks'):
-            ctl = self.builder.get_object(ctl_name).set_sensitive(self.track_id is not None)
+            ctl = self.builder.get_object(ctl_name).set_sensitive(self.track_id is not None and connected)
         self.builder.get_object('rocks').set_active(self.track_vote > 0)
         self.builder.get_object('sucks').set_active(self.track_vote < 0)
 
         img = self.builder.get_object('chatbtn').get_image()
         img.set_from_stock(self.is_in_chat and gtk.STOCK_DISCONNECT or gtk.STOCK_CONNECT, gtk.ICON_SIZE_BUTTON)
+        self.builder.get_object('chatbtn').set_sensitive(connected)
         self.builder.get_object('chatmsg').set_sensitive(self.is_in_chat and 1 or 0)
 
         ctl = self.builder.get_object('np')
+        ctl.set_sensitive(connected)
         if ctl.get_uri() != self.track_link:
             ctl.set_uri(self.track_link or '')
 
         for ctl_name in ('skip', 'track_artist', 'track_title', 'track_labels', 'update'):
-            self.builder.get_object(ctl_name).set_sensitive(self.track_editable)
+            self.builder.get_object(ctl_name).set_sensitive(self.track_editable and connected)
 
     def _process_jabber_replies(self):
         """Process the incoming jabber message queue."""
@@ -650,6 +666,8 @@ class MainWindow(BaseWindow):
                     self.is_in_chat = False
                     for ctl in ('chatlog', 'nicklist'):
                         self.builder.get_object(ctl).clear()
+                elif reply[0] == 'disconnected':
+                    self.track_vote = 0
                 elif reply[0] == 'join':
                     self._add_chat_user(reply[1], True)
                 elif reply[0] == 'part':

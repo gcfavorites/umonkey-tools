@@ -1,6 +1,6 @@
 Version 0.8
 
-- Better handling of network failures.
+- Better handling of network failures, automatic reconnecting.
 - Added support for proxies (the http_proxy envar).
 - Fixed hanging after ^C.
 
