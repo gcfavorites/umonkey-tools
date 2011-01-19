@@ -181,6 +181,8 @@ class Jabber:
         if not os.environ.has_key('http_proxy'):
             return None
         url = urlparse.urlparse(os.environ['http_proxy'])
+        if not url.netloc:
+            return None
         return { 'host': url.hostname, 'port': url.port or 80 }
 
     def _check_roster(self):
