@@ -8,11 +8,7 @@ prepare-files:
 	dpkg-scanpackages files | gzip -9c > Packages.gz
 
 update-release-hash:
-	grep -v Packages.gz Release > Release.new
-	echo " `md5sum Packages.gz | awk '{ print $$1 }'` `ls -l Packages.gz | awk '{ print $$5 }'` Packages.gz" >> Release.new
-	mv Release.new Release
-	rm -f Release.gpg
-	gpg -abs -o Release.gpg Release
+	sh bin/update-release-file Packages Packages.gz
 
 upload-files:
 	hg ci Packages.gz -m "Packages.gz autoupdate."
