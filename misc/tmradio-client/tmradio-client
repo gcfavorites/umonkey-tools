@@ -110,7 +110,7 @@ class Jabber:
         # RegExp for parsing the status line
         self.np_re = re.compile(u'^«(.+)» by (.+) — #(\d+) ♺(\d+) ⚖(\S+) Σ(\d+)[^@]+(.+)$')
         # RegExp for parsing the SHOW command (extracts pro/con lists only).
-        self.show_re = re.compile(u'.* #(\d+).*editable=(True|False).* Pro: (.+), contra: (.+)\.$')
+        self.show_re = re.compile(u'.* #(\d+).*length=(\d+)s.*editable=(True|False).* Pro: (.+), contra: (.+)\.$')
         # Status.
         self.last_track_id = None
         self.chat_active = False
@@ -247,9 +247,10 @@ class Jabber:
             matches = self.show_re.match(msg.getBody())
             if matches:
                 track_id = int(matches.group(1))
-                editable = matches.group(2) == 'True'
-                pro = matches.group(3).split(', ')
-                con = matches.group(4).split(', ')
+                length = int(matches.group(2))
+                editable = matches.group(3) == 'True'
+                pro = matches.group(4).split(', ')
+                con = matches.group(5).split(', ')
                 vote = 0
                 if self.jid in pro:
                     vote = 1
@@ -258,6 +259,7 @@ class Jabber:
                 self.post_replies([
                     ('set', 'track_vote', vote),
                     ('set', 'track_editable', editable),
+                    ('set', 'track_length', length),
                 ])
                 return
         self._log('Unhandled message: %s' % msg.getBody())
@@ -429,6 +431,7 @@ class GstClient:
             rtags = message.parse_tag()
             for key in rtags.keys():
                 dtags[key] = rtags[key]
+            print 'Stream info updated:', dtags
             if dtags.has_key('title'):
                 self.on_track_change(dtags['title'])
         elif t == gst.MESSAGE_BUFFERING:
@@ -499,6 +502,8 @@ class MainWindow(BaseWindow):
         self.track_title = None
         self.track_labels = None
         self.track_labels_original = None # for editing
+        self.track_length = None
+        self.track_change_ts = None
         self.track_vote = 0
         self.track_link = None
         self.track_editable = False
@@ -509,6 +514,8 @@ class MainWindow(BaseWindow):
         self.last_chat_nick = None
         # Initialize the player.
         self.player = GstClient(on_track_change=self.on_stream_track_change)
+        # RegExp for parsing stream title.
+        self.stream_title_re = re.compile('"([^"]+)" by (.+)')
 
         self.init_chatlog()
         self.init_nicklist()
@@ -577,9 +584,6 @@ class MainWindow(BaseWindow):
     def stop_playing(self):
         self.player.stop()
         self.builder.get_object('play').get_image().set_from_stock('gtk-media-play', gtk.ICON_SIZE_BUTTON)
-        if not self.jabber:
-            self.set_track_title('')
-            sefl.set_track_link('')
         self.is_playing = False
 
     def start_playing(self):
@@ -588,26 +592,18 @@ class MainWindow(BaseWindow):
         self.is_playing = True
 
     def set_track_info(self, artist, title, track_id, count, weight, tags):
-        self.set_track_title(u'%s — %s' % (artist, title))
-        self.set_track_link('http://last.fm/music/%s/' % (urllib.quote(artist.encode('utf-8'))))
-        # self.set_track_link('http://last.fm/music/%s/_/%s' % (urllib.quote(artist.encode('utf-8')), urllib.quote(title.encode('utf-8'))))
-
         self.builder.get_object('track_artist').set_text(artist)
         self.builder.get_object('track_title').set_text(title)
         self.builder.get_object('track_labels').set_text(u' '.join(tags))
 
-    def set_track_title(self, title):
-        self.builder.get_object('np').set_label(title)
-
     def on_stream_track_change(self, title):
-        if not self.jabber:
-            self.set_track_title(title)
+        print 'Stream title changed.'
+        m = self.stream_title_re.search(title)
+        if m:
+            print m.groups()
 
     def set_track_id(self, track_id):
         self.track_id = track_id
-
-    def set_track_link(self, track_link):
-        self.track_link = track_link
 
     def clear_chat(self):
         model = self.builder.get_object('chatlog').clear()
@@ -631,10 +627,24 @@ class MainWindow(BaseWindow):
     def on_idle(self):
         """Update controls, process xmpp messages.""" 
         self._process_jabber_replies()
+        self._update_progress_bar()
         if not USE_THREADING:
             self.jabber.process_queue()
         self._update_twitter()
         return True
+
+    def _update_progress_bar(self):
+        if self.track_change_ts and self.track_length:
+            spent = float(min(int(time.time()) - self.track_change_ts, self.track_length))
+            fraction = spent / float(self.track_length)
+        else:
+            fraction = 0
+        pb = self.builder.get_object('progress')
+        if pb.get_fraction() != fraction:
+            pb.set_fraction(fraction)
+
+    def _is_online(self):
+        return self.jabber and self.jabber.is_connected() and self.is_online
 
     def update_controls(self):
         """Disables and enables controls on conditions."""
@@ -651,11 +661,6 @@ class MainWindow(BaseWindow):
         img.set_from_stock(self.is_in_chat and gtk.STOCK_DISCONNECT or gtk.STOCK_CONNECT, gtk.ICON_SIZE_BUTTON)
         self.builder.get_object('chatbtn').set_sensitive(connected)
         self.builder.get_object('chatmsg').set_sensitive(self.is_in_chat and 1 or 0)
-
-        ctl = self.builder.get_object('np')
-        ctl.set_sensitive(connected and self.is_online)
-        if ctl.get_uri() != self.track_link:
-            ctl.set_uri(self.track_link or '')
 
         for ctl_name in ('skip', 'track_artist', 'track_title', 'track_labels', 'update'):
             self.builder.get_object(ctl_name).set_sensitive(self.track_editable and connected and self.is_online)
@@ -716,7 +721,14 @@ class MainWindow(BaseWindow):
     def _process_jabber_property(self, reply):
         key, value = reply[1:]
         if key == 'track_id':
-            self.track_id = int(value)
+            new_id = int(value)
+            if new_id != self.track_id:
+                # We use track chage time to display the progress bar, so it
+                # needs to be precise.  If it's the first track info we get, it
+                # most likely is mid-play, we're not interested.
+                if self.track_id is not None:
+                    self.track_change_ts = int(time.time())
+                self.track_id = new_id
         elif key == 'track_artist':
             self.track_artist = value
         elif key == 'track_title':
@@ -724,6 +736,8 @@ class MainWindow(BaseWindow):
         elif key == 'track_labels':
             self.track_labels = value
             self.track_labels_original = value
+        elif key == 'track_length':
+            self.track_length = int(value)
         elif key == 'track_vote':
             self.track_vote = int(value)
         elif key == 'track_editable':
@@ -738,6 +752,12 @@ class MainWindow(BaseWindow):
             pass
         else:
             print u'Unhandled property:', reply
+
+        if key in ('track_title', 'track_artist', 'track_length'):
+            text = u'%s — %s' % (self.track_artist, self.track_title)
+            if self.track_length:
+                text += u' [%u:%02u]' % (self.track_length / 60, self.track_length % 60)
+            self.builder.get_object('progress').set_text(text)
 
     def _add_chat_user(self, name, joined=True):
         model = self.builder.get_object('nicklist')
@@ -789,6 +809,9 @@ class MainWindow(BaseWindow):
 
     def on_skip_clicked(self, button):
         self.jabber.post_message('skip')
+
+    def on_info_clicked(self, *args):
+        webbrowser.open('http://www.last.fm/music/%s' % urllib.quote(self.track_artist.encode('utf-8')))
 
     def on_volume_changed(self, widget, level):
         self.player.set_volume(level)

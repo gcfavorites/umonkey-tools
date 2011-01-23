@@ -184,19 +184,28 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLinkButton" id="np">
+              <object class="GtkProgressBar" id="progress">
+                <property name="visible">True</property>
+                <property name="show_text">True</property>
+                <property name="fraction">0.20000000000000001</property>
+              </object>
+              <packing>
+                <property name="padding">2</property>
+                <property name="position">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="info">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="has_tooltip">True</property>
+                <property name="image">infoIcon</property>
                 <property name="relief">none</property>
-                <property name="focus_on_click">False</property>
-                <property name="xalign">0</property>
-                <property name="uri">http://tmradio.net/</property>
-                <property name="visited">True</property>
+                <signal name="clicked" handler="on_info_clicked"/>
               </object>
               <packing>
-                <property name="position">6</property>
+                <property name="expand">False</property>
+                <property name="position">7</property>
               </packing>
             </child>
             <child>
@@ -217,7 +226,7 @@ audio-volume-medium</property>
               </object>
               <packing>
                 <property name="expand">False</property>
-                <property name="position">7</property>
+                <property name="position">8</property>
               </packing>
             </child>
           </object>
@@ -550,9 +559,9 @@ audio-volume-medium</property>
     <property name="has_tooltip">True</property>
     <property name="tooltip_text">&#x41A;&#x43B;&#x438;&#x435;&#x43D;&#x442; tmradio.net</property>
     <property name="title">tmradio.net</property>
+    <signal name="scroll_event" handler="on_tray_scroll"/>
     <signal name="popup_menu" handler="on_tray_menu"/>
     <signal name="activate" handler="on_tray_activate"/>
-    <signal name="scroll_event" handler="on_tray_scroll"/>
   </object>
   <object class="GtkMenu" id="tray_menu">
     <property name="visible">True</property>
@@ -589,4 +598,8 @@ audio-volume-medium</property>
     <property name="stock">gtk-connect</property>
   </object>
   <object class="GtkTextBuffer" id="twitter"/>
+  <object class="GtkImage" id="infoIcon">
+    <property name="visible">True</property>
+    <property name="stock">gtk-info</property>
+  </object>
 </interface>
