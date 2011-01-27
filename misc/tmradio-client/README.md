@@ -13,6 +13,9 @@ TODO
   редактировать свойства.  Для этого, наверное, надо редактор свойств дорожки
   сделать отдельным окном.
 - Обрабатывать падение jabber-бота.
+- Интеграция в звуковое меню Ubuntu:
+  https://wiki.ubuntu.com/SoundMenu
+  https://github.com/sunng87/Exaile-Soundmenu-Indicator
 
 
 Как работает jabber

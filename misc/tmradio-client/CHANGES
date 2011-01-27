@@ -2,6 +2,7 @@ Version 0.9
 
 - Some controls are disabled when the bot is offline.
 - Track position is displayed with a progress bar.
+- Depends to python-dnspython.
 
 
 Version 0.8
