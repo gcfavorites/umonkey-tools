@@ -14,3 +14,10 @@ body.phoenix-skybar {
 #recommended_users {
 	display: none;
 }
+
+/**
+ * То же для нового интерфейса.
+ */
+.component .trends-inner, .component .user-rec-inner, .component .definition {
+	display: none !important;
+}
