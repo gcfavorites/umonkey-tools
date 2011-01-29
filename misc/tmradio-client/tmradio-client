@@ -130,7 +130,7 @@ class Jabber:
         # RegExp for parsing the status line
         self.np_re = re.compile(u'^«(.+)» by (.+) — #(\d+) ♺(\d+) ⚖(\S+) Σ(\d+)[^@]+(.+)$')
         # RegExp for parsing the SHOW command (extracts pro/con lists only).
-        self.show_re = re.compile(u'.* #(\d+).*length=(\d+)s.*editable=(True|False).* Pro: (.+), contra: (.+)\.$')
+        self.show_re = re.compile(u'.* #(\d+).*length=(\d+)s.*editable=(True|False).*last_played=(\d+).* Pro: (.+), contra: (.+)\.$')
         # Status.
         self.last_track_id = None
         self.chat_active = False
@@ -269,8 +269,9 @@ class Jabber:
                 track_id = int(matches.group(1))
                 length = int(matches.group(2))
                 editable = matches.group(3) == 'True'
-                pro = matches.group(4).split(', ')
-                con = matches.group(5).split(', ')
+                last_played = matches.group(4)
+                pro = matches.group(5).split(', ')
+                con = matches.group(6).split(', ')
                 vote = 0
                 if self.jid in pro:
                     vote = 1
@@ -280,6 +281,7 @@ class Jabber:
                     ('set', 'track_vote', vote),
                     ('set', 'track_editable', editable),
                     ('set', 'track_length', length),
+                    ('set', 'track_started_on', last_played),
                 ])
                 return
         self._log('Unhandled message: %s' % msg.getBody())
@@ -793,6 +795,9 @@ class MainWindow(BaseWindow):
             self.track_labels_original = value
         elif key == 'track_length':
             self.track_length = int(value)
+        elif key == 'track_started_on':
+            if not self.track_change_ts and value.isdigit():
+                self.track_change_ts = int(value)
         elif key == 'track_vote':
             self.track_vote = int(value)
         elif key == 'track_editable':

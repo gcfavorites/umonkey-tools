@@ -10,6 +10,7 @@ Version 0.10
 - Links in chat can now be opened using a pop-up menu.
 - Chat row heights are updated when the window is resized.
 - Added notifications when track changes.
+- The progress bar is available from the start.
 
 
 Version 0.9
