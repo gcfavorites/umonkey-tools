@@ -580,7 +580,8 @@ class MessageView(gtk.TreeView):
             self._update_row_heights(self)
 
     def add_message(self, **kwargs):
-        time = u'<span color="gray">%s</span>' % kwargs['time'].strftime('%d.%m %H:%M')
+        time = kwargs.has_key('time') and kwargs['time'] or datetime.datetime.now()
+        time = u'<span color="gray">%s</span>' % time.strftime('%d.%m %H:%M')
         nick = u'<b>%s</b>' % kwargs['nick']
         text = self.format_message(kwargs['message'])
 
