@@ -7,6 +7,7 @@ Version 0.10
 - Fixed the problem with lots of news expanding the application window.
 - Added some basic markup for the chat window.
 - Long chat messages no longer hide behind the scroll bar.
+- Links in chat can now be opened using a pop-up menu.
 
 
 Version 0.9

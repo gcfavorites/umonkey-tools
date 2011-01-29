@@ -912,6 +912,33 @@ class MainWindow(BaseWindow):
             if wanted > 100:
                 self.msg_cell.props.wrap_width = wanted
 
+    def on_chatview_row_activated(self, tv, event):
+        path, column, rx, ry = tv.get_path_at_pos(int(event.x), int(event.y)) or (None,) * 4
+        if path is not None and event.button == 3:
+            selection = tv.get_selection()
+            model, paths = selection.get_selected_rows()
+
+            text = model.get_value(model.get_iter(path), 2)
+            links = self._get_links_from_text(text)
+
+            if links:
+                menu = gtk.Menu()
+
+                item = gtk.MenuItem('Open link')
+                item.connect('activate', lambda item: self._open_clicked_links(links))
+                menu.append(item)
+
+                menu.show_all()
+                menu.popup(None, None, None, event.button, event.time)
+
+    def _open_clicked_links(self, links):
+        for link in links:
+            webbrowser.open(link)
+
+    def _get_links_from_text(self, text):
+        r = re.search('<u>([^<]+)</u>', text)
+        return r and r.groups() or []
+
 
 class Preferences(BaseWindow):
     def __init__(self, main):
