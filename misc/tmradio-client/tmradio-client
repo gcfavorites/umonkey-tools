@@ -567,15 +567,12 @@ class MainWindow(BaseWindow):
         tv = self.builder.get_object('chatview')
 
         cell = gtk.CellRendererText()
-        col = gtk.TreeViewColumn('Time')
-        col.pack_start(cell, True)
-        col.add_attribute(cell, 'text', 0)
+        col = gtk.TreeViewColumn('Time', cell, markup=0)
         tv.append_column(col)
 
         cell = gtk.CellRendererText()
-        col = gtk.TreeViewColumn('Nickname')
-        col.pack_start(cell, True)
-        col.add_attribute(cell, 'text', 1)
+        col = gtk.TreeViewColumn('Nickname', cell, markup=1)
+        cell.set_property('xalign', 1.0)
         tv.append_column(col)
 
         self.msg_cell = cell = gtk.CellRendererText()
@@ -646,9 +643,10 @@ class MainWindow(BaseWindow):
 
     def add_chat(self, text, nick=None):
         if text and text.strip():
-            time = datetime.datetime.now().strftime('%H:%M')
+            time = u'<span color="gray">%s</span>' % datetime.datetime.now().strftime('%H:%M')
             if nick is None:
                 nick = u'Робот'
+            nick = u'<b>%s</b>' % nick
             model = self.builder.get_object('chatlog')
 
             if nick == self.last_chat_nick:

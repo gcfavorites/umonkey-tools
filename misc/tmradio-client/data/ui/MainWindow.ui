@@ -267,7 +267,6 @@ audio-volume-medium</property>
                             <property name="can_focus">True</property>
                             <property name="model">chatlog</property>
                             <property name="search_column">0</property>
-                            <property name="enable_grid_lines">vertical</property>
                           </object>
                         </child>
                       </object>
