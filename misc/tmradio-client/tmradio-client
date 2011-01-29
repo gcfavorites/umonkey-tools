@@ -8,10 +8,11 @@
 import warnings
 warnings.filterwarnings("ignore")
 
+import cgi
 import datetime
 import feedparser
-import random
 import os
+import random
 import re
 import sys
 import threading
@@ -20,8 +21,8 @@ import traceback
 import urllib
 import urllib2
 import urlparse
-import xmpp
 import webbrowser
+import xmpp
 import Queue
 
 import gobject
@@ -571,16 +572,15 @@ class MainWindow(BaseWindow):
         tv.append_column(col)
 
         cell = gtk.CellRendererText()
+        cell.props.xalign = 1.0
         col = gtk.TreeViewColumn('Nickname', cell, markup=1)
-        cell.set_property('xalign', 1.0)
         tv.append_column(col)
 
         self.msg_cell = cell = gtk.CellRendererText()
         cell.props.wrap_width = 400
         cell.props.wrap_mode = gtk.WRAP_WORD
-        col = gtk.TreeViewColumn('Message')
+        col = gtk.TreeViewColumn('Message', cell, markup=2)
         col.pack_start(cell, True)
-        col.add_attribute(cell, 'text', 2)
         tv.append_column(col)
 
     def init_nicklist(self):
@@ -654,9 +654,19 @@ class MainWindow(BaseWindow):
             else:
                 self.last_chat_nick = nick
 
-            row_iter = model.append([time, nick, text.strip()])
+            row_iter = model.append([time, nick, self.format_chat_message(text)])
             path = model.get_path(row_iter)
             self.builder.get_object('chatview').scroll_to_cell(path)
+
+    def format_chat_message(self, msg):
+        nwords = []
+        for word in msg.split(' '):
+            if word.startswith('http://'):
+                word = u'<span color="blue"><u>%s</u></span>' % word
+            else:
+                word = cgi.escape(word)
+            nwords.append(word)
+        return u' '.join(nwords)
 
     def on_idle(self):
         """Update controls, process xmpp messages.""" 
