@@ -8,6 +8,7 @@ Version 0.10
 - Added some basic markup for the chat window.
 - Long chat messages no longer hide behind the scroll bar.
 - Links in chat can now be opened using a pop-up menu.
+- Chat row heights are updated when the window is resized.
 
 
 Version 0.9

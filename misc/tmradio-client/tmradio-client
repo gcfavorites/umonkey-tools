@@ -911,6 +911,15 @@ class MainWindow(BaseWindow):
             wanted = width - fixed - 30
             if wanted > 100:
                 self.msg_cell.props.wrap_width = wanted
+                self.update_row_heights(tv)
+
+    def update_row_heights(self, tv):
+        model = tv.get_model()
+        iterator = model.get_iter_first()
+        while iterator:
+            path = model.get_path(iterator)
+            model.row_changed(path, iterator)
+            iterator = model.iter_next(iterator)
 
     def on_chatview_row_activated(self, tv, event):
         path, column, rx, ry = tv.get_path_at_pos(int(event.x), int(event.y)) or (None,) * 4
