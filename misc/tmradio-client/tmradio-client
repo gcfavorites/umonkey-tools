@@ -632,13 +632,18 @@ class MainWindow(BaseWindow):
         self.builder.get_object('play').get_image().set_from_stock('gtk-media-stop', gtk.ICON_SIZE_BUTTON)
         self.is_playing = True
 
-    def set_track_info(self, artist, title, track_id, count, weight, tags):
+    def set_track_info(self, artist, title, track_id, count, weight, tags, full_update):
         self.builder.get_object('track_artist').set_text(artist)
         self.builder.get_object('track_title').set_text(title)
         self.builder.get_object('track_labels').set_text(u' '.join(tags))
-        if HAVE_NOTIFY:
+        if HAVE_NOTIFY and full_update:
             message = u'"%s" by %s' % (title, artist)
-            n = pynotify.Notification('tmradio.net track change', message, 'audio-volume-medium')
+            if self.track_vote > 0:
+                message += u'. You LOVE it.'
+            elif self.track_vote < 0:
+                message += u'. You HATE it.'
+            print u'Notification: ' + message
+            n = pynotify.Notification(self.window.get_title(), message, 'audio-volume-medium')
             n.set_urgency(pynotify.URGENCY_LOW)
             n.show()
 
@@ -726,6 +731,7 @@ class MainWindow(BaseWindow):
         """Process the incoming jabber message queue."""
         update_track_info = False
         update_controls = False
+        full_update = False
         for replies in self.jabber.fetch_replies():
             if type(replies) != list:
                 replies = [replies]
@@ -733,7 +739,8 @@ class MainWindow(BaseWindow):
                 update_controls = True
                 if reply[0] == 'set':
                     self.is_online = True
-                    self._process_jabber_property(reply)
+                    if self._process_jabber_property(reply):
+                        full_update = True
                     update_track_info = True
                 elif reply[0] == 'offline':
                     self.is_online = False
@@ -760,7 +767,8 @@ class MainWindow(BaseWindow):
                 else:
                     print u'Unhandled jabber reply:', reply
         if update_track_info:
-            self.set_track_info(self.track_artist, self.track_title, self.track_id, 0, 0, self.track_labels)
+            print full_update
+            self.set_track_info(self.track_artist, self.track_title, self.track_id, 0, 0, self.track_labels, full_update)
             self.twitter.update()
         if update_controls:
             self.update_controls()
@@ -786,6 +794,7 @@ class MainWindow(BaseWindow):
                 if self.track_id is not None:
                     self.track_change_ts = int(time.time())
                 self.track_id = new_id
+                self.track_vote = 0
         elif key == 'track_artist':
             self.track_artist = value
         elif key == 'track_title':
@@ -800,6 +809,7 @@ class MainWindow(BaseWindow):
                 self.track_change_ts = int(value)
         elif key == 'track_vote':
             self.track_vote = int(value)
+            return True
         elif key == 'track_editable':
             self.track_editable = value
         elif key == 'track_listeners':
