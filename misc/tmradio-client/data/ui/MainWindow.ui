@@ -35,7 +35,7 @@
             <child>
               <object class="GtkMenuItem" id="menuitem1">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">_Program</property>
+                <property name="label" translatable="yes">_Menu</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
                   <object class="GtkMenu" id="menu1">
@@ -77,7 +77,7 @@
                     <property name="visible">True</property>
                     <child>
                       <object class="GtkImageMenuItem" id="menu_website">
-                        <property name="label" translatable="yes">Open station web site</property>
+                        <property name="label" translatable="yes">Visit TMRadio website</property>
                         <property name="visible">True</property>
                         <property name="image">image1</property>
                         <property name="use_stock">False</property>
@@ -114,6 +114,7 @@
                 <property name="image">playIcon</property>
                 <property name="relief">none</property>
                 <property name="focus_on_click">False</property>
+                <property name="tooltip_text">Play/Stop</property>
                 <signal name="clicked" handler="on_play_clicked"/>
               </object>
               <packing>
@@ -128,6 +129,7 @@
                 <property name="receives_default">True</property>
                 <property name="image">skipIcon</property>
                 <property name="relief">none</property>
+                <property name="tooltip_text">Skip track</property>
                 <signal name="clicked" handler="on_skip_clicked"/>
               </object>
               <packing>
@@ -152,6 +154,7 @@
                 <property name="image">rocksIcon</property>
                 <property name="relief">none</property>
                 <property name="focus_on_click">False</property>
+                <property name="tooltip_text">Vote: rocks!</property>
                 <signal name="toggled" handler="on_rocks_toggled"/>
               </object>
               <packing>
@@ -167,6 +170,7 @@
                 <property name="image">sucksIcon</property>
                 <property name="relief">none</property>
                 <property name="focus_on_click">False</property>
+                <property name="tooltip_text">Vote: sucks...</property>
                 <signal name="toggled" handler="on_sucks_toggled"/>
               </object>
               <packing>
@@ -201,6 +205,7 @@
                 <property name="receives_default">True</property>
                 <property name="image">infoIcon</property>
                 <property name="relief">none</property>
+                <property name="tooltip_text">Open artist's Last.fm profile</property>
                 <signal name="clicked" handler="on_info_clicked"/>
               </object>
               <packing>
@@ -307,6 +312,7 @@ audio-volume-medium</property>
                         <property name="receives_default">True</property>
                         <property name="image">chatbtnIcon</property>
                         <property name="relief">none</property>
+                        <property name="tooltip_text">Chat: connect/disconnect</property>
                         <signal name="clicked" handler="on_chatbtn_clicked"/>
                       </object>
                       <packing>
@@ -552,7 +558,7 @@ audio-volume-medium</property>
   </object>
   <object class="GtkImage" id="image1">
     <property name="visible">True</property>
-    <property name="stock">gtk-missing-image</property>
+    <property name="stock">gtk-home</property>
   </object>
   <object class="GtkStatusIcon" id="tray">
     <property name="icon_name">tmradio-client</property>
