@@ -541,9 +541,10 @@ class BaseWindow(object):
 
 
 class MessageView(gtk.TreeView):
-    def __init__(self, collapse_nicknames=False):
+    def __init__(self, parent, collapse_nicknames=False):
         gtk.TreeView.__init__(self)
 
+        self._parent = parent
         self.collapse_nicknames = collapse_nicknames
         self.last_nickname = None
 
@@ -564,12 +565,20 @@ class MessageView(gtk.TreeView):
         self.append_column(col)
 
         self.msg_cell = gtk.CellRendererText()
-        self.msg_cell.props.wrap_width = 400
+        self.msg_cell.props.wrap_width = 100
         self.msg_cell.props.wrap_mode = gtk.WRAP_WORD
         col = gtk.TreeViewColumn('Message', self.msg_cell, markup=2)
         self.append_column(col)
 
         self.connect('button-press-event', self.on_row_clicked)
+        self._parent.add_with_viewport(self)
+
+        parent = self._parent
+        while parent:
+            if type(parent) == gtk.HPaned:
+                parent.connect('notify', self._on_notify)
+                break
+            parent = parent.get_parent()
 
     def add_message(self, **kwargs):
         time = u'<span color="gray">%s</span>' % kwargs['time'].strftime('%d.%m %H:%M')
@@ -617,6 +626,25 @@ class MessageView(gtk.TreeView):
 
                 menu.show_all()
                 menu.popup(None, None, None, event.button, event.time)
+
+    def _on_notify(self, pane, param):
+        if param.name == 'position':
+            width = pane.get_property('position')
+            tv = self
+            columns = tv.get_columns()
+            fixed = sum([c.get_width() for c in columns[0:-1]])
+            wanted = width - fixed - 30
+            if wanted > 100:
+                self.msg_cell.props.wrap_width = wanted
+                self._update_row_heights(tv)
+
+    def _update_row_heights(self, tv):
+        model = tv.get_model()
+        iterator = model.get_iter_first()
+        while iterator:
+            path = model.get_path(iterator)
+            model.row_changed(path, iterator)
+            iterator = model.iter_next(iterator)
 
     def _get_links_from_text(self, text):
         r = re.search('<u>([^<]+)</u>', text)
@@ -666,10 +694,7 @@ class MainWindow(BaseWindow):
         self._jabber_autoconnect()
 
     def init_tabs(self):
-        self.chat_tab = MessageView(collapse_nicknames=True)
-        sw = self.builder.get_object('chatscroll')
-        sw.add_with_viewport(self.chat_tab)
-
+        self.chat_tab = MessageView(self.builder.get_object('chatscroll'), collapse_nicknames=True)
         self.init_nicklist()
 
     def init_nicklist(self):
@@ -983,26 +1008,6 @@ class MainWindow(BaseWindow):
 
     def on_chat_left(self):
         self.clear_chat()
-
-    def on_chat_hpaned_notify(self, pane, param):
-        return # FIXME: вынести в MessageView.
-        if param.name == 'position':
-            width = pane.get_property('position')
-            tv = self.builder.get_object('chatview')
-            columns = tv.get_columns()
-            fixed = sum([c.get_width() for c in columns[0:-1]])
-            wanted = width - fixed - 30
-            if wanted > 100:
-                self.msg_cell.props.wrap_width = wanted
-                self.update_row_heights(tv)
-
-    def update_row_heights(self, tv):
-        model = tv.get_model()
-        iterator = model.get_iter_first()
-        while iterator:
-            path = model.get_path(iterator)
-            model.row_changed(path, iterator)
-            iterator = model.iter_next(iterator)
 
 
 class Preferences(BaseWindow):

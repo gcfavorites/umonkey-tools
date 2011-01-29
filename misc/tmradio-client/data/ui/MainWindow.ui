@@ -244,7 +244,6 @@ audio-volume-medium</property>
                   <object class="GtkHPaned" id="chat_hpaned">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <signal name="notify" handler="on_chat_hpaned_notify"/>
                     <child>
                       <object class="GtkScrolledWindow" id="chatscroll">
                         <property name="visible">True</property>
