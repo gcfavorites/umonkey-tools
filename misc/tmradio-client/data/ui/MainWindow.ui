@@ -356,7 +356,7 @@ audio-volume-medium</property>
               </packing>
             </child>
             <child>
-              <object class="GtkScrolledWindow" id="twitscroller">
+              <object class="GtkScrolledWindow" id="twitscroll">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="hscrollbar_policy">never</property>
@@ -594,7 +594,6 @@ audio-volume-medium</property>
     <property name="visible">True</property>
     <property name="stock">gtk-connect</property>
   </object>
-  <object class="GtkTextBuffer" id="twitter"/>
   <object class="GtkImage" id="infoIcon">
     <property name="visible">True</property>
     <property name="stock">gtk-info</property>

@@ -567,18 +567,17 @@ class MessageView(gtk.TreeView):
         self.msg_cell = gtk.CellRendererText()
         self.msg_cell.props.wrap_width = 100
         self.msg_cell.props.wrap_mode = gtk.WRAP_WORD
-        col = gtk.TreeViewColumn('Message', self.msg_cell, markup=2)
-        self.append_column(col)
+        self.text_col = gtk.TreeViewColumn('Message', self.msg_cell, markup=2)
+        self.text_col.connect('notify::width', self.on_column_resize)
+        self.append_column(self.text_col)
 
         self.connect('button-press-event', self.on_row_clicked)
         self._parent.add_with_viewport(self)
 
-        parent = self._parent
-        while parent:
-            if type(parent) == gtk.HPaned:
-                parent.connect('notify', self._on_notify)
-                break
-            parent = parent.get_parent()
+    def on_column_resize(self, column, width):
+        if column == self.text_col:
+            self.msg_cell.props.wrap_width = column.get_width()
+            self._update_row_heights(self)
 
     def add_message(self, **kwargs):
         time = u'<span color="gray">%s</span>' % kwargs['time'].strftime('%d.%m %H:%M')
@@ -626,17 +625,6 @@ class MessageView(gtk.TreeView):
 
                 menu.show_all()
                 menu.popup(None, None, None, event.button, event.time)
-
-    def _on_notify(self, pane, param):
-        if param.name == 'position':
-            width = pane.get_property('position')
-            tv = self
-            columns = tv.get_columns()
-            fixed = sum([c.get_width() for c in columns[0:-1]])
-            wanted = width - fixed - 30
-            if wanted > 100:
-                self.msg_cell.props.wrap_width = wanted
-                self._update_row_heights(tv)
 
     def _update_row_heights(self, tv):
         model = tv.get_model()
@@ -695,6 +683,7 @@ class MainWindow(BaseWindow):
 
     def init_tabs(self):
         self.chat_tab = MessageView(self.builder.get_object('chatscroll'), collapse_nicknames=True)
+        self.twit_tab = MessageView(self.builder.get_object('twitscroll'))
         self.init_nicklist()
 
     def init_nicklist(self):
@@ -857,12 +846,11 @@ class MainWindow(BaseWindow):
     def _update_twitter(self):
         items = self.twitter.get_records()
         if items:
-            text = u''
+            self.twit_tab.clear()
             for item in items:
                 author = item['author'].split(' ')[0]
-                tstamp = datetime.datetime.strptime(item['updated'], '%Y-%m-%dT%H:%M:%SZ').strftime('%d.%m %H:%M')
-                text = tstamp + u', ' + author + u': ' + item['title'] + '\n' + text
-            self.builder.get_object('twitter').set_text(text.strip())
+                tstamp = datetime.datetime.strptime(item['updated'], '%Y-%m-%dT%H:%M:%SZ')
+                self.twit_tab.add_message(time=tstamp, nick=author, message=item['title'])
 
     def _process_jabber_property(self, reply):
         key, value = reply[1:]
