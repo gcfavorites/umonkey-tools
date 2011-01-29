@@ -11,6 +11,8 @@ Version 0.10
 - Chat row heights are updated when the window is resized.
 - Added notifications when track changes.
 - The progress bar is available from the start.
+- Chat history is now correctly timestamped.
+- The chat log logic is moved to a separate class, MessageView.
 
 
 Version 0.9
