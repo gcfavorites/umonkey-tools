@@ -2,6 +2,8 @@ Version 0.10
 
 - The news tab shows twit dates and times.
 - Added a 60s delay between twitter updated.
+- Fixed problems with Twitter updates (records are now stored locally in case
+  they disappear from the ATOM feed, which happens often).
 
 
 Version 0.9
