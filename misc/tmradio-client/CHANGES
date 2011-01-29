@@ -6,6 +6,7 @@ Version 0.10
   they disappear from the ATOM feed, which happens often).
 - Fixed the problem with lots of news expanding the application window.
 - Added some basic markup for the chat window.
+- Long chat messages no longer hide behind the scroll bar.
 
 
 Version 0.9

@@ -898,7 +898,7 @@ class MainWindow(BaseWindow):
             tv = self.builder.get_object('chatview')
             columns = tv.get_columns()
             fixed = sum([c.get_width() for c in columns[0:-1]])
-            wanted = width - fixed
+            wanted = width - fixed - 30
             if wanted > 100:
                 self.msg_cell.props.wrap_width = wanted
 
