@@ -388,7 +388,7 @@ audio-volume-medium</property>
             <child type="tab">
               <object class="GtkLabel" id="label2">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">Twitter</property>
+                <property name="label" translatable="yes">News</property>
               </object>
               <packing>
                 <property name="position">1</property>

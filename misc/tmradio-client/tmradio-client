@@ -18,6 +18,7 @@ import threading
 import time
 import traceback
 import urllib
+import urllib2
 import urlparse
 import xmpp
 import webbrowser
@@ -31,11 +32,23 @@ import gconf
 import gtk
 import pygtk
 
-VERSION = '0.9'
+VERSION = '0.10'
 USE_THREADING = False
 
 # Global kill switch.
 shutting_down = False
+
+def fetch(url):
+    """Returns contents of a web resource."""
+    try:
+        res = urllib2.urlopen(urllib2.Request(url))
+        if res is None:
+            print >>sys.stderr, 'Could not fetch', url
+            return None
+        return res.read()
+    except Exception, e:
+        print >>sys.stderr, 'Could not fetch %s: %s' % (url, e)
+        print >>sys.stderr, traceback.format_exc(e)
 
 class ConfigGConf:
     """GConf interface."""
@@ -461,7 +474,9 @@ class TwitterClientThread(threading.Thread):
                 self.update = False
                 url = 'http://search.twitter.com/search.atom?q=' + urllib.quote(self.config.get_twitter_search())
                 print 'Refreshing twitter: ' + url
-                self.response = feedparser.parse(url)
+                data = fetch(url)
+                # print data
+                self.response = feedparser.parse(data)
             time.sleep(0.1)
         print 'Twitter client thread over.'
 
@@ -715,7 +730,8 @@ class MainWindow(BaseWindow):
             text = u''
             for item in feed['items']:
                 author = item['author'].split(' ')[0]
-                text = author + u': ' + item['title'] + '\n' + text
+                tstamp = datetime.datetime.strptime(item['updated'], '%Y-%m-%dT%H:%M:%SZ').strftime('%d.%m %H:%M')
+                text = tstamp + u', ' + author + u': ' + item['title'] + '\n' + text
             self.builder.get_object('twitter').set_text(text.strip())
 
     def _process_jabber_property(self, reply):

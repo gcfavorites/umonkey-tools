@@ -1,4 +1,4 @@
-VERSION=0.9
+VERSION=0.10
 DEB=tmradio-client-gtk-${VERSION}.deb
 ZIP=tmradio-client-gtk-${VERSION}.zip
 
@@ -31,7 +31,7 @@ deb:
 	cp data/tmradio.desktop debian/usr/share/applications/
 	sudo chown -R root:root debian/usr
 	dpkg -b debian ${DEB}
-	sudo rm -rf debian/usr
+	sudo rm -rf debian/usr debian/DEBIAN/control
 
 zip:
 	zip -9 ${ZIP} tmradio-client data Makefile
