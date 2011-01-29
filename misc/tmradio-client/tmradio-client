@@ -462,27 +462,44 @@ class GstClient:
 
 class TwitterClientThread(threading.Thread):
     delay = 60 # min delay between updates, in seconds
+    sleep_time = 0.1 # so low to minimize delays between quit request and thread shutdown
 
     def __init__(self, config):
         threading.Thread.__init__(self)
-        self.update = False
-        self.response = None
         self.config = config
-        self.last_update = 0
+        self.request_time = 0
+        self.response_time = 0
+        self.have_news = False
+
+        # Here we store all records.  Sometimes they vanish, this is a work-around.
+        self.records = {}
 
     def run(self):
         print 'Twitter client thread started.'
         while not shutting_down:
-            if self.update and time.time() > self.last_update + self.delay:
-                self.update = False
+            if self.request_time > self.response_time:
                 url = 'http://search.twitter.com/search.atom?q=' + urllib.quote(self.config.get_twitter_search())
                 print 'Refreshing twitter: ' + url
-                data = fetch(url)
-                # print data
-                self.response = feedparser.parse(data)
-                self.last_update = time.time()
-            time.sleep(0.1)
+                try:
+                    for item in feedparser.parse(fetch(url))['items']:
+                        self.records[item['link']] = item
+                    self.response_time = time.time() + self.delay
+                    self.have_news = True
+                except Exception, e:
+                    print >>sys.stderr, u'Error updating twitter: %s\n%s' % (e, traceback.format_exc(e))
+            time.sleep(self.sleep_time)
         print 'Twitter client thread over.'
+
+    def update(self):
+        """Requests an update."""
+        self.request_time = time.time()
+
+    def get_records(self, only_if_ready=True):
+        """Returns all records sorted by date."""
+        if only_if_ready and not self.have_news:
+            return None
+        self.have_news = False
+        return sorted(self.records.values(), key=lambda item: item['published'])
 
 
 class BaseWindow(object):
@@ -723,16 +740,16 @@ class MainWindow(BaseWindow):
                     print u'Unhandled jabber reply:', reply
         if update_track_info:
             self.set_track_info(self.track_artist, self.track_title, self.track_id, 0, 0, self.track_labels)
-            self.twitter.update = True
+            self.twitter.update()
         if update_controls:
             self.update_controls()
 
     def _update_twitter(self):
-        if self.twitter.response:
-            feed = self.twitter.response
-            self.twitter.response = None
+        items = self.twitter.get_records()
+        if items:
+            print 'Got new twitter records.'
             text = u''
-            for item in feed['items']:
+            for item in items:
                 author = item['author'].split(' ')[0]
                 tstamp = datetime.datetime.strptime(item['updated'], '%Y-%m-%dT%H:%M:%SZ').strftime('%d.%m %H:%M')
                 text = tstamp + u', ' + author + u': ' + item['title'] + '\n' + text
