@@ -2,16 +2,6 @@
 <interface>
   <requires lib="gtk+" version="2.16"/>
   <!-- interface-naming-policy project-wide -->
-  <object class="GtkListStore" id="chatlog">
-    <columns>
-      <!-- column-name Дата -->
-      <column type="gchararray"/>
-      <!-- column-name Ник -->
-      <column type="gchararray"/>
-      <!-- column-name Сообщение -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
   <object class="GtkListStore" id="nicklist">
     <columns>
       <!-- column-name Nickname -->
@@ -256,19 +246,13 @@ audio-volume-medium</property>
                     <property name="can_focus">True</property>
                     <signal name="notify" handler="on_chat_hpaned_notify"/>
                     <child>
-                      <object class="GtkScrolledWindow" id="scrolledwindow1">
+                      <object class="GtkScrolledWindow" id="chatscroll">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="hscrollbar_policy">never</property>
                         <property name="vscrollbar_policy">automatic</property>
                         <child>
-                          <object class="GtkTreeView" id="chatview">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="model">chatlog</property>
-                            <property name="search_column">0</property>
-                            <signal name="button_press_event" handler="on_chatview_row_activated"/>
-                          </object>
+                          <placeholder/>
                         </child>
                       </object>
                       <packing>
@@ -573,9 +557,9 @@ audio-volume-medium</property>
     <property name="has_tooltip">True</property>
     <property name="tooltip_text">&#x41A;&#x43B;&#x438;&#x435;&#x43D;&#x442; tmradio.net</property>
     <property name="title">tmradio.net</property>
+    <signal name="scroll_event" handler="on_tray_scroll"/>
     <signal name="popup_menu" handler="on_tray_menu"/>
     <signal name="activate" handler="on_tray_activate"/>
-    <signal name="scroll_event" handler="on_tray_scroll"/>
   </object>
   <object class="GtkMenu" id="tray_menu">
     <property name="visible">True</property>

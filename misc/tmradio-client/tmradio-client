@@ -255,7 +255,7 @@ class Jabber:
             else:
                 nick = unicode(msg.getFrom()).split('/')[1]
                 self.post_replies([
-                    ('chat', msg.getBody(), nick),
+                    ('chat', msg.getBody(), nick, self._get_msg_ts(msg)),
                 ])
             return
 
@@ -285,6 +285,14 @@ class Jabber:
                 ])
                 return
         self._log('Unhandled message: %s' % msg.getBody())
+
+    def _get_msg_ts(self, msg):
+        delay = msg.getTag('delay')
+        if not delay:
+            return None
+        if not 'stamp' in delay.attrs:
+            return None
+        return datetime.datetime.strptime(delay.attrs['stamp'][:19], '%Y-%m-%dT%H:%M:%S')
 
     def _on_presence(self, conn, msg):
         """Process incoming presences."""
@@ -532,6 +540,93 @@ class BaseWindow(object):
         return builder
 
 
+class MessageView(gtk.TreeView):
+    def __init__(self, collapse_nicknames=False):
+        gtk.TreeView.__init__(self)
+
+        self.collapse_nicknames = collapse_nicknames
+        self.last_nickname = None
+
+        self.model = gtk.ListStore(str, str, str)
+        self.setup()
+        self.show_all()
+
+    def setup(self):
+        self.set_model(self.model)
+
+        cell = gtk.CellRendererText()
+        col = gtk.TreeViewColumn('Time', cell, markup=0)
+        self.append_column(col)
+
+        cell = gtk.CellRendererText()
+        cell.props.xalign = 1.0
+        col = gtk.TreeViewColumn('Nickname', cell, markup=1)
+        self.append_column(col)
+
+        self.msg_cell = gtk.CellRendererText()
+        self.msg_cell.props.wrap_width = 400
+        self.msg_cell.props.wrap_mode = gtk.WRAP_WORD
+        col = gtk.TreeViewColumn('Message', self.msg_cell, markup=2)
+        self.append_column(col)
+
+        self.connect('button-press-event', self.on_row_clicked)
+
+    def add_message(self, **kwargs):
+        time = u'<span color="gray">%s</span>' % kwargs['time'].strftime('%d.%m %H:%M')
+        nick = u'<b>%s</b>' % kwargs['nick']
+        text = self.format_message(kwargs['message'])
+
+        if self.collapse_nicknames and nick == self.last_nickname:
+            nick = u''
+        else:
+            self.last_nickname = nick
+
+        model = self.get_model()
+        row_iter = model.append([time, nick, text])
+        path = model.get_path(row_iter)
+        self.scroll_to_cell(path)
+
+    def clear(self):
+        self.model.clear()
+
+    def format_message(self, message):
+        nwords = []
+        for word in message.split(' '):
+            if word.startswith('http://'):
+                word = u'<span color="blue"><u>%s</u></span>' % word
+            else:
+                word = cgi.escape(word)
+            nwords.append(word)
+        return u' '.join(nwords)
+
+    def on_row_clicked(self, tv, event):
+        path, column, rx, ry = tv.get_path_at_pos(int(event.x), int(event.y)) or (None,) * 4
+        if path is not None and event.button == 3:
+            selection = tv.get_selection()
+            model, paths = selection.get_selected_rows()
+
+            text = model.get_value(model.get_iter(path), 2)
+            links = self._get_links_from_text(text)
+
+            if links:
+                menu = gtk.Menu()
+
+                item = gtk.MenuItem('Open link')
+                item.connect('activate', lambda item: self._open_clicked_links(links))
+                menu.append(item)
+
+                menu.show_all()
+                menu.popup(None, None, None, event.button, event.time)
+
+    def _get_links_from_text(self, text):
+        r = re.search('<u>([^<]+)</u>', text)
+        return r and r.groups() or []
+
+    def _open_clicked_links(self, links):
+        for link in links:
+            webbrowser.open(link)
+
+
 class MainWindow(BaseWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -554,7 +649,6 @@ class MainWindow(BaseWindow):
         self.track_editable = False
         # Other windows.
         self.pref_window = None
-        self.msg_cell = None
         # Suppress duplicate nicknames in the chat window.
         self.last_chat_nick = None
         # Initialize the player.
@@ -562,8 +656,7 @@ class MainWindow(BaseWindow):
         # RegExp for parsing stream title.
         self.stream_title_re = re.compile('"([^"]+)" by (.+)')
 
-        self.init_chatlog()
-        self.init_nicklist()
+        self.init_tabs()
         gobject.timeout_add(30, self.on_idle)
 
         settings = gtk.settings_get_default()
@@ -572,24 +665,12 @@ class MainWindow(BaseWindow):
         self.twitter.start()
         self._jabber_autoconnect()
 
-    def init_chatlog(self):
-        tv = self.builder.get_object('chatview')
+    def init_tabs(self):
+        self.chat_tab = MessageView(collapse_nicknames=True)
+        sw = self.builder.get_object('chatscroll')
+        sw.add_with_viewport(self.chat_tab)
 
-        cell = gtk.CellRendererText()
-        col = gtk.TreeViewColumn('Time', cell, markup=0)
-        tv.append_column(col)
-
-        cell = gtk.CellRendererText()
-        cell.props.xalign = 1.0
-        col = gtk.TreeViewColumn('Nickname', cell, markup=1)
-        tv.append_column(col)
-
-        self.msg_cell = cell = gtk.CellRendererText()
-        cell.props.wrap_width = 400
-        cell.props.wrap_mode = gtk.WRAP_WORD
-        col = gtk.TreeViewColumn('Message', cell, markup=2)
-        col.pack_start(cell, True)
-        tv.append_column(col)
+        self.init_nicklist()
 
     def init_nicklist(self):
         tv = self.builder.get_object('userlist')
@@ -657,34 +738,11 @@ class MainWindow(BaseWindow):
         self.track_id = track_id
 
     def clear_chat(self):
-        model = self.builder.get_object('chatlog').clear()
+        self.chat_tab.clear()
 
-    def add_chat(self, text, nick=None):
+    def add_chat(self, text, nick=None, time=None):
         if text and text.strip():
-            time = u'<span color="gray">%s</span>' % datetime.datetime.now().strftime('%H:%M')
-            if nick is None:
-                nick = u'Робот'
-            nick = u'<b>%s</b>' % nick
-            model = self.builder.get_object('chatlog')
-
-            if nick == self.last_chat_nick:
-                nick = ''
-            else:
-                self.last_chat_nick = nick
-
-            row_iter = model.append([time, nick, self.format_chat_message(text)])
-            path = model.get_path(row_iter)
-            self.builder.get_object('chatview').scroll_to_cell(path)
-
-    def format_chat_message(self, msg):
-        nwords = []
-        for word in msg.split(' '):
-            if word.startswith('http://'):
-                word = u'<span color="blue"><u>%s</u></span>' % word
-            else:
-                word = cgi.escape(word)
-            nwords.append(word)
-        return u' '.join(nwords)
+            self.chat_tab.add_message(time=time, nick=nick or u'Robot', message=text)
 
     def on_idle(self):
         """Update controls, process xmpp messages.""" 
@@ -746,14 +804,13 @@ class MainWindow(BaseWindow):
                     self.is_online = False
                 elif reply[0] == 'chat':
                     self.is_online = True
-                    self.add_chat(reply[1], reply[2])
+                    self.add_chat(reply[1], reply[2], reply[3])
                 elif reply[0] == 'joined':
                     self.is_online = True
                     self.is_in_chat = True
                 elif reply[0] == 'left':
                     self.is_in_chat = False
-                    for ctl in ('chatlog', 'nicklist'):
-                        self.builder.get_object(ctl).clear()
+                    self.chat_tab.clear()
                 elif reply[0] == 'disconnected':
                     self.track_vote = 0
                 elif reply[0] == 'join':
@@ -767,7 +824,6 @@ class MainWindow(BaseWindow):
                 else:
                     print u'Unhandled jabber reply:', reply
         if update_track_info:
-            print full_update
             self.set_track_info(self.track_artist, self.track_title, self.track_id, 0, 0, self.track_labels, full_update)
             self.twitter.update()
         if update_controls:
@@ -929,6 +985,7 @@ class MainWindow(BaseWindow):
         self.clear_chat()
 
     def on_chat_hpaned_notify(self, pane, param):
+        return # FIXME: вынести в MessageView.
         if param.name == 'position':
             width = pane.get_property('position')
             tv = self.builder.get_object('chatview')
@@ -946,33 +1003,6 @@ class MainWindow(BaseWindow):
             path = model.get_path(iterator)
             model.row_changed(path, iterator)
             iterator = model.iter_next(iterator)
-
-    def on_chatview_row_activated(self, tv, event):
-        path, column, rx, ry = tv.get_path_at_pos(int(event.x), int(event.y)) or (None,) * 4
-        if path is not None and event.button == 3:
-            selection = tv.get_selection()
-            model, paths = selection.get_selected_rows()
-
-            text = model.get_value(model.get_iter(path), 2)
-            links = self._get_links_from_text(text)
-
-            if links:
-                menu = gtk.Menu()
-
-                item = gtk.MenuItem('Open link')
-                item.connect('activate', lambda item: self._open_clicked_links(links))
-                menu.append(item)
-
-                menu.show_all()
-                menu.popup(None, None, None, event.button, event.time)
-
-    def _open_clicked_links(self, links):
-        for link in links:
-            webbrowser.open(link)
-
-    def _get_links_from_text(self, text):
-        r = re.search('<u>([^<]+)</u>', text)
-        return r and r.groups() or []
 
 
 class Preferences(BaseWindow):
