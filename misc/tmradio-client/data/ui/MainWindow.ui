@@ -111,10 +111,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text">Play/Stop</property>
                 <property name="image">playIcon</property>
                 <property name="relief">none</property>
                 <property name="focus_on_click">False</property>
-                <property name="tooltip_text">Play/Stop</property>
                 <signal name="clicked" handler="on_play_clicked"/>
               </object>
               <packing>
@@ -127,9 +127,9 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text">Skip track</property>
                 <property name="image">skipIcon</property>
                 <property name="relief">none</property>
-                <property name="tooltip_text">Skip track</property>
                 <signal name="clicked" handler="on_skip_clicked"/>
               </object>
               <packing>
@@ -151,10 +151,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text">Vote: rocks!</property>
                 <property name="image">rocksIcon</property>
                 <property name="relief">none</property>
                 <property name="focus_on_click">False</property>
-                <property name="tooltip_text">Vote: rocks!</property>
                 <signal name="toggled" handler="on_rocks_toggled"/>
               </object>
               <packing>
@@ -167,10 +167,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text">Vote: sucks...</property>
                 <property name="image">sucksIcon</property>
                 <property name="relief">none</property>
                 <property name="focus_on_click">False</property>
-                <property name="tooltip_text">Vote: sucks...</property>
                 <signal name="toggled" handler="on_sucks_toggled"/>
               </object>
               <packing>
@@ -203,9 +203,9 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text">Open artist's Last.fm profile</property>
                 <property name="image">infoIcon</property>
                 <property name="relief">none</property>
-                <property name="tooltip_text">Open artist's Last.fm profile</property>
                 <signal name="clicked" handler="on_info_clicked"/>
               </object>
               <packing>
@@ -310,9 +310,9 @@ audio-volume-medium</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <property name="tooltip_text">Chat: connect/disconnect</property>
                         <property name="image">chatbtnIcon</property>
                         <property name="relief">none</property>
-                        <property name="tooltip_text">Chat: connect/disconnect</property>
                         <signal name="clicked" handler="on_chatbtn_clicked"/>
                       </object>
                       <packing>
@@ -373,13 +373,21 @@ audio-volume-medium</property>
               </packing>
             </child>
             <child>
-              <object class="GtkTextView" id="twitview">
+              <object class="GtkScrolledWindow" id="twitscroller">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="pixels_below_lines">5</property>
-                <property name="editable">False</property>
-                <property name="wrap_mode">word-char</property>
-                <property name="buffer">twitter</property>
+                <property name="hscrollbar_policy">never</property>
+                <property name="vscrollbar_policy">automatic</property>
+                <child>
+                  <object class="GtkTextView" id="twitview">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="pixels_below_lines">5</property>
+                    <property name="editable">False</property>
+                    <property name="wrap_mode">word-char</property>
+                    <property name="buffer">twitter</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="position">1</property>
@@ -565,9 +573,9 @@ audio-volume-medium</property>
     <property name="has_tooltip">True</property>
     <property name="tooltip_text">&#x41A;&#x43B;&#x438;&#x435;&#x43D;&#x442; tmradio.net</property>
     <property name="title">tmradio.net</property>
+    <signal name="activate" handler="on_tray_activate"/>
     <signal name="scroll_event" handler="on_tray_scroll"/>
     <signal name="popup_menu" handler="on_tray_menu"/>
-    <signal name="activate" handler="on_tray_activate"/>
   </object>
   <object class="GtkMenu" id="tray_menu">
     <property name="visible">True</property>

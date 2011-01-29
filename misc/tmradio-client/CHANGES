@@ -4,6 +4,7 @@ Version 0.10
 - Added a 60s delay between twitter updated.
 - Fixed problems with Twitter updates (records are now stored locally in case
   they disappear from the ATOM feed, which happens often).
+- Fixed the problem with lots of news expanding the application window.
 
 
 Version 0.9

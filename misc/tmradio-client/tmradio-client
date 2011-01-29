@@ -747,7 +747,6 @@ class MainWindow(BaseWindow):
     def _update_twitter(self):
         items = self.twitter.get_records()
         if items:
-            print 'Got new twitter records.'
             text = u''
             for item in items:
                 author = item['author'].split(' ')[0]
