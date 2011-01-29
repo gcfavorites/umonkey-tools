@@ -33,6 +33,12 @@ import gconf
 import gtk
 import pygtk
 
+try:
+    import pynotify
+    HAVE_NOTIFY = True
+except:
+    HAVE_NOTIFY = False
+
 VERSION = '0.10'
 USE_THREADING = False
 
@@ -628,6 +634,11 @@ class MainWindow(BaseWindow):
         self.builder.get_object('track_artist').set_text(artist)
         self.builder.get_object('track_title').set_text(title)
         self.builder.get_object('track_labels').set_text(u' '.join(tags))
+        if HAVE_NOTIFY:
+            message = u'"%s" by %s' % (title, artist)
+            n = pynotify.Notification('tmradio.net track change', message, 'audio-volume-medium')
+            n.set_urgency(pynotify.URGENCY_LOW)
+            n.show()
 
     def on_stream_track_change(self, title):
         print 'Stream title changed.'
