@@ -362,14 +362,7 @@ audio-volume-medium</property>
                 <property name="hscrollbar_policy">never</property>
                 <property name="vscrollbar_policy">automatic</property>
                 <child>
-                  <object class="GtkTextView" id="twitview">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="pixels_below_lines">5</property>
-                    <property name="editable">False</property>
-                    <property name="wrap_mode">word-char</property>
-                    <property name="buffer">twitter</property>
-                  </object>
+                  <placeholder/>
                 </child>
               </object>
               <packing>
@@ -556,9 +549,9 @@ audio-volume-medium</property>
     <property name="has_tooltip">True</property>
     <property name="tooltip_text">&#x41A;&#x43B;&#x438;&#x435;&#x43D;&#x442; tmradio.net</property>
     <property name="title">tmradio.net</property>
+    <signal name="activate" handler="on_tray_activate"/>
     <signal name="scroll_event" handler="on_tray_scroll"/>
     <signal name="popup_menu" handler="on_tray_menu"/>
-    <signal name="activate" handler="on_tray_activate"/>
   </object>
   <object class="GtkMenu" id="tray_menu">
     <property name="visible">True</property>
