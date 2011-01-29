@@ -7,6 +7,7 @@ Architecture: all
 Essential: no
 Depends: python, python-gconf, python-gst0.10, python-xmpp, python-feedparser,
   python-dnspython | python-dns, python-gtk2
+Suggests: python-notify
 Installed-Size: 50
 Description: An all-in-one tmradio.net client (player + chat).
   A simple application that lets you listen to the tmradio.net stream, vote for
