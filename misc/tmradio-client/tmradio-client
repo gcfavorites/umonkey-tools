@@ -461,22 +461,26 @@ class GstClient:
 
 
 class TwitterClientThread(threading.Thread):
+    delay = 60 # min delay between updates, in seconds
+
     def __init__(self, config):
         threading.Thread.__init__(self)
         self.update = False
         self.response = None
         self.config = config
+        self.last_update = 0
 
     def run(self):
         print 'Twitter client thread started.'
         while not shutting_down:
-            if self.update:
+            if self.update and time.time() > self.last_update + self.delay:
                 self.update = False
                 url = 'http://search.twitter.com/search.atom?q=' + urllib.quote(self.config.get_twitter_search())
                 print 'Refreshing twitter: ' + url
                 data = fetch(url)
                 # print data
                 self.response = feedparser.parse(data)
+                self.last_update = time.time()
             time.sleep(0.1)
         print 'Twitter client thread over.'
 
