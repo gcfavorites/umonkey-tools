@@ -668,10 +668,16 @@ class MessageTextView(gtk.TextView):
         tag.set_property('weight', 800)
         tt.add(tag)
 
-        tag = gtk.TextTag('link')
-        tag.set_property('foreground', 'blue')
-        tag.set_property('underline', pango.UNDERLINE_SINGLE)
-        tt.add(tag)
+    def on_link_event(self, tag, tv, event, iterator, link):
+        if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
+            menu = gtk.Menu()
+            item = gtk.MenuItem('Open link')
+            item.connect('activate', lambda item: webbrowser.open(link))
+            menu.append(item)
+            menu.show_all()
+            menu.popup(None, None, None, event.button, event.time)
+            return True
+        return False
 
     def add_message(self, **kwargs):
         time = kwargs.has_key('time') and kwargs['time'] or datetime.datetime.now()
@@ -688,7 +694,11 @@ class MessageTextView(gtk.TextView):
         for word in text.split(' '):
             tb.insert(eob, ' ')
             if word.startswith('http://'):
-                tb.insert_with_tags_by_name(eob, word, 'link')
+                t = tb.create_tag()
+                t.set_property('foreground', 'blue')
+                t.set_property('underline', pango.UNDERLINE_SINGLE)
+                t.connect('event', self.on_link_event, word)
+                tb.insert_with_tags(eob, word, t)
             else:
                 tb.insert(eob, word)
 
