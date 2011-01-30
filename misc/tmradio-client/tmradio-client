@@ -648,10 +648,12 @@ class MessageTreeView(gtk.TreeView):
 class MessageTextView(gtk.TextView):
     def __init__(self, parent, collapse_nicknames=False):
         gtk.TextView.__init__(self)
+        self.url_tags = []
         self.set_property('pixels-above-lines', 4)
         self.set_property('wrap-mode', gtk.WRAP_WORD)
         self.set_property('indent', -20)
         self.set_property('can-focus', False)
+        self.connect('motion_notify_event', self.on_mouse_motion)
         self.setup_tags()
         parent.add_with_viewport(self)
         self.show_all()
@@ -667,6 +669,24 @@ class MessageTextView(gtk.TextView):
         tag.set_property('foreground', 'black')
         tag.set_property('weight', 800)
         tt.add(tag)
+
+    def on_mouse_motion(self, widget, event, data=None):
+        """Track mouse movement to change the cursor.
+        
+        http://www.daa.com.au/pipermail/pygtk/2004-December/009352.html
+        """
+        pointer = self.window.get_pointer()
+        x, y, spam = self.window.get_pointer()
+        x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT, x, y)
+        tags = self.get_iter_at_location(x, y).get_tags()
+
+        cursor = None
+        for tag in tags:
+            if tag in self.url_tags:
+                cursor = gtk.gdk.Cursor(gtk.gdk.HAND2)
+        self.get_window(gtk.TEXT_WINDOW_TEXT).set_cursor(cursor)
+
+        return False
 
     def on_link_event(self, tag, tv, event, iterator, link):
         if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
@@ -703,12 +723,14 @@ class MessageTextView(gtk.TextView):
                 t.set_property('underline', pango.UNDERLINE_SINGLE)
                 t.connect('event', self.on_link_event, word)
                 tb.insert_with_tags(eob, word, t)
+                self.url_tags.append(t)
             else:
                 tb.insert(eob, word)
 
         tb.insert(eob, '\n')
 
     def clear(self):
+        self.url_tags = []
         tb = self.get_buffer()
         sob, eob = tb.get_bounds()
         tb.delete(sob, eob)
