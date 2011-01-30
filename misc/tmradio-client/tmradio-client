@@ -12,6 +12,7 @@ import cgi
 import datetime
 import feedparser
 import os
+import pango
 import random
 import re
 import sys
@@ -643,7 +644,65 @@ class MessageTreeView(gtk.TreeView):
         for link in links:
             webbrowser.open(link)
 
-MessageView = MessageTreeView
+
+class MessageTextView(gtk.TextView):
+    def __init__(self, parent, collapse_nicknames=False):
+        gtk.TextView.__init__(self)
+        self.set_property('pixels-above-lines', 4)
+        self.set_property('wrap-mode', gtk.WRAP_WORD)
+        self.set_property('indent', -20)
+        self.set_property('can-focus', False)
+        self.setup_tags()
+        parent.add_with_viewport(self)
+        self.show_all()
+
+    def setup_tags(self):
+        tt = self.get_buffer().get_tag_table()
+
+        tag = gtk.TextTag('time')
+        tag.set_property('foreground', 'gray')
+        tt.add(tag)
+
+        tag = gtk.TextTag('nick')
+        tag.set_property('foreground', 'black')
+        tag.set_property('weight', 800)
+        tt.add(tag)
+
+        tag = gtk.TextTag('link')
+        tag.set_property('foreground', 'blue')
+        tag.set_property('underline', pango.UNDERLINE_SINGLE)
+        tt.add(tag)
+
+    def add_message(self, **kwargs):
+        time = kwargs.has_key('time') and kwargs['time'] or datetime.datetime.now()
+        nick = kwargs['nick']
+        text = kwargs['message']
+
+        tb = self.get_buffer()
+        sob, eob = tb.get_bounds()
+
+        tb.insert_with_tags_by_name(eob, time.strftime('%d.%m %H:%M '), 'time')
+        tb.insert_with_tags_by_name(eob, nick, 'nick')
+        tb.insert(eob, ':')
+
+        for word in text.split(' '):
+            tb.insert(eob, ' ')
+            if word.startswith('http://'):
+                tb.insert_with_tags_by_name(eob, word, 'link')
+            else:
+                tb.insert(eob, word)
+
+        tb.insert(eob, '\n')
+
+    def clear(self):
+        tb = self.get_buffer()
+        sob, eob = tb.get_bounds()
+        tb.delete(sob, eob)
+
+
+
+
+MessageView = MessageTextView
 
 
 class MainWindow(BaseWindow):
