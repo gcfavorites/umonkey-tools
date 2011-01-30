@@ -694,6 +694,7 @@ class MessageTextView(gtk.TextView):
         for word in text.split(' '):
             tb.insert(eob, ' ')
             if word.startswith('http://'):
+                # http://www.mail-archive.com/pygtk@daa.com.au/msg18007.html
                 t = tb.create_tag()
                 t.set_property('foreground', 'blue')
                 t.set_property('underline', pango.UNDERLINE_SINGLE)
@@ -708,8 +709,6 @@ class MessageTextView(gtk.TextView):
         tb = self.get_buffer()
         sob, eob = tb.get_bounds()
         tb.delete(sob, eob)
-
-
 
 
 MessageView = MessageTextView
