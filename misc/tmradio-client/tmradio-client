@@ -540,7 +540,7 @@ class BaseWindow(object):
         return builder
 
 
-class MessageView(gtk.TreeView):
+class MessageTreeView(gtk.TreeView):
     def __init__(self, parent, collapse_nicknames=False):
         gtk.TreeView.__init__(self)
 
@@ -642,6 +642,8 @@ class MessageView(gtk.TreeView):
     def _open_clicked_links(self, links):
         for link in links:
             webbrowser.open(link)
+
+MessageView = MessageTreeView
 
 
 class MainWindow(BaseWindow):
@@ -819,7 +821,8 @@ class MainWindow(BaseWindow):
                     self.is_online = False
                 elif reply[0] == 'chat':
                     self.is_online = True
-                    self.add_chat(reply[1], reply[2], reply[3])
+                    timestamp = len(reply) > 3 and reply[3] or datetime.datetime.now()
+                    self.add_chat(reply[1], reply[2], timestamp)
                 elif reply[0] == 'joined':
                     self.is_online = True
                     self.is_in_chat = True
