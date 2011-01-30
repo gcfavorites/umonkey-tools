@@ -677,6 +677,9 @@ class MessageTextView(gtk.TextView):
             menu.show_all()
             menu.popup(None, None, None, event.button, event.time)
             return True
+        elif event.type == gtk.gdk._2BUTTON_PRESS and event.button == 1:
+            webbrowser.open(link)
+            return True
         return False
 
     def add_message(self, **kwargs):
