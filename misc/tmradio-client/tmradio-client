@@ -689,6 +689,7 @@ class MessageTextView(gtk.TextView):
         return False
 
     def on_link_event(self, tag, tv, event, iterator, link):
+        link = link.rstrip(',.!?)')
         if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
             menu = gtk.Menu()
             item = gtk.MenuItem('Open link')
@@ -697,7 +698,7 @@ class MessageTextView(gtk.TextView):
             menu.show_all()
             menu.popup(None, None, None, event.button, event.time)
             return True
-        elif event.type == gtk.gdk._2BUTTON_PRESS and event.button == 1:
+        elif event.type == gtk.gdk.BUTTON_PRESS and event.button == 1:
             webbrowser.open(link)
             return True
         return False
