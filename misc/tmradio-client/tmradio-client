@@ -654,9 +654,23 @@ class MessageTextView(gtk.TextView):
         self.set_property('indent', -20)
         self.set_property('can-focus', False)
         self.connect('motion_notify_event', self.on_mouse_motion)
+
+        # Scroll to last line.
+        # http://www.daa.com.au/pipermail/pygtk/2009-January/016507.html
+        parent.get_vadjustment().connect('value-changed', self.on_va_changed)
+        parent.get_vadjustment().connect("changed", self.on_va_changed2)
+
         self.setup_tags()
         parent.add_with_viewport(self)
         self.show_all()
+
+    def on_va_changed(self, vadjust):
+        vadjust.need_scroll = abs(vadjust.value + vadjust.page_size - vadjust.upper) < vadjust.step_increment
+
+    def on_va_changed2(self, vadjust):
+        if not hasattr(vadjust, "need_scroll") or vadjust.need_scroll:
+            vadjust.set_value(vadjust.upper-vadjust.page_size)
+            vadjust.need_scroll = True
 
     def setup_tags(self):
         tt = self.get_buffer().get_tag_table()
