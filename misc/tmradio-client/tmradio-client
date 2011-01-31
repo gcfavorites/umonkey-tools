@@ -725,6 +725,9 @@ class MessageTextView(gtk.TextView):
         tb = self.get_buffer()
         sob, eob = tb.get_bounds()
 
+        if tb.get_char_count():
+            tb.insert(eob, '\n')
+
         tb.insert_with_tags_by_name(eob, time.strftime('%d.%m %H:%M '), 'time')
         tb.insert_with_tags_by_name(eob, nick, 'nick')
         tb.insert(eob, ':')
@@ -741,8 +744,6 @@ class MessageTextView(gtk.TextView):
                 self.url_tags.append(t)
             else:
                 tb.insert(eob, word)
-
-        tb.insert(eob, '\n')
 
     def clear(self):
         self.url_tags = []
