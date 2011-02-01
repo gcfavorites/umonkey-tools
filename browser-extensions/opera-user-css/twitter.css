@@ -1,12 +1,14 @@
 /**
  * Сокрытие надоедливого предложения попробовать новую версию.
  */
+ /*
 body.phoenix-skybar {
 	padding-top: 0 !important;
 }
 .phoenix-banner-outer {
 	display: none !important;
 }
+*/
 
 /**
  * Сокрытие блока с рекомендованными пользователями.
