@@ -40,7 +40,7 @@ try:
 except:
     HAVE_NOTIFY = False
 
-VERSION = '0.11'
+VERSION = '0.12'
 USE_THREADING = False
 
 # Global kill switch.
@@ -653,6 +653,7 @@ class MessageTextView(gtk.TextView):
         self.set_property('wrap-mode', gtk.WRAP_WORD)
         self.set_property('indent', -20)
         self.set_property('can-focus', False)
+        self.set_property('editable', False)
         self.connect('motion_notify_event', self.on_mouse_motion)
 
         # Scroll to last line.
@@ -800,12 +801,17 @@ class MainWindow(BaseWindow):
 
     def init_nicklist(self):
         tv = self.builder.get_object('userlist')
+        tm = tv.get_model()
 
         cell = gtk.CellRendererText()
         col = gtk.TreeViewColumn('Nickname')
         col.pack_start(cell, True)
         col.add_attribute(cell, 'text', 0)
+        col.set_sort_column_id(0)
         tv.append_column(col)
+
+        tm.set_sort_func(0, lambda model, iter1, iter2: cmp(model.get_value(iter1, 0), model.get_value(iter2, 0)))
+        tm.set_sort_column_id(0, gtk.SORT_ASCENDING)
 
     def _jabber_autoconnect(self):
         """Connects to the jabber server if parameters are OK."""
