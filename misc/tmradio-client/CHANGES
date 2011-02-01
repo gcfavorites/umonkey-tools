@@ -1,3 +1,9 @@
+Version 0.12
+
+- Message log can no longer be edited manually.
+- The list of nicknames is now sorted.
+
+
 Version 0.11
 
 - Using a TextView for chat log and twitter, text can now be copied.

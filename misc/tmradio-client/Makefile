@@ -1,4 +1,4 @@
-VERSION=0.11
+VERSION=0.12
 DEB=tmradio-client-gtk-${VERSION}.deb
 ZIP=tmradio-client-gtk-${VERSION}.zip
 
