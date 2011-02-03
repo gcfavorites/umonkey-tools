@@ -1070,8 +1070,11 @@ class MainWindow(BaseWindow):
         for key in fmap.keys():
             value = self.builder.get_object(key).get_text()
             if key == 'track_labels':
-                value = [x.strip() for x in value.split(' ') if x.strip()]
-                for l in [x for x in self.track_labels_original if x not in value]:
+                current = value.split(' ')
+                value = []
+                for l in [x for x in current if x not in self.track_labels_original]:
+                    value.append(l)
+                for l in [x for x in self.track_labels_original if x not in current]:
                     value.append(u'-' + l)
                 value = u' '.join(value)
             self.jabber.post_message(fmap[key] % (value, self.track_id))
