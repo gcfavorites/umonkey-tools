@@ -728,7 +728,7 @@ class MessageTextView(gtk.TextView):
         time = kwargs['time']
         nick = kwargs['nick']
         nicklink = kwargs['nicklink']
-        text = kwargs['message']
+        text = kwargs['message'].strip()
 
         tb = self.get_buffer()
         sob, eob = tb.get_bounds()

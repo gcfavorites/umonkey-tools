@@ -4,6 +4,7 @@ Version 0.12
 - The list of nicknames is now sorted.
 - Nicknames in the Twitter tab can be clicked.
 - Tags are now changed more efficiently.
+- Trailing empty spaces are removed from chat messages.
 
 
 Version 0.11
