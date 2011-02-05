@@ -794,6 +794,7 @@ class PodcastView(gtk.TreeView):
     def __init__(self, parent):
         gtk.TreeView.__init__(self)
         self._parent = parent
+        self.episode_links = []
         self.model = gtk.ListStore(str, str, str, str, str, str) # date, title, size, page_link, file_link, ts
         self.setup()
         self.show_all()
@@ -828,13 +829,15 @@ class PodcastView(gtk.TreeView):
         self.model.set_sort_column_id(0, gtk.SORT_DESCENDING)
 
     def add(self, date, title, link, audio_link, audio_size):
-        date_txt = time.strftime('%d.%m %H:%M', date)
-        size_txt = u'%.1fM' % (audio_size / 1048576)
+        if link not in self.episode_links:
+            date_txt = time.strftime('%d.%m %H:%M', date)
+            size_txt = u'%.1fM' % (audio_size / 1048576)
 
-        model = self.get_model()
-        row_iter = model.append([date_txt, title, size_txt, link, audio_link, time.strftime('%Y%m%d%H%M%S', date)])
-        # path = model.get_path(row_iter)
-        # self.scroll_to_cell(path)
+            model = self.get_model()
+            row_iter = model.append([date_txt, title, size_txt, link, audio_link, time.strftime('%Y%m%d%H%M%S', date)])
+            self.episode_links.append()
+            # path = model.get_path(row_iter)
+            # self.scroll_to_cell(path)
 
     def on_row_clicked(self, tv, event):
         path, column, rx, ry = tv.get_path_at_pos(int(event.x), int(event.y)) or (None,) * 4
