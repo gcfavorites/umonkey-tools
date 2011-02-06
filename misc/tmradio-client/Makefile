@@ -2,13 +2,13 @@ VERSION=0.12
 DEB=tmradio-client-gtk-${VERSION}.deb
 ZIP=tmradio-client-gtk-${VERSION}.zip
 
-all: test
+all: zip
 
 config:
 	gconf-editor /apps/tmradio-client
 
 test:
-	./tmradio-client
+	./bin/tmradio-client
 
 debug:
 	./tmradio-client --debug
@@ -19,24 +19,15 @@ clean:
 deb:
 	rm -rf *.deb debian/usr
 	cat debian/DEBIAN/control.in | sed -e "s/VERSION/${VERSION}/g" > debian/DEBIAN/control
-	mkdir -p debian/usr/bin
-	cp tmradio-client debian/usr/bin/tmradio-client
-	mkdir -p debian/usr/share/tmradio-client
-	cp data/ui/*.ui debian/usr/share/tmradio-client/
-	mkdir -p debian/usr/share/icons/hicolor/32x32/apps
-	cp data/icon-32.png debian/usr/share/icons/hicolor/32x32/apps/tmradio-client.png
-	mkdir -p debian/usr/share/icons/hicolor/16x16/apps
-	cp data/icon-16.png debian/usr/share/icons/hicolor/16x16/apps/tmradio-client.png
-	mkdir -p debian/usr/share/gconf/schemas
-	cp data/tmradio.schemas debian/usr/share/gconf/schemas/
-	mkdir -p debian/usr/share/applications
-	cp data/tmradio.desktop debian/usr/share/applications/
+	mkdir -p debian/usr
+	cp -R bin share debian/usr/
+	cp -R doc debian/usr/share/
 	sudo chown -R root:root debian/usr
 	dpkg -b debian ${DEB}
 	sudo rm -rf debian/usr debian/DEBIAN/control
 
 zip:
-	zip -9 ${ZIP} tmradio-client data Makefile
+	zip -r9 ${ZIP} data Makefile CHANGES COPYING README.md
 
 upload-deb: deb zip
 	-googlecode_upload.py -s "Version ${VERSION} of the GTK+ client for tmradio.net" -p umonkey-tools -l tmradio ${DEB}
