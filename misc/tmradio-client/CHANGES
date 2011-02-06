@@ -7,6 +7,7 @@ Version 0.12
 - Trailing empty spaces are removed from chat messages.
 - Added a tab with podcasts.
 - The voting buttons can no longer be unpressed.
+- Added a "report bugs" menu item.
 
 
 Version 0.11
