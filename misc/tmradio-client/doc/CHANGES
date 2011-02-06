@@ -13,6 +13,7 @@ Version 0.12
 - New icons.
 - Rearranged source files.
 - Notifications are only shown when the window is not visible.
+- Chat nickname is reported to the streaming server.
 
 
 Version 0.11

@@ -421,12 +421,13 @@ class Jabber:
 class GstClient:
     """Interaction with Gstreamer."""
 
-    def __init__(self, on_track_change=None):
+    def __init__(self, on_track_change=None, config=None):
         """Initializes the player.
 
         on_track_change is called when stream metadata updates and receives the
         new stream title as the only parameter.
         """
+        self.config = config
         self.pipeline = None
         self.stream_uri = None
         self.volume = None
@@ -444,7 +445,8 @@ class GstClient:
 
     def get_pipeline(self, uri):
         pl = gst.Pipeline('pipeline')
-        tmp = gst.parse_launch('souphttpsrc location="%s" user-agent="tmradio-client/%s" ! decodebin ! volume ! autoaudiosink' % (uri, VERSION))
+        agent = 'tmradio-client/%s (%s)' % (VERSION, self.config.get_jabber_chat_nick())
+        tmp = gst.parse_launch('souphttpsrc location="%s" user-agent="%s" ! decodebin ! volume ! autoaudiosink' % (uri, agent))
         self.volume = list(tmp.elements())[1]
         pl.add(tmp)
         return pl
@@ -898,7 +900,7 @@ class MainWindow(BaseWindow):
         # Suppress duplicate nicknames in the chat window.
         self.last_chat_nick = None
         # Initialize the player.
-        self.player = GstClient(on_track_change=self.on_stream_track_change)
+        self.player = GstClient(on_track_change=self.on_stream_track_change, config=self.config)
         # RegExp for parsing stream title.
         self.stream_title_re = re.compile('"([^"]+)" by (.+)')
 
