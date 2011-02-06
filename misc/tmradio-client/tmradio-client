@@ -835,7 +835,7 @@ class PodcastView(gtk.TreeView):
 
             model = self.get_model()
             row_iter = model.append([date_txt, title, size_txt, link, audio_link, time.strftime('%Y%m%d%H%M%S', date)])
-            self.episode_links.append()
+            self.episode_links.append(link)
             # path = model.get_path(row_iter)
             # self.scroll_to_cell(path)
 
