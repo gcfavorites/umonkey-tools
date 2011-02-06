@@ -1020,13 +1020,7 @@ class MainWindow(BaseWindow):
     def update_controls(self):
         """Disables and enables controls on conditions."""
         connected = self.jabber.is_connected()
-
-        # Set control sensitivity.
-        for ctl_name in ('rocks', 'sucks'):
-            ctl = self.builder.get_object(ctl_name).set_sensitive(self.track_id is not None and connected and self.is_online)
-        vote = (connected and self.is_online) and self.track_vote or 0
-        self.builder.get_object('rocks').set_active(vote > 0)
-        self.builder.get_object('sucks').set_active(vote < 0)
+        self.update_buttons()
 
         img = self.builder.get_object('chatbtn').get_image()
         img.set_from_stock(self.is_in_chat and gtk.STOCK_DISCONNECT or gtk.STOCK_CONNECT, gtk.ICON_SIZE_BUTTON)
@@ -1160,18 +1154,44 @@ class MainWindow(BaseWindow):
             model.append([name])
 
     def on_rocks_toggled(self, button):
-        if self.track_id:
-            if button.get_active() and self.track_vote <= 0:
-                self.track_vote = 1
-                self.jabber.post_message('%u rocks' % self.track_id)
-                self.builder.get_object('sucks').set_active(False)
+        return self.change_track_vote(button, 1)
 
     def on_sucks_toggled(self, button):
-        if self.track_id:
-            if button.get_active() and self.track_vote >= 0:
-                self.track_vote = -1
-                self.jabber.post_message('%u sucks' % self.track_id)
-                self.builder.get_object('rocks').set_active(False)
+        return self.change_track_vote(button, -1)
+
+    def change_track_vote(self, button, vote):
+        """Changes the current track vote and updates the buttons.
+
+        The vote is only changed is the button is pressed, not unpressed (the
+        TriggerButton widget reports a toggle event even when the state is
+        changed programmatically, tricks are used to detect the real
+        situation)."""
+        if button.get_active() and self.track_id and self.is_online:
+            if self.track_vote != vote:
+                self.track_vote = vote
+                cmd = vote > 0 and 'rocks' or 'sucks'
+                self.jabber.post_message('%u %s' % (self.track_id, cmd))
+        self.update_buttons()
+
+    def update_buttons(self):
+        """Updates the rocks/sucks button states according to the current vote.
+
+        If the bot is offline, buttons are unpressed and disabled, otherwise
+        they're set according to the vote."""
+        rocks = self.builder.get_object('rocks')
+        sucks = self.builder.get_object('sucks')
+
+        if self.is_online and self.track_id:
+            rocks.set_active(self.track_vote > 0)
+            sucks.set_active(self.track_vote < 0)
+
+            rocks.set_sensitive(self.track_vote <= 0)
+            sucks.set_sensitive(self.track_vote >= 0)
+        else:
+            rocks.set_active(False)
+            rocks.set_sensitive(False)
+            sucks.set_active(False)
+            sucks.set_sensitive(False)
 
     def on_chatmsg_activate(self, field):
         if self.jabber:

@@ -6,6 +6,7 @@ Version 0.12
 - Tags are now changed more efficiently.
 - Trailing empty spaces are removed from chat messages.
 - Added a tab with podcasts.
+- The voting buttons can no longer be unpressed.
 
 
 Version 0.11
