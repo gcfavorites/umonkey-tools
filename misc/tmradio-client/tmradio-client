@@ -939,9 +939,8 @@ class MainWindow(BaseWindow):
             self.on_menu_preferences_activate()
 
     def on_delete(self, *args):
-        """Hide instead of closing."""
-        self.window.hide()
-        return True
+        """Handle the main window's close button."""
+        self.on_menu_quit_activate(None)
 
     def on_MainWindow_destroy(self, widget, data=None):
         self.jabber.post_message('quit', special=True)
