@@ -27,7 +27,7 @@ deb:
 	sudo rm -rf debian/usr debian/DEBIAN/control
 
 zip:
-	zip -r9 ${ZIP} data Makefile CHANGES COPYING README.md
+	zip -r9 ${ZIP} bin doc share Makefile CHANGES COPYING README.md
 
 upload-deb: deb zip
 	-googlecode_upload.py -s "Version ${VERSION} of the GTK+ client for tmradio.net" -p umonkey-tools -l tmradio ${DEB}
