@@ -493,7 +493,7 @@ class TwitterClientThread(threading.Thread):
         self.records = {}
 
     def run(self):
-        print 'Twitter client thread started.'
+        print '%s started.' % self.__class__.__name__
         while not shutting_down:
             if self.request_time > self.response_time:
                 url = self.get_url()
@@ -509,7 +509,7 @@ class TwitterClientThread(threading.Thread):
                 except Exception, e:
                     print >>sys.stderr, u'Error updating feed: %s\n%s' % (e, traceback.format_exc(e))
             time.sleep(self.sleep_time)
-        print 'Feed client thread over.'
+        print '%s over.' % self.__class__.__name__
 
     def update(self):
         """Requests an update."""
