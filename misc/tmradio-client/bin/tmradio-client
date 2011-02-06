@@ -552,7 +552,7 @@ class BaseWindow(object):
         if sys.argv[0].startswith('/usr/bin'):
             dirname = '/usr/share/tmradio-client'
         else:
-            dirname = os.path.join(os.path.dirname(sys.argv[0]), 'data', 'ui')
+            dirname = os.path.join(os.path.dirname(sys.argv[0]), '..', 'share', 'tmradio-client')
         builder.add_from_file(os.path.join(dirname, name + '.ui'))
         return builder
 

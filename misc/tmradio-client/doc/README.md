@@ -13,6 +13,7 @@
 =============
 
 - hakimovis
+- iconshock.com (иконка)
 
 
 TODO
