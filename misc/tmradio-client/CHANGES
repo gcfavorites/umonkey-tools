@@ -8,6 +8,7 @@ Version 0.12
 - Added a tab with podcasts.
 - The voting buttons can no longer be unpressed.
 - Added a "report bugs" menu item.
+- Fixed some debug messages.
 
 
 Version 0.11
