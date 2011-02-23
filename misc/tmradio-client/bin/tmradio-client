@@ -464,8 +464,16 @@ class GstClient:
         self.stream_uri = None
         self.volume = None
         self.on_track_change = on_track_change
+        self.restart_ts = None
+
+    def check_restart(self):
+        if self.restart_ts and time.time() >= self.restart_ts:
+            self.restart_ts = time.time() + 5 # prevent spinning
+            self.play(self.stream_uri)
 
     def play(self, uri, volume=None):
+        print 'gst: starting %s' % uri
+        self.restart_ts = None
         self.pipeline = self.get_pipeline(uri)
         if volume:
             self.volume.set_property('volume', volume)
@@ -475,6 +483,13 @@ class GstClient:
         self.pipeline.set_state(gst.STATE_PLAYING)
         self.stream_uri = uri
 
+    def stop(self):
+        if self.pipeline:
+            print 'gst: stopping %s' % self.stream_uri
+            self.pipeline.set_state(gst.STATE_NULL)
+            self.pipeline = None
+            self.sink = None
+
     def get_pipeline(self, uri):
         pl = gst.Pipeline('pipeline')
         agent = 'tmradio-client/%s (%s)' % (VERSION, self.config.get_jabber_chat_nick(guess=True))
@@ -482,12 +497,6 @@ class GstClient:
         self.volume = list(tmp.elements())[1]
         pl.add(tmp)
         return pl
-
-    def stop(self):
-        if self.pipeline:
-            self.pipeline.set_state(gst.STATE_NULL)
-            self.pipeline = None
-            self.sink = None
 
     def on_bus_message(self, bus, message):
         t = message.type
@@ -501,11 +510,12 @@ class GstClient:
                 self.on_track_change(dtags['title'])
         elif t == gst.MESSAGE_BUFFERING:
             pass
-        elif t == gst.MESSAGE_EOS: # restart
+        elif t == gst.MESSAGE_EOS or t == gst.MESSAGE_ERROR: # restart
+            print 'gst: stream needs restarting.'
             self.stop()
-            self.play(self.stream_uri)
+            self.restart_ts = time.time() + 2
         else:
-            pass # print message.type
+            print message
 
     def set_volume(self, level):
         if self.volume:
@@ -1040,6 +1050,8 @@ class MainWindow(BaseWindow):
         self._update_progress_bar()
         if not USE_THREADING:
             self.jabber.process_queue()
+        if self.player:
+            self.player.check_restart()
         self._update_twitter()
         self._update_podcast()
         return True
