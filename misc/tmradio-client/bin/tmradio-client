@@ -90,8 +90,11 @@ class ConfigGConf:
     def set_jabber_chat_room(self, value):
         self.gconf.set_string('/apps/tmradio-client/jabber_chat_room', value)
 
-    def get_jabber_chat_nick(self):
-        return self.gconf.get_string('/apps/tmradio-client/jabber_chat_nick')
+    def get_jabber_chat_nick(self, guess=False):
+        nick = self.gconf.get_string('/apps/tmradio-client/jabber_chat_nick')
+        if not nick and guess:
+            nick = self.get_jabber_id().split('@')[0]
+        return nick
 
     def set_jabber_chat_nick(self, value):
         self.gconf.set_string('/apps/tmradio-client/jabber_chat_nick', value)
@@ -171,7 +174,7 @@ class Jabber:
         jid = self.config.get_jabber_id()
         password = self.config.get_jabber_password()
         if not jid or not password:
-            self._log('Jabber disabled: jid/password not set.')
+            self._log('disabled: jid/password not set.')
             return False
 
         self.jid = xmpp.protocol.JID(jid)
@@ -182,14 +185,16 @@ class Jabber:
 
         res = cli.connect(proxy=self._get_proxy_settings())
         if not res:
-            self._log('Could not connect to %s.' % self.jid.getDomain())
+            self._log('could not connect to %s.' % self.jid.getDomain())
             return False
 
         res = cli.auth(self.jid.getNode(), password, 'tmclient/')
         if not res:
-            self._log('Could not authorize with the server.')
+            self._log('could not authorize with the server.')
             self.post_replies(('auth-error', ))
             return False
+
+        self._log('connected to %s.' % self.jid.getDomain())
 
         self.cli = cli
         self.cli.sendInitPresence()
@@ -217,14 +222,14 @@ class Jabber:
             if contact == self.bot_jid:
                 know = True
         if not know:
-            self._log('Need to make friends with %s' % self.bot_jid)
+            self._log('need to make friends with %s' % self.bot_jid)
             msg = xmpp.Presence(to=self.bot_jid, typ='subscribe', status=u'Hello, I\'m using tmradio-client/' + VERSION)
             self.cli.send(msg)
 
     def _join_chat_room(self, suffix=None):
         """Joins you to the chat room."""
         if self.chat_active:
-            self._log('Double chat join prevented.')
+            self._log('double chat join prevented.')
             return
         self.chat_jid = self.config.get_jabber_chat_room()
         nick = self.config.get_jabber_chat_nick()
@@ -239,9 +244,9 @@ class Jabber:
     def _leave_chat_room(self):
         """Removes you from the chat room."""
         if not self.chat_my_name or not self.chat_active:
-            self._log('Trying to leave chat while not there')
+            self._log('trying to leave chat while not there')
         else:
-            self._log('Leaving the chat room.')
+            self._log('leaving the chat room.')
             msg = xmpp.Presence()
             msg.setTo(u'/'.join((self.chat_jid, self.chat_my_name)))
             msg.setType('unavailable')
@@ -263,7 +268,7 @@ class Jabber:
         elif msg.getFrom().getStripped() == self.bot_jid:
             text = msg.getBody()
             if not text:
-                self._log('Empty message received: %s' % msg)
+                self._log('empty message received: %s' % msg)
                 return
             matches = self.show_re.match(msg.getBody())
             if matches:
@@ -285,7 +290,7 @@ class Jabber:
                     ('set', 'track_started_on', last_played),
                 ])
                 return
-        self._log('Unhandled message: %s' % msg.getBody())
+        self._log('unhandled message: %s' % msg.getBody())
 
     def _get_msg_ts(self, msg):
         delay = msg.getTag('delay')
@@ -345,7 +350,7 @@ class Jabber:
                 self.last_track_id = track_id
         else:
             print msg
-            self._log('Bot status not understood: %s' % msg.getStatus())
+            self._log('bot status not understood: %s' % msg.getStatus())
 
     def _check_nickname_taken(self, sender, msg):
         er = msg.getTag('error')
@@ -398,16 +403,16 @@ class Jabber:
             msg.setTo(self.chat_jid)
             msg.setType('groupchat')
             self.cli.send(msg)
-            self._log('Sent to chat: %s' % text)
+            self._log('sent to chat: %s' % text)
         else:
             msg = xmpp.protocol.Message(body=text)
             msg.setTo(self.bot_jid)
             msg.setType('chat')
             self.cli.send(msg)
-            self._log('Sent to bot: %s' % text)
+            self._log('sent to bot: %s' % text)
 
     def _log(self, message):
-        print message
+        print >>sys.stderr, 'jabber:', message
 
     def _on_disconnected(self):
         self._log('Disconnected from the server, reconnecting in 5 seconds.')
@@ -445,7 +450,7 @@ class GstClient:
 
     def get_pipeline(self, uri):
         pl = gst.Pipeline('pipeline')
-        agent = 'tmradio-client/%s (%s)' % (VERSION, self.config.get_jabber_chat_nick())
+        agent = 'tmradio-client/%s (%s)' % (VERSION, self.config.get_jabber_chat_nick(guess=True))
         tmp = gst.parse_launch('souphttpsrc location="%s" user-agent="%s" ! decodebin ! volume ! autoaudiosink' % (uri, agent))
         self.volume = list(tmp.elements())[1]
         pl.add(tmp)
