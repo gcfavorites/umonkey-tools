@@ -16,15 +16,20 @@
 - iconshock.com (иконка)
 
 
+BUGS
+====
+
+- Нельзя уменьшать окно.
+- При разрывах связи gst не перезапускается.
+- При разрывах связи jabber не всегда подключается.
+
+
 TODO
 ====
 
 - Добавить проигрывание подкастов.
 - Выводить тему чата.
-- Разобраться почему нельзя уменьшать окно.
-- Следить за состоянием проигрывателя (gstreamer), перезапускать если сдох.
 - Обрабатывать падение jabber-бота.
-- Обрабатывать отсутствие связи (пинг сервера).
 - История прослушанной музыки, со ссылками на last.fm и возможностью
   редактировать свойства.  Для этого, наверное, надо редактор свойств дорожки
   сделать отдельным окном.
@@ -35,6 +40,21 @@ TODO
 - Интеграция в звуковое меню Ubuntu:
   https://wiki.ubuntu.com/SoundMenu
   https://github.com/sunng87/Exaile-Soundmenu-Indicator
+
+
+Портирование на Windows
+=======================
+
+Полезные ссылки:
+
+- http://thp.io/2007/09/pygtk-applications-on-windows.html
+- http://unpythonic.blogspot.com/2007/07/pygtk-py2exe-and-inno-setup-for-single.html
+- http://www.gstreamer-winbuild.ylatuya.es/doku.php?id=download#developers_files
+- http://www.py2exe.org/
+
+- Сборка deb пакетов с помощью distutils:
+  https://help.ubuntu.com/community/PythonRecipes/DebianPackage
+- https://wiki.ubuntu.com/PackagingGuide
 
 
 Как работает jabber
