@@ -515,7 +515,7 @@ class GstClient:
             self.stop()
             self.restart_ts = time.time() + 2
         else:
-            print message
+            pass # print message
 
     def set_volume(self, level):
         if self.volume:
