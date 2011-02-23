@@ -119,6 +119,10 @@ class Jabber:
     communication is serialized using incoming and outgoing queues, so it's
     thread safe.
     """
+
+    PING_FREQUENCY = 60 # seconds
+    PING_TIMEOUT = 5 # seconds
+
     def __init__(self, gui):
         self.gui = gui
         self.config = gui.config
@@ -141,6 +145,7 @@ class Jabber:
         self.chat_my_name = None
         self.is_shutting_down = False
         self.reconnect_time = 0
+        self.last_ping_ts = 0
 
         if USE_THREADING:
             self.worker = threading.Thread()
@@ -195,6 +200,7 @@ class Jabber:
             return False
 
         self._log('connected to %s.' % self.jid.getDomain())
+        self.last_ping_ts = time.time()
 
         self.cli = cli
         self.cli.sendInitPresence()
@@ -254,6 +260,7 @@ class Jabber:
 
     def _on_message(self, conn, msg):
         """Process chat and group chat messages."""
+        self.last_ping_ts = time.time()
         if msg.getType() == 'groupchat':
             parts = unicode(msg.getFrom()).split('/')
             if len(parts) < 2:
@@ -302,6 +309,7 @@ class Jabber:
 
     def _on_presence(self, conn, msg):
         """Process incoming presences."""
+        self.last_ping_ts = time.time()
         sender = msg.getFrom()
         if self.bot_jid == sender.getStripped():
             self._on_bot_presence(msg)
@@ -370,6 +378,7 @@ class Jabber:
             res = self.cli.Process(timeout)
             if res == 0 or res is None:
                 self._on_disconnected()
+            self.ping_server()
         elif time.time() > self.reconnect_time:
             self.reconnect_time = int(time.time()) + 5
             self.post_message('connect', special=True)
@@ -378,6 +387,24 @@ class Jabber:
         while not self.out_queue.empty():
             text, chat, special = self.out_queue.get()
             self._process_message(text, chat, special)
+
+    def ping_server(self):
+        """Pings the server, reconnects on timeout."""
+        now = time.time()
+        if now - self.last_ping_ts < self.PING_FREQUENCY:
+            return False
+        self._log('pinging the server')
+        self.last_ping_ts = now
+        ping = xmpp.Protocol('iq',typ='get',payload=[xmpp.Node('ping',attrs={'xmlns':'urn:xmpp:ping'})])
+        try:
+            res = self.cli.SendAndWaitForResponse(ping, self.PING_TIMEOUT)
+            if res is None:
+                self._log('ping timeout')
+                self._on_disconnected()
+        except IOError, e:
+            self._log('error pinging the server:')
+            self._on_disconnected()
+        return True
 
     def _process_message(self, text, chat=False, special=False):
         self._log('processing message: text="%s" chat=%s special=%s' % (text, chat, special))
@@ -415,7 +442,7 @@ class Jabber:
         print >>sys.stderr, 'jabber:', message
 
     def _on_disconnected(self):
-        self._log('Disconnected from the server, reconnecting in 5 seconds.')
+        self._log('disconnected from the server, reconnecting in 5 seconds.')
         self.cli = None
         self.chat_active = False
         self.chat_my_name = None
