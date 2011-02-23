@@ -11,6 +11,7 @@ warnings.filterwarnings("ignore")
 import cgi
 import datetime
 import feedparser
+import json
 import os
 import pango
 import random
@@ -277,25 +278,16 @@ class Jabber:
             if not text:
                 self._log('empty message received: %s' % msg)
                 return
-            matches = self.show_re.match(msg.getBody())
-            if matches:
-                track_id = int(matches.group(1))
-                length = int(matches.group(2))
-                editable = matches.group(3) == 'True'
-                last_played = matches.group(4)
-                pro = matches.group(5).split(', ')
-                con = matches.group(6).split(', ')
-                vote = 0
-                if self.jid in pro:
-                    vote = 1
-                elif self.jid in con:
-                    vote = -1
-                self.post_replies([
-                    ('set', 'track_vote', vote),
-                    ('set', 'track_editable', editable),
-                    ('set', 'track_length', length),
-                    ('set', 'track_started_on', last_played),
-                ])
+            if text.startswith('{'):
+                data = json.loads(text)
+                keys = { 'vote': 'track_vote', 'editable': 'track_editable', 'length': 'track_length', 'last_played': 'track_started_on', 'labels': 'track_labels', 'artist': 'track_artist', 'title': 'track_title', 'id': 'track_id' }
+                replies = []
+                for key in data:
+                    value = data[key]
+                    if keys.has_key(key):
+                        key = keys[key]
+                    replies.append(('set', key, value))
+                self.post_replies(replies)
                 return
         self._log('unhandled message: %s' % msg.getBody())
 
@@ -354,7 +346,7 @@ class Jabber:
             # Status changed because somebody added labels or voted.  Our
             # vote did not change, no need to request it.
             if track_id != self.last_track_id:
-                self.post_message('show ' + track_id)
+                self.post_message('dump ' + track_id)
                 self.last_track_id = track_id
         else:
             print msg
@@ -1173,10 +1165,10 @@ class MainWindow(BaseWindow):
         elif key == 'track_length':
             self.track_length = int(value)
         elif key == 'track_started_on':
-            if not self.track_change_ts and value.isdigit():
+            if not self.track_change_ts and str(value).isdigit():
                 self.track_change_ts = int(value)
         elif key == 'track_vote':
-            self.track_vote = int(value)
+            self.track_vote = value and int(value) or None
             return True
         elif key == 'track_editable':
             self.track_editable = value
