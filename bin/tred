@@ -1,0 +1,218 @@
+#!/usr/bin/env python
+#
+# This script collects information about open issues that belong to you across
+# multiple issue trackers and show them in a list, optionally emails it to you
+# (for use with cron).  It supports Google Code, Bugzilla and Github.
+#
+# Settings are read from ~/.config/tred.yaml which must look like this:
+#
+#   mail:
+#     to: john.doe@gmail.com
+#     smtp: smtp.gmail.com
+#     smtp_login: john.doe
+#     smtp_password: secret
+#     smtp_tls: yes
+#   trackers:
+#   - name: support
+#     type: Google Code
+#     user: justin.forest
+#     reporter: yes
+#   - name: indeyets/pake
+#     type: GitHub
+#     user: umonkey
+#   - name: gpodder
+#     type: Bugzilla
+#     user: hex@umonkey.net
+#     base: https://bugs.gpodder.org/
+#
+# Supported properties:
+#
+# - name: project name for Google Code and GitHub, an arbitrary label for
+#   Bugzilla.  Must not be unique.
+# - type: Google Code, Bugzilla or GitHub.
+# - user: your identifier in that tracker.  Email for Bugzilla, login for
+#   Google Code and GitHub.  For GitHub this filters out issues not created by
+#   this user.
+# - reporter: non-empty if you want to see bugs reported by the specified user
+#   (normally only bugs owned by him are shown).
+# - delay: idle time in days after which issues are shown.  Handy for busy
+#   trackers, where no activity in a week is OK.
+
+import csv
+import json
+import os
+import sys
+import time
+import yaml
+import urllib2
+
+# email sending
+import smtplib
+from email import encoders
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+
+settings = None
+
+def fetch(url):
+    u = urllib2.urlopen(urllib2.Request(url))
+    if u is not None:
+        return u.read()
+
+def load_settings():
+    filename = os.path.expanduser('~/.config/tred.yaml')
+    if not os.path.exists(filename):
+        raise Exception('Config file %s not found.' % filename)
+    data = yaml.load(open(filename, 'rb'))
+    if not data.has_key('trackers'):
+        raise Exception('Config file does not have a "trackers" section.')
+    global settings
+    settings = data
+
+
+def load_github_issues(tracker):
+    url = 'http://github.com/api/v2/json/issues/list/%s/open' % tracker['name']
+    data = json.loads(fetch(url))
+    issues = {}
+    for issue in data['issues']:
+        if not tracker.has_key('user') or tracker['user'] == issue['user']:
+            url = 'https://github.com/%s/issues/%u' % (tracker['name'], issue['number'])
+            issues[url] = {
+                'text': issue['title'],
+                'time': int(time.mktime(time.strptime(issue['updated_at'][:19], '%Y/%m/%d %H:%M:%S'))),
+                'project': tracker['name'],
+            }
+    return issues
+
+
+def load_bugzilla_issues(tracker):
+    for k in ('type', 'user', 'base'):
+        if not tracker.has_key(k):
+            print >>sys.stderr, 'Tracker %s does not have the "%k" property.' % (tracker['name'], k)
+            return []
+
+    url = '%(base)s/buglist.cgi?bug_status=UNCONFIRMED&bug_status=CONFIRMED&bug_status=IN_PROGRESS&columnlist=short_desc%%2Cbug_id%%2Cchangeddate&email1=%(email)s&emailassigned_to1=1&emailcc1=1&emailreporter1=1&emailtype1=substring&list_id=37&query_format=advanced&ctype=csv' % { 'base': tracker['base'].rstrip('/'), 'email': urllib2.quote(tracker['user']) }
+    data = fetch(url)
+    head = None
+
+    result = {}
+    for row in csv.reader(data.split('\n')):
+        if head is None:
+            head = dict([(row[idx], idx) for idx in range(0, len(row))])
+        else:
+            link = 'https://bugs.gpodder.org/show_bug.cgi?id=' + str(row[head['bug_id']])
+            result[link] = {
+                'text': row[head['short_desc']],
+                'time': time.mktime(time.strptime(row[head['changeddate']], '%Y-%m-%d %H:%M:%S')),
+                'project': tracker['name'],
+            }
+
+    return result
+
+
+def load_googlecode_issues(tracker):
+    users = tracker['user']
+    if type(users) != list:
+        users = [users]
+
+    ts_limit = None
+    if tracker.has_key('delay'):
+        delay = tracker['delay'] or 14
+        ts_limit = time.time() - delay * 60 * 60 * 24
+
+    query = 'owner:' + tracker['user']
+    if tracker.has_key('reporter'):
+        query += ' OR reporter:' + tracker['user']
+
+    url = 'http://code.google.com/p/%s/issues/csv?can=2&q=%s&colspec=ID+Summary+Modified' % (tracker['name'], urllib2.quote(query))
+    data = fetch(url)
+    head = None
+
+    issues = {}
+    for row in csv.reader(data.split('\n')):
+        if head is None:
+            head = dict([(row[idx], idx) for idx in range(0, len(row))])
+        elif len(row):
+            ts = int(row[head['ModifiedTimestamp']])
+            if ts_limit is None or ts < ts_limit:
+                link = 'http://code.google.com/p/%s/issues/detail?id=%s' % (tracker['name'], row[head['ID']])
+                issues[link] = {
+                    'text': row[head['Summary']].decode('utf-8'),
+                    'time': ts,
+                    'project': tracker['name'],
+                }
+
+    return issues
+
+
+def load_all_issues():
+    issues = {}
+    for conf in settings['trackers']:
+        if conf.has_key('type') and conf.has_key('name'):
+            kind = conf['type'].lower()
+            if kind == 'google code':
+                issues.update(load_googlecode_issues(conf))
+            elif kind == 'bugzilla':
+                issues.update(load_bugzilla_issues(conf))
+            elif kind == 'github':
+                issues.update(load_github_issues(conf))
+    return issues
+
+def format_plain_list(issues):
+    output = ''
+    for url in sorted(issues, key=lambda url: issues[url]['time']):
+        output += '- %s\n  %s\n' % (issues[url]['text'].encode('utf-8'), url)
+    return output
+
+def format_grouped_list(issues):
+    output = ''
+    projects = sorted(list(set([issue['project'] for issue in issues.values()])))
+    for project in projects:
+        output += '%s:\n\n' % project.encode('utf-8')
+        for url in sorted(issues, key=lambda url: issues[url]['time']):
+            if issues[url]['project'] == project:
+                output += '- %s\n  %s\n' % (issues[url]['text'].encode('utf-8'), url)
+        output += '\n'
+    return output
+
+def email_output(output):
+    conf = settings['mail']
+
+    msg = MIMEMultipart()
+    msg.attach(MIMEText(output, _charset='utf-8'))
+    msg['From'] = conf['smtp_login']
+    msg['Subject'] = 'Open issues for ' + time.strftime('%Y/%m/%d')
+    msg['To'] = conf['to']
+
+    s = smtplib.SMTP(conf['smtp'], 25)
+    s.ehlo()
+    if conf.has_key('smtp_tls'):
+        s.starttls()
+        s.ehlo()
+    s.login(conf['smtp_login'], conf['smtp_password'])
+    s.sendmail(conf['smtp_login'], conf['to'], msg.as_string())
+    s.quit()
+
+
+def run():
+    count = 0
+    output = u''
+
+    load_settings()
+    issues = load_all_issues()
+
+    output = ''
+
+    if '-plain' in sys.argv:
+        output = format_plain_list(issues)
+    else:
+        output = format_grouped_list(issues)
+
+    if '-mail' in sys.argv:
+        email_output(output)
+    else:
+        print output
+
+if __name__ == '__main__':
+    run()
