@@ -1,0 +1,15 @@
+#!/bin/sh
+# http://community.avid.com/forums/p/60895/341626.aspx
+# http://www.itbroadcastanddigitalcinema.com/ffmpeg_howto.html
+
+if [ -z "$1" ]; then
+	echo "Usage: $0 dot-mts-files..."
+	exit 1
+fi
+
+while [ -n "$1" ]; do
+	NAME=$(basename "$1" .MTS)
+	DIR=$(dirname "$1")
+	ffmpeg -i "$1" -vcodec dnxhd -b 220M -acodec copy "$DIR/$NAME.mov"
+	shift
+done
