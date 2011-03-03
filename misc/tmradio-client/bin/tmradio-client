@@ -47,6 +47,14 @@ USE_THREADING = False
 # Global kill switch.
 shutting_down = False
 
+def is_url(text):
+    parts = text.split(':')
+    if not parts[0] in ('http', 'https', 'ftp', 'mailto'):
+        return False
+    if parts[0] == 'mailto':
+        return '@' in parts[1]
+    return parts[1].startswith('//')
+
 def fetch(url):
     """Returns contents of a web resource."""
     try:
@@ -654,7 +662,7 @@ class MessageTreeView(gtk.TreeView):
     def format_message(self, message):
         nwords = []
         for word in message.split(' '):
-            if word.startswith('http://'):
+            if is_url(word):
                 word = u'<span color="blue"><u>%s</u></span>' % word
             else:
                 word = cgi.escape(word)
@@ -794,7 +802,7 @@ class MessageTextView(gtk.TextView):
 
         for word in text.split(' '):
             tb.insert(eob, ' ')
-            if word.startswith('http://'):
+            if is_url(word):
                 # http://www.mail-archive.com/pygtk@daa.com.au/msg18007.html
                 t = tb.create_tag()
                 t.set_property('foreground', 'blue')
@@ -1168,7 +1176,7 @@ class MainWindow(BaseWindow):
             if not self.track_change_ts and str(value).isdigit():
                 self.track_change_ts = int(value)
         elif key == 'track_vote':
-            self.track_vote = value and int(value) or None
+            self.track_vote = value and int(value) or 0
             return True
         elif key == 'track_editable':
             self.track_editable = value
