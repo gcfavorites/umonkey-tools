@@ -1,0 +1,61 @@
+#!/usr/bin/env python
+# vim: set fileencoding=utf-8:
+
+import StringIO
+import csv
+import json
+import os
+import pycurl
+import sys
+import time
+import urllib
+import yaml
+
+def fetch_data(conf):
+    c = pycurl.Curl()
+    c.setopt(pycurl.COOKIEFILE, 'cookies.txt')
+
+    c.setopt(pycurl.URL, 'https://passport.yandex.ru/passport?mode=auth&from=money&retpath=https%3A%2F%2Fmoney.yandex.ru%2F&msg=money')
+    c.setopt(pycurl.POSTFIELDS, urllib.urlencode({ 'login': conf['login'], 'passwd': conf['password'] }))
+    c.perform()
+
+    out = StringIO.StringIO()
+    c.setopt(pycurl.URL, 'https://money.yandex.ru/history-csv.xml?from-time=1.1.2010&to-time=%s&max-rows=1000&order=PAYMENTDATE' % time.strftime('%d.%m.%Y'))
+    c.setopt(pycurl.POSTFIELDS, '')
+    c.setopt(pycurl.WRITEFUNCTION, out.write)
+    c.perform()
+
+    c.close()
+    return u'\n'.join([l for l in out.getvalue().decode('windows-1251').split('\n')][4:]).encode('utf-8')
+
+def calculate(text, conf):
+    income = outcome = left = 0
+    records = []
+
+    for rec in csv.reader(text.split('\n'), delimiter=';'):
+        if rec:
+            sign, date, sum_, status, message = rec[:5]
+            sum_ = float(sum_.replace(',', '.')[:-9])
+            if sign == '+':
+                income += sum_
+            elif sign == '-':
+                outcome += sum_
+            mul = sign == '+' and 1 or -1
+            records.append([ date, sum_ * mul, message.decode('utf-8') ])
+
+    if conf.has_key('csv_file'):
+        open(conf['csv_file'], 'wb').write(json.dumps(records, ensure_ascii=False).encode('utf-8'))
+
+    return income, outcome, income - outcome
+
+if __name__ == '__main__':
+    conf = yaml.load(open(os.path.expanduser('~/.config/yandex-money.yaml')))
+    if not conf.has_key('login') or not conf.has_key('password'):
+        print 'To update Yandex.Money history you must have the ~/.config/yandex-money.yaml file with "login", "password" and "csv_file" properties.'
+        sys.exit(1)
+
+    income, outcome, left = calculate(fetch_data(conf), conf)
+
+    print 'Income.... %8.02f' % income
+    print 'Outcome... %8.02f' % outcome
+    print 'Left...... %8.02f' % left
