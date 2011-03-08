@@ -5,7 +5,7 @@ Priority: optional
 Maintainer: Justin Forest <hex@umonkey.net>
 Architecture: all
 Essential: no
-Depends: python, python-gconf, python-gst0.10, python-xmpp, python-feedparser,
+Depends: python, python-yaml, python-gst0.10, python-xmpp, python-feedparser,
   python-dnspython | python-dns, python-gtk2
 Suggests: python-notify
 Installed-Size: 230

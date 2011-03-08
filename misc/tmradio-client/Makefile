@@ -5,7 +5,7 @@ ZIP=tmradio-client-gtk-${VERSION}.zip
 all: zip
 
 config:
-	gconf-editor /apps/tmradio-client
+	editor $(HOME)/.tmradio-client.yaml
 
 test:
 	./bin/tmradio-client
