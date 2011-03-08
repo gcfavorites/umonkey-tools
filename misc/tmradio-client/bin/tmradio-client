@@ -25,13 +25,13 @@ import urllib2
 import urlparse
 import webbrowser
 import xmpp
+import yaml
 import Queue
 
 import gobject
 import pygst
 pygst.require('0.10')
 import gst
-import gconf
 import gtk
 import pygtk
 
@@ -67,58 +67,76 @@ def fetch(url):
         print >>sys.stderr, 'Could not fetch %s: %s' % (url, e)
         print >>sys.stderr, traceback.format_exc(e)
 
-class ConfigGConf:
-    """GConf interface."""
+class YamlConfig:
+    """YAML interface."""
     def __init__(self):
-        self.gconf = gconf.client_get_default()
+        self.filename = os.path.expanduser('~/.tmradio-client.yaml')
+        if os.path.exists(self.filename):
+            self.data = yaml.load(open(self.filename, 'rb').read())
+        else:
+            self.data = {}
+
+    def save(self):
+        dump = yaml.dump(self.data)
+        exists = os.path.exists(self.filename)
+        f = open(self.filename, 'wb')
+        f.write(dump.encode('utf-8'))
+        f.close()
+        if not exists:
+            os.chmod(self.filename, 0600)
+
+    def get(self, key, default=None):
+        if self.data.has_key(key):
+            return self.data[key]
+        return default
 
     def get_jabber_id(self):
-        return self.gconf.get_string('/apps/tmradio-client/jabber_id')
+        return self.get('jabber_id')
 
     def set_jabber_id(self, value):
-        self.gconf.set_string('/apps/tmradio-client/jabber_id', value)
+        self.data['jabber_id'] = value
 
     def get_jabber_password(self):
-        return self.gconf.get_string('/apps/tmradio-client/jabber_password')
+        return self.get('jabber_password')
 
     def set_jabber_password(self, value):
-        self.gconf.set_string('/apps/tmradio-client/jabber_password', value)
+        self.data['jabber_password'] = value
 
     def get_debug(self):
-        return '--debug' in sys.argv
+        return self.get('debug', '--debug' in sys.argv)
 
     def get_jabber_bot(self):
-        return self.gconf.get_string('/apps/tmradio-client/jabber_bot')
+        return self.get('jabber_bot', 'robot@tmradio.net')
 
     def set_jabber_bot(self, value):
-        self.gconf.set_string('/apps/tmradio-client/jabber_bot', value)
+        self.data['jabber_bot'] = value
 
     def get_jabber_chat_room(self):
-        return self.gconf.get_string('/apps/tmradio-client/jabber_chat_room')
+        return self.get('jabber_chat_room', 'tmradio@conference.jabber.ru')
 
     def set_jabber_chat_room(self, value):
-        self.gconf.set_string('/apps/tmradio-client/jabber_chat_room', value)
+        self.data['jabber_chat_room'] = value
 
     def get_jabber_chat_nick(self, guess=False):
-        nick = self.gconf.get_string('/apps/tmradio-client/jabber_chat_nick')
+        nick = self.get('jabber_chat_nick')
         if not nick and guess:
             nick = self.get_jabber_id().split('@')[0]
         return nick
 
     def set_jabber_chat_nick(self, value):
-        self.gconf.set_string('/apps/tmradio-client/jabber_chat_nick', value)
+        self.data['jabber_chat_nick'] = value
 
     def get_stream_uri(self):
-        return self.gconf.get_string('/apps/tmradio-client/stream_uri')
+        return self.get('stream_uri', 'http://stream.tmradio.net:8180/live.mp3')
 
     def set_stream_uri(self, value):
-        self.gconf.set_string('/apps/tmradio-client/stream_uri', value)
+        self.data['stream_uri'] = value
 
     def get_twitter_search(self):
-        return self.gconf.get_string('/apps/tmradio-client/twitter_search')
+        return self.get('twitter_search', '#tmradio')
 
     def set_twitter_search(self, value):
-        self.gconf.set_string('/apps/tmradio-client/twitter_search', value)
+        self.data['twitter_search'] = value
 
 
 class Jabber:
@@ -918,7 +936,7 @@ class PodcastView(gtk.TreeView):
 class MainWindow(BaseWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        self.config = ConfigGConf()
+        self.config = YamlConfig()
         self.jabber = Jabber(self)
         self.twitter = TwitterClientThread(self.config)
         self.podcast = PodcastClientThread(self.config)
@@ -1358,6 +1376,7 @@ class Preferences(BaseWindow):
             ctl = self.builder.get_object(fn[4:])
             if ctl:
                 getattr(self.config, fn)(ctl.get_text())
+        self.config.save()
         self.main.jabber.post_message('connect', special=True)
 
 
