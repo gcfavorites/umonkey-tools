@@ -38,3 +38,7 @@ install: deb
 
 release:
 	make -C ../.. update-packages
+
+bdist:
+	python setup.py bdist
+	rm -rf build
