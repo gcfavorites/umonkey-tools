@@ -4,7 +4,7 @@
 # multiple issue trackers and show them in a list, optionally emails it to you
 # (for use with cron).  It supports Google Code, Bugzilla and Github.
 #
-# Settings are read from ~/.config/tred.yaml which must look like this:
+# Settings are read from ~/.config/trem.yaml which must look like this:
 #
 #   mail:
 #     to: john.doe@gmail.com
@@ -41,6 +41,7 @@
 import csv
 import json
 import os
+import subprocess
 import sys
 import time
 import yaml
@@ -61,7 +62,7 @@ def fetch(url):
         return u.read()
 
 def load_settings():
-    filename = os.path.expanduser('~/.config/tred.yaml')
+    filename = os.path.expanduser('~/.config/trem.yaml')
     if not os.path.exists(filename):
         raise Exception('Config file %s not found.' % filename)
     data = yaml.load(open(filename, 'rb'))
@@ -167,22 +168,23 @@ def format_plain_list(issues):
 
 def format_grouped_list(issues):
     output = ''
-    projects = sorted(list(set([issue['project'] for issue in issues.values()])))
+    projects = list(set([issue['project'] for issue in issues.values()]))
     for project in projects:
-        output += '%s:\n\n' % project.encode('utf-8')
-        for url in sorted(issues, key=lambda url: issues[url]['time']):
-            if issues[url]['project'] == project:
-                output += '- %s\n  %s\n' % (issues[url]['text'].encode('utf-8'), url)
+        purls = [url for url in issues.keys() if issues[url]['project'] == project]
+        purls = sorted(purls, key=lambda url: issues[url]['time'])
+        output += '%s (%u):\n\n' % (project.encode('utf-8'), len(purls))
+        for url in purls:
+            output += '- %s\n  %s\n' % (issues[url]['text'].encode('utf-8'), url)
         output += '\n'
     return output
 
-def email_output(output):
+def email_output(output, count):
     conf = settings['mail']
 
     msg = MIMEMultipart()
     msg.attach(MIMEText(output, _charset='utf-8'))
     msg['From'] = conf['smtp_login']
-    msg['Subject'] = 'Open issues for ' + time.strftime('%Y/%m/%d')
+    msg['Subject'] = 'Open issues for %s (%u)' % (time.strftime('%Y/%m/%d'), count)
     msg['To'] = conf['to']
 
     s = smtplib.SMTP(conf['smtp'], 25)
@@ -196,7 +198,6 @@ def email_output(output):
 
 
 def run():
-    count = 0
     output = u''
 
     load_settings()
@@ -210,9 +211,16 @@ def run():
         output = format_grouped_list(issues)
 
     if '-mail' in sys.argv:
-        email_output(output)
+        email_output(output, len(issues))
     else:
         print output
 
 if __name__ == '__main__':
-    run()
+    if '-e' in sys.argv:
+        if os.environ.has_key('EDITOR'):
+            editor = os.environ['EDITOR']
+        else:
+            editor = 'editor'
+        subprocess.Popen([editor, os.path.expanduser('~/.config/trem.yaml')]).wait()
+    else:
+        run()
