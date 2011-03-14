@@ -21,6 +21,7 @@ import csv
 import json
 import os
 import pycurl
+import re
 import sys
 import time
 import urllib
@@ -46,11 +47,12 @@ def fetch_data(conf):
 def calculate(text, conf):
     income = outcome = left = 0
     records = []
+    cleanup_re = re.compile('[^0-9,]+')
 
     for rec in csv.reader(text.split('\n'), delimiter=';'):
         if rec:
             sign, date, sum_, status, message = rec[:5]
-            sum_ = float(sum_.replace(',', '.')[:-9])
+            sum_ = float(cleanup_re.sub('', sum_).replace(',', '.'))
             if sign == '+':
                 income += sum_
             elif sign == '-':
@@ -58,7 +60,7 @@ def calculate(text, conf):
             mul = sign == '+' and 1 or -1
             records.append([ date, sum_ * mul, message.decode('utf-8') ])
 
-    records = sorted(records, key=lambda r: r[0])
+    records = sorted(records, key=lambda r: time.strptime(r[0], '%d.%m.%Y %H:%M'))
 
     if conf.has_key('json_file'):
         data = { 'income': income, 'outcome': outcome, 'left': income - outcome, 'transactions': records }
