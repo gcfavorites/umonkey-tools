@@ -4,7 +4,7 @@
 # multiple issue trackers and show them in a list, optionally emails it to you
 # (for use with cron).  It supports Google Code, Bugzilla and Github.
 #
-# Settings are read from ~/.config/trem.yaml which must look like this:
+# Settings are read from ~/.config/tremor.yaml which must look like this:
 #
 #   mail:
 #     to: john.doe@gmail.com
@@ -62,7 +62,7 @@ def fetch(url):
         return u.read()
 
 def load_settings():
-    filename = os.path.expanduser('~/.config/trem.yaml')
+    filename = os.path.expanduser('~/.config/tremor.yaml')
     if not os.path.exists(filename):
         raise Exception('Config file %s not found.' % filename)
     data = yaml.load(open(filename, 'rb'))
@@ -238,6 +238,6 @@ if __name__ == '__main__':
             editor = os.environ['EDITOR']
         else:
             editor = 'editor'
-        subprocess.Popen([editor, os.path.expanduser('~/.config/trem.yaml')]).wait()
+        subprocess.Popen([editor, os.path.expanduser('~/.config/tremor.yaml')]).wait()
     else:
         run()
