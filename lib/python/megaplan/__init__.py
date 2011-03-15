@@ -3,19 +3,27 @@
 
 """Megaplan client module.
 
-Example usage:
+Provides a class that implements Megaplan authentication and request signing.
+Only supports POST requests.  The complete API documentation is at:
+
+http://wiki.megaplan.ru/API
+
+To use a password:
 
     import megaplan
     c = megaplan.Client('xyz.megaplan.ru')
-    access_id, secret_key = c.authenticate(login, password)
-    for task in c.get_actual_tasks():
-        print task
+    c.authenticate(login, password)
 
-Example usage without logging in:
+To use tokens:
 
     import megaplan
+    # access_id, secret_key = c.authenticate(login, password)
     c = megaplan.Client('xyz.megaplan.ru', access_id, secret_key)
-    for task in c.get_actual_tasks():
+
+To list actual tasks:
+
+    res = c.request('BumsTaskApiV01/Task/list.api', { 'Status': 'actual' })
+    for task in res['tasks']:
         print task
 """
 
@@ -69,12 +77,23 @@ class Client:
         self.secret_key = secret_key
 
     def authenticate(self, login, password):
-        data = self.request('BumsCommonApiV01/User/authorize.api', { 'Login': login, 'Password': hashlib.md5(password).hexdigest() })
+        """Requests authentication tokens.
+
+        The access_id and secret_key values are returned.  They can be stored
+        and used later to create Client instances that don't need to log in."""
+        data = self.request('BumsCommonApiV01/User/authorize.api', { 'Login': login, 'Password': hashlib.md5(password).hexdigest() }, signed=False)
         self.access_id = data['AccessId']
         self.secret_key = data['SecretKey']
         return self.access_id, self.secret_key
 
     def request(self, uri, args=None, signed=True):
+        """Sends a request, returns the data.
+
+        Args should be a dictionary or None; uri must not begin with a slash
+        (e.g., "BumsTaskApiV01/Task/list.api").  If an error happens, an
+        exception occurs."""
+        if self.access_id is None or self.secret_key is None:
+            raise Exception('Authenticate first.')
         req = Request(self.hostname, self.access_id, self.secret_key, uri, args)
         if signed:
             req.sign()
@@ -83,4 +102,7 @@ class Client:
     # SOME HELPER METHODS
 
     def get_actual_tasks(self):
+        """Returns your active tasks as a list of dictionaries."""
         return self.request('BumsTaskApiV01/Task/list.api', { 'Status': 'actual' })['tasks']
+
+__all__ = [ 'Client' ]
