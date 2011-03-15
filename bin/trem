@@ -147,6 +147,21 @@ def load_googlecode_issues(tracker):
     return issues
 
 
+def load_megaplan_issues(tracker):
+    import megaplan
+
+    issues = {}
+    c = megaplan.Client(tracker['host'], tracker['access_id'], tracker['secret_key'])
+    for task in c.get_actual_tasks():
+        url = 'https://%s/task/%s/card/' % (c.hostname, task['Id'])
+        issues[url] = {
+            'text': task['Name'],
+            'time': int(time.mktime(time.strptime(task['TimeCreated'], '%Y-%m-%d %H:%M:%S'))),
+            'project': tracker['name'],
+        }
+    return issues
+
+
 def load_all_issues():
     issues = {}
     for conf in settings['trackers']:
@@ -158,6 +173,8 @@ def load_all_issues():
                 issues.update(load_bugzilla_issues(conf))
             elif kind == 'github':
                 issues.update(load_github_issues(conf))
+            elif kind == 'megaplan':
+                issues.update(load_megaplan_issues(conf))
     return issues
 
 def format_plain_list(issues):
