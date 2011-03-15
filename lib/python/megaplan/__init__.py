@@ -25,6 +25,8 @@ To list actual tasks:
     res = c.request('BumsTaskApiV01/Task/list.api', { 'Status': 'actual' })
     for task in res['tasks']:
         print task
+
+License: public domain.
 """
 
 import base64
