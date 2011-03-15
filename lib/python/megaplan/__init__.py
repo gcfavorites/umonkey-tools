@@ -26,7 +26,7 @@ To list actual tasks:
     for task in res['tasks']:
         print task
 
-License: public domain.
+License: BSD.
 """
 
 import base64
