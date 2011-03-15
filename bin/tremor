@@ -24,6 +24,11 @@
 #     type: Bugzilla
 #     user: hex@umonkey.net
 #     base: https://bugs.gpodder.org/
+#   - name: work
+#     type: Megaplan
+#     host: xyz.megaplan.ru
+#     access_id: XXXXXXXXXXXXXXXXXXXX
+#     secret_key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 #
 # Supported properties:
 #
