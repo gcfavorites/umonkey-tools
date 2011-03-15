@@ -2,7 +2,7 @@
 #
 # This script collects information about open issues that belong to you across
 # multiple issue trackers and show them in a list, optionally emails it to you
-# (for use with cron).  It supports Google Code, Bugzilla and Github.
+# (for use with cron).  It supports Google Code, Bugzilla, Github and Megaplan.
 #
 # Settings are read from ~/.config/tremor.yaml which must look like this:
 #
