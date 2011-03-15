@@ -79,7 +79,7 @@ class Client:
         self.secret_key = secret_key
 
     def authenticate(self, login, password):
-        """Requests authentication tokens.
+        """Authenticates the client.
 
         The access_id and secret_key values are returned.  They can be stored
         and used later to create Client instances that don't need to log in."""
