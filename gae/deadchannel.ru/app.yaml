@@ -26,5 +26,8 @@ handlers:
   script: handlers.py
   login: admin
 
+- url: /gae-feedback
+  script: feedback.py
+
 - url: .*
   script: handlers.py
