@@ -267,7 +267,7 @@ class HourlyCronHandler(BaseRequestHandler):
 	"""
 	def get(self):
 		hour = util.now().hour
-		if hour < 8 or hour > 22:
+		if hour < 12 or hour > 22:
 			self.response.headers['Content-Type'] = 'text/plain'
 			self.response.out.write('Delayed.')
 			return
