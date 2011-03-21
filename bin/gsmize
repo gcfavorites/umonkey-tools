@@ -1,0 +1,10 @@
+#!/bin/sh
+if [ -z "$1" ]; then
+	echo "Usage: $0 filename.wav"
+	exit 1
+fi
+
+while [ -n "$1" ]; do
+	sox "$1" -r 8000 "$1.gsm" resample -ql
+	shift
+done
