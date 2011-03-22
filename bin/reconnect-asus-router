@@ -1,0 +1,16 @@
+#!/bin/sh
+SETTINGS=$HOME/.asus_router_settings
+if [ ! -f "$SETTINGS" ]; then
+    echo "Please create the $SETTINGS file." >&2
+    exit 1
+fi
+
+. $SETTINGS
+if [ -z "$ASUS_USER" ]; then
+    echo "The ASUS_USER variable was not defined." >&2
+    exit 1
+fi
+
+GET "http://${ASUS_USER}:${ASUS_PASS}@${ASUS_HOST}/apply.cgi?action_script=dhcpc_release" >/dev/null
+sleep 1
+GET "http://${ASUS_USER}:${ASUS_PASS}@${ASUS_HOST}/apply.cgi?action_script=dhcpc_renew" >/dev/null
