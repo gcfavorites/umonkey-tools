@@ -1,0 +1,139 @@
+#!/usr/bin/env python
+# vim: set fileencoding=utf-8:
+
+import csv
+import datetime
+import os
+import re
+import time
+import urllib
+import urllib2
+import yaml
+
+PROJECT_NAME = 'molinos-cms'
+WIKI_PATH = '~/src/molinos-cms/wiki/'
+
+ISSUE_TEMPLATE = u'''#summary Очередной выпуск еженедельной рассылки №%(issue_id)u от %(issue_date_long)s
+#sidebar none
+
+Очередной выпуск еженедельной рассылки, рассказывающей об изменениях в Molinos CMS.  Этот выпуск описывает изменения, случившиеся с %(last_date_short)s по %(issue_date_short)s.  Постоянный адрес этой заметки:
+
+http://code.google.com/p/molinos-cms/wiki/NewsLetter%(issue_id)03u
+
+*Содержание*:
+
+<wiki:toc/>
+
+= Обновление =
+
+Все описанные здесь изменения вошли в стабильную ветку и доступны для использования.  Скачать архив можно по следующему адресу:
+
+http://molinos-cms.googlecode.com/files/molinos-cms-%(issue_date_filename)s-stable.zip
+
+Если у вас уже установлена одна из предыдущих версий, обновиться можно в консоли, командой `pake upgrade`.
+
+%(enhancements)s
+%(defects)s
+
+= Статистика CMS =
+
+На данный момент активно используется %(version_total)u копии Molinos CMS, из них:
+
+  * %(version_812)u копий версии 8.12 (%(version_812_diff)s с прошлого выпуска)
+  * %(version_905)u копий версии 9.05 (%(version_905_diff)s с прошлого выпуска)
+  * %(version_other)u копий других версий (%(version_other_diff)s с прошлого выпуска)
+
+Подробности: http://cms.molinos.ru/stats.php
+'''
+
+def fetch(url):
+    return urllib2.urlopen(urllib2.Request(url)).read()
+
+def get_pending_issues():
+    data = fetch('http://code.google.com/p/molinos-cms/issues/csv?can=1&q=status%3Afixpending&colspec=ID%20Type%20Summary')
+    head = None
+
+    issues = []
+    for row in csv.reader(data.split('\n')):
+        if head is None:
+            head = dict([(row[idx], idx) for idx in range(0, len(row))])
+        elif row:
+            issues.append({
+                'id': row[head['ID']],
+                'type': row[head['Type']],
+                'text': row[head['Summary']].decode('utf-8'),
+            })
+    return issues
+
+def get_next_issue_id():
+    return max([int(x[10:13]) for x in os.listdir(os.path.expanduser(WIKI_PATH)) if x.startswith('NewsLetter') and x[10:13].isdigit()]) + 1
+
+def get_fresh_stats():
+    version_stats = fetch('http://cms.molinos.ru/stats.php')
+
+    return {
+        'date': datetime.date.today(),
+        'issues': len(fetch('http://code.google.com/p/molinos-cms/issues/csv').strip().split('\n')) - 1,
+        'defects': len(fetch('http://code.google.com/p/molinos-cms/issues/csv?can=2&q=Type%3DDefect').strip().split('\n')) - 1,
+        'version_812': int(re.search("<version name='8.12' count='(\d+)'", version_stats).group(1)),
+        'version_905': int(re.search("<version name='9.05' count='(\d+)'", version_stats).group(1)),
+        'version_other': int(re.search("<version name='unknown' count='(\d+)'", version_stats).group(1)),
+    }
+
+def format_issues(issues, label, header):
+    issues = [i for i in issues if i['type'] == label]
+    if not issues:
+        return u''
+    text = u'\n= %s =\n\n' % header
+    for issue in sorted(issues, key=lambda i: i['id']):
+        text += u'  * %s (issue %s)\n' % (issue['text'], issue['id'])
+    return text
+
+def format_diff(value):
+    if value < 0:
+        return str(value)
+    elif value > 0:
+        return '+' + str(value)
+    else:
+        return u'без изменений'
+
+def add_newsletter():
+    cache_fn = os.path.expanduser(os.path.join(WIKI_PATH, 'NewsLetter.yaml'))
+
+    last = yaml.load(open(cache_fn, 'rb').read())
+    fresh = get_fresh_stats()
+
+    issue_id = get_next_issue_id()
+    issues = get_pending_issues()
+
+    args = {
+        'issue_id': issue_id,
+        'issue_date_long': time.strftime('%d.%m.%y'),
+        'issue_date_short': time.strftime('%d.%m'),
+        'issue_date_filename': time.strftime('%Y%m%d'),
+        'last_date_short': last['date'].strftime('%d.%m'),
+        'enhancements': format_issues(issues, 'Enhancement', u'Улучшения'),
+        'defects': format_issues(issues, 'Defect', u'Исправления'),
+        'version_812': fresh['version_812'],
+        'version_812_diff': format_diff(fresh['version_812'] - last['version_812']),
+        'version_905': fresh['version_905'],
+        'version_905_diff': format_diff(fresh['version_905'] - last['version_905']),
+        'version_other': fresh['version_other'],
+        'version_other_diff': format_diff(fresh['version_other'] - last['version_other']),
+        'version_total': sum([fresh['version_812'], fresh['version_905'], fresh['version_other']]),
+        }
+    text = ISSUE_TEMPLATE % args
+
+    """
+    text = u'#summary Выпуск еженедельной рассылки №%u от %s\n#sidebar none\n\n' % (issue_id, time.strftime('%d.%m.%y'))
+    text += u'Очередной выпуск еженедельной рассылки, рассказывающей об изменениях в Molinos CMS.  Этот выпуск описывает изменения, случившиеся с %s по %s.  Постоянный адрес этой заметки:\n\n' % (last['date'].strftime('%d.%m'), time.strftime('%d.%m'))
+    text += u''
+    """
+
+    filename = os.path.expanduser(os.path.join(WIKI_PATH, 'NewsLetter%03u.wiki' % issue_id))
+    open(filename, 'wb').write(text.encode('utf-8'))
+
+    open(cache_fn, 'wb').write(yaml.dump(fresh))
+
+if __name__ == '__main__':
+    add_newsletter()
