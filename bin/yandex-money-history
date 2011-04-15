@@ -62,15 +62,16 @@ def calculate(text, conf):
 
     records = sorted(records, key=lambda r: time.strptime(r[0], '%d.%m.%Y %H:%M'))
 
-    if conf.has_key('json_file'):
-        data = { 'income': income, 'outcome': outcome, 'left': income - outcome, 'transactions': records }
-        open(conf['json_file'], 'wb').write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+    if len(records):
+        if 'json_file' in conf:
+            data = { 'income': income, 'outcome': outcome, 'left': income - outcome, 'transactions': records }
+            open(conf['json_file'], 'wb').write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
 
-    if conf.has_key('csv_file'):
-        writer = csv.writer(open(conf['csv_file'], 'wb'))
-        for row in records:
-            row[2] = row[2].encode('utf-8')
-            writer.writerow(row)
+        if 'csv_file' in conf:
+            writer = csv.writer(open(conf['csv_file'], 'wb'))
+            for row in records:
+                row[2] = row[2].encode('utf-8')
+                writer.writerow(row)
 
     return income, outcome, income - outcome
 
@@ -80,12 +81,12 @@ if __name__ == '__main__':
         confname = sys.argv[1]
     conf = yaml.load(open(confname, 'rb'))
 
-    if not conf.has_key('yandex_money'):
+    if 'yandex_money' not in conf:
         print 'Config file does not have a "yandex_money" section.'
         sys.exit(1)
     conf = conf['yandex_money']
 
-    if not conf.has_key('login') or not conf.has_key('password'):
+    if 'login' not in conf or 'password' not in conf:
         print 'To update Yandex.Money history you must have the %s file with "login", "password" and "csv_file" properties.' % confname
         sys.exit(1)
 
