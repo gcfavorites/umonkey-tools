@@ -107,4 +107,14 @@ class Client:
         """Returns your active tasks as a list of dictionaries."""
         return self.request('BumsTaskApiV01/Task/list.api', { 'Status': 'actual' })['tasks']
 
+    def get_tasks_by_status(self, status=None):
+        """Returns your active tasks as a list of dictionaries."""
+        return self.request('BumsTaskApiV01/Task/list.api', { 'Status': status })['tasks']
+
+    def get_task_details(self, task_id):
+        return self.request('BumsTaskApiV01/Task/card.api', { 'Id': task_id })
+
+    def get_task_comments(self, task_id):
+        return self.request('BumsCommonApiV01/Comment/list.api', { 'SubjectType': 'task', 'SubjectId': task_id })
+
 __all__ = [ 'Client' ]
