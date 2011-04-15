@@ -25,7 +25,7 @@
 #     user: hex@umonkey.net
 #     base: https://bugs.gpodder.org/
 #   - name: work
-#     type: Megaplan
+#     type: megaplan
 #     host: xyz.megaplan.ru
 #     access_id: XXXXXXXXXXXXXXXXXXXX
 #     secret_key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -71,7 +71,7 @@ def load_settings():
     if not os.path.exists(filename):
         raise Exception('Config file %s not found.' % filename)
     data = yaml.load(open(filename, 'rb'))
-    if not data.has_key('trackers'):
+    if 'trackers' not in data:
         raise Exception('Config file does not have a "trackers" section.')
     global settings
     settings = data
@@ -82,7 +82,7 @@ def load_github_issues(tracker):
     data = json.loads(fetch(url))
     issues = {}
     for issue in data['issues']:
-        if not tracker.has_key('user') or tracker['user'] == issue['user']:
+        if 'user' not in tracker or tracker['user'] == issue['user']:
             url = 'https://github.com/%s/issues/%u' % (tracker['name'], issue['number'])
             issues[url] = {
                 'text': issue['title'],
@@ -94,7 +94,7 @@ def load_github_issues(tracker):
 
 def load_bugzilla_issues(tracker):
     for k in ('type', 'user', 'base'):
-        if not tracker.has_key(k):
+        if k not in tracker:
             print >>sys.stderr, 'Tracker %s does not have the "%k" property.' % (tracker['name'], k)
             return []
 
@@ -123,12 +123,12 @@ def load_googlecode_issues(tracker):
         users = [users]
 
     ts_limit = None
-    if tracker.has_key('delay'):
+    if 'delay' in tracker:
         delay = tracker['delay'] or 14
         ts_limit = time.time() - delay * 60 * 60 * 24
 
     query = 'owner:' + tracker['user']
-    if tracker.has_key('reporter'):
+    if 'reporter' in tracker:
         query += ' OR reporter:' + tracker['user']
 
     url = 'http://code.google.com/p/%s/issues/csv?can=2&q=%s&colspec=ID+Summary+Modified' % (tracker['name'], urllib2.quote(query))
@@ -157,7 +157,7 @@ def load_megaplan_issues(tracker):
 
     issues = {}
     c = megaplan.Client(tracker['host'], tracker['access_id'], tracker['secret_key'])
-    for task in c.get_actual_tasks():
+    for task in c.get_tasks_by_status(status = 'status' in tracker and tracker['status'] or 'inprocess'):
         url = 'https://%s/task/%s/card/' % (c.hostname, task['Id'])
         issues[url] = {
             'text': task['Name'],
@@ -170,7 +170,7 @@ def load_megaplan_issues(tracker):
 def load_all_issues():
     issues = {}
     for conf in settings['trackers']:
-        if conf.has_key('type') and conf.has_key('name'):
+        if 'type' in conf and 'name' in conf:
             kind = conf['type'].lower()
             if kind == 'google code':
                 issues.update(load_googlecode_issues(conf))
@@ -211,7 +211,7 @@ def email_output(output, count):
 
     s = smtplib.SMTP(conf['smtp'], 25)
     s.ehlo()
-    if conf.has_key('smtp_tls'):
+    if 'smtp_tls' in conf:
         s.starttls()
         s.ehlo()
     s.login(conf['smtp_login'], conf['smtp_password'])
@@ -239,7 +239,7 @@ def run():
 
 if __name__ == '__main__':
     if '-e' in sys.argv:
-        if os.environ.has_key('EDITOR'):
+        if 'EDITOR' in os.environ:
             editor = os.environ['EDITOR']
         else:
             editor = 'editor'
