@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+# encoding=utf-8
+
+"""Daily photo renaming script.
+
+Renames the files according to the date they're taken (from EXIF)."""
+
+EXIF_DATE_ORIGINAL = 36867
+
+import os
+import sys
+
+import PIL.Image
+import PIL.ExifTags
+
+USAGE = """Usage: dailyphotos [-n] filename.jpg ...
+
+Renames files to YYYYMMDD[,idx].jpg, based on date taken, according to EXIF.
+
+Options:
+    -n   dry run (only show what would be done)"""
+
+if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        print USAGE
+        sys.exit(1)
+
+    dry_run = '-n' in sys.argv
+
+    for fn in sys.argv[1:]:
+        if fn.lower().endswith('.jpg'):
+            date = PIL.Image.open(fn)._getexif().get(EXIF_DATE_ORIGINAL)
+            if date:
+                date = date.split(' ', 1)[0].replace(':', '')
+
+                suffix = 0
+                new_fn = date + '.jpg'
+
+                if fn == new_fn:
+                    continue
+
+                while os.path.exists(new_fn):
+                    suffix += 1
+                    new_fn = '%s,%u.jpg' % (date, suffix)
+
+                if fn != new_fn:
+                    print '%s => %s' % (fn, new_fn)
+                    if not dry_run:
+                        os.rename(fn, new_fn)

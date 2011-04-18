@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+# encoding=utf-8
+
+import os
+import sys
+
+import pyexiv2
+
+USAGE = """Usage: jpegnotes -read|-write filename.jpg ...
+
+Saves data from JPEG to text files and back (-read reads from JPEG and saves to
+filename.txt, -write reads from .txt and writes to .jpg)."""
+
+if __name__ == '__main__':
+    do_read = '-read' in sys.argv
+    do_write = '-write' in sys.argv
+
+    if not do_read and not do_write:
+        print USAGE
+        sys.exit(1)
+
+    for fn in sys.argv[1:]:
+        if fn.lower().endswith('.jpg'):
+            diz = fn + '.txt'
+
+            img = pyexiv2.Image(fn)
+            img.readMetadata()
+
+            if do_read:
+                try:
+                    data = img['Exif.Image.0x010e']
+                    if data.strip():
+                        print '%s => %s' % (fn, diz)
+                        f = open(diz, 'wb')
+                        f.write(img['Exif.Image.0x010e'].strip())
+                        f.close()
+                except KeyError:
+                    pass
+
+            elif do_write:
+                if os.path.exists(diz):
+                    print '%s => %s' % (diz, fn)
+                    f = open(diz, 'rb')
+                    img['Exif.Image.0x010e'] = f.read()
+                    img.writeMetadata()
+                    f.close()
