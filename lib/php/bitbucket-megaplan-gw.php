@@ -18,8 +18,8 @@
  *     ),
  *   );
  *
- * Параметры access_id и secret_key можно получить через API (TODO: делать это
- * через CLI).
+ * Для получения ключей нужно выполнить этот скрипт в консоли с параметром
+ * auth: php -f script.php auth.
  *
  * @author hex@umonkey.net (Justin Forest)
  * @copyright Public Domain
@@ -45,16 +45,29 @@ function dump_data()
 
 
 /**
+ * Загружает конфигураицонный файл.
+ *
+ * Если файл отсутствует, возникает исключение.
+ *
+ * @return array Содержимое файла.
+ */
+function load_config()
+{
+	$config = @include substr(__FILE__, 0, -3) . 'inc';
+	if (false === $config)
+		send_error('Config file not found.');
+	return $config;
+}
+
+
+/**
  * Декодирует содержимое запроса и применяет.
  *
  * @param string $payload Запрос в JSON.
  */
 function process_request($payload)
 {
-    $config = @include substr(__FILE__, 0, -3) . 'inc';
-    if (false === $config)
-        send_error('Config file not found.');
-
+    $config = load_config();
     $data = json_decode($payload);
 
     $repo_user = $data->repository->owner;
@@ -167,8 +180,48 @@ function send_megaplan_request($method, array $data, array $auth, $signed = true
 }
 
 
+/**
+ * Аутентификация пользователя.
+ *
+ * @param array $argv Параметры командной строки.  Требуемая
+ * последовательность: repo_name, user_name, megaplan_login, megaplan_password.
+ */
+function auth_user(array $argv)
+{
+	if (count($argv) != 6)
+		send_error("Usage: php -f {$argv[0]} {$argv[1]} repo/name bitbucket_login megaplan_login megaplan_password");
+
+	$config = load_config();
+
+	if (empty($config['repos'][$argv[2]]))
+		send_error("Repo {$argv[2]} not defined.");
+
+	$auth = array(
+		'host' => $config['repos'][$argv[2]]['host'],
+		);
+
+	$data = array(
+		'Login' => $argv[4],
+		'Password' => md5($argv[5]),
+		);
+
+	$resp = send_megaplan_request('BumsCommonApiV01/User/authorize.api', $data, $auth, false);
+	if ($resp->status->code == 'ok') {
+		$config['committers'][$argv[3]]['access_id'] = $resp->data->AccessId;
+		$config['committers'][$argv[3]]['secret_key'] = $resp->data->SecretKey;
+
+		$config_data = '<?php return ' . var_export($config, true) . ';';
+		file_put_contents(substr(__FILE__, 0, -3) . 'inc', $config_data);
+
+		print "OK\n";
+	}
+}
+
+
 if ('cli' != php_sapi_name()) {
     if (empty($_POST['payload']))
         send_error('No payload.');
     process_request($_POST['payload']);
+} elseif (@$argv[1] == 'auth') {
+	auth_user($argv);
 }
