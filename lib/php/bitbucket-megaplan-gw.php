@@ -4,22 +4,34 @@
  *
  * Используется для связи bitbucket.org с Мегапланом.  При получении сообщения
  * о коммите, содержащего фразу "task номер", отправляет к этой задаче
- * комментарий.
+ * комментарий.  В качестве текста комментария используется всё, что идёт после
+ * строки с указанием задачи.  Пример комментария к коммиту:
+ *
+ *   Исправлена опечатка.
+ *
+ *   Update issue 713
+ *   Исправлена опечатка, в связи с которой не работала какая-то функция.
+ *   Теперь всё должно работать.
+ *
  *
  * Настройки хранятся в файле bitbucket-megaplan-gw.inc (расширение скрипта
  * заменяется на inc), который должен быть следующего вида:
  *
- * <?php return array(
- *   'repos' => array(
- *     'owner/repo' => array('host' => 'xyz.megaplan.ru'),
- *     ),
- *   'committers' => array(
- *     'john.doe' => array('access_id' => 'abc', 'secret_key' => 'xyz'),
- *     ),
- *   );
+ *   <?php return array(
+ *     'repos' => array(
+ *       'owner/repo' => array('host' => 'xyz.megaplan.ru'),
+ *       ),
+ *     'committers' => array(
+ *       'john.doe' => array('access_id' => 'abc', 'secret_key' => 'xyz'),
+ *       ),
+ *     );
+ *
  *
  * Для получения ключей нужно выполнить этот скрипт в консоли с параметром
- * auth: php -f script.php auth.
+ * auth: php -f script.php auth.  К этому моменту должен существовать
+ * конфигурационный файл с описанием доступных репозиториев, т.к. эта
+ * информация нужна для аутентификации в Мегаплане.
+ *
  *
  * @author hex@umonkey.net (Justin Forest)
  * @copyright Public Domain
@@ -30,7 +42,7 @@
 /**
  * Сохраняет содержимое запроса в текстовый файл для отладочных целей.
  */
-function dump_data()
+function dump_request()
 {
     $data = var_export(array(
         'get' => $_GET,
@@ -67,6 +79,9 @@ function load_config()
  */
 function process_request($payload)
 {
+	if ('cli' != php_sapi_name())
+		dump_request();
+
     $config = load_config();
     $data = json_decode($payload);
 
