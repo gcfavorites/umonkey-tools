@@ -37,7 +37,7 @@
  *
  * @author hex@umonkey.net (Justin Forest)
  * @copyright Public Domain
- * @url http://wiki.megaplan.ru/API_rules
+ * @url http://wiki.megaplan.ru/API
  */
 
 
@@ -53,7 +53,7 @@ function dump_request()
         'server' => $_SERVER,
         ), true);
 
-    $filename = substr(__FILE__, 0, -3) . '.txt';
+    $filename = substr(__FILE__, 0, -3) . 'txt';
     file_put_contents($filename, $data);
 }
 
@@ -81,9 +81,6 @@ function load_config()
  */
 function process_request($payload)
 {
-	if ('cli' != php_sapi_name())
-		dump_request();
-
     $config = load_config();
     $data = json_decode($payload);
 
@@ -124,10 +121,18 @@ function process_request($payload)
  */
 function update_mp_issue($issue_id, $comment, array $auth)
 {
+	$work = 0;
+
+	if (preg_match('/^⌚ (\d+)$/m', $comment, $m)) {
+		$work = floatval($m[1]) / 60;
+		$comment = str_replace($m[0], '', $comment);
+	}
+
     return send_megaplan_request('BumsCommonApiV01/Comment/create.api', array(
         'SubjectType' => 'task',
         'SubjectId' => 1000000 + $issue_id,
         'Model[Text]' => $comment,
+		'Model[Work]' => $work,
         ), $auth);
 }
 
@@ -238,7 +243,16 @@ function auth_user(array $argv)
 if ('cli' != php_sapi_name()) {
     if (empty($_POST['payload']))
         send_error('No payload.');
+    dump_request();
     process_request($_POST['payload']);
 } elseif (@$argv[1] == 'auth') {
 	auth_user($argv);
+} elseif (@$argv[1] == 'replay') {
+    $filename = substr(__FILE__, 0, -3) . 'txt';
+    if (!file_exists($filename))
+        send_error("{$filename} does not exist.");
+    $data = eval('return ' . file_get_contents($filename) . ';');
+    if (empty($data['post']['payload']))
+        send_error("Last request did not have a payload.");
+    process_request($data['post']['payload']);
 }
