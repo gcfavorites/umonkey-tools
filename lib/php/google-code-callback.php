@@ -38,6 +38,10 @@ class Megaplan_GoogleCode_HookHandler
     {
         $this->dump_filename = substr(__FILE__, 0, -3) . 'txt';
         $this->config_filename = substr(__FILE__, 0, -3) . 'inc';
+
+        ini_set('error_log', substr(__FILE__, 0, -3) . 'log');
+        error_reporting(E_ALL);
+
         $this->loadConfig();
     }
 
@@ -152,7 +156,7 @@ class Megaplan_GoogleCode_HookHandler
             if ($task_id) {
                 $time_taken = $this->getTimeTaken($message);
                 $message = $this->stripGoogleIssueModifiers(trim($m[2]));
-                $message .= "\n\nhttp://code.google.com/p/molinos-cms/source/detail?r=" . substr($revision->parents[0], 0, 12);
+                $message .= "\n\nhttp://code.google.com/p/molinos-cms/source/detail?r=" . substr($revision->revision, 0, 12);
                 $this->updateMegaplan($project_name, $task_id, $author, $message, $time_taken);
             }
         }
@@ -281,7 +285,7 @@ class Megaplan_GoogleCode_HookHandler
             $parts = explode(': ', $lines[0]);
             if (count($parts) < 2)
                 break;
-            if (!in_array(mb_strtolower($parts[0]), array('status', 'labels')))
+            if (!in_array(mb_strtolower($parts[0]), array('status', 'labels', 'time')))
                 break;
             array_shift($lines);
         }
