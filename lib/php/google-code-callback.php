@@ -154,8 +154,9 @@ class Megaplan_GoogleCode_HookHandler
         if (preg_match('/^(?:Fixes|Update) issue (\d+)(.*)/smi', $message, $m)) {
             $task_id = $this->getMegaplanTaskId($m[1]);
             if ($task_id) {
+				$message = $m[2];
                 $time_taken = $this->getTimeTaken($message);
-                $message = $this->stripGoogleIssueModifiers(trim($m[2]));
+                $message = $this->stripGoogleIssueModifiers(trim($message));
                 $message .= "\n\nhttp://code.google.com/p/molinos-cms/source/detail?r=" . substr($revision->revision, 0, 12);
                 $this->updateMegaplan($project_name, $task_id, $author, $message, $time_taken);
             }
