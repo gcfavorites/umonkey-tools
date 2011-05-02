@@ -8,6 +8,7 @@ import os
 import random
 import re
 import urlparse
+import urllib
 import wsgiref.handlers
 
 # GAE imports
@@ -188,7 +189,7 @@ class SubscribeHandler(BaseRequestHandler):
 			phone.confirm_code = code
 			phone.put()
 			send_sms(phone.phone, u'Код подтверждения подписки на %s: %s' % (config.HOSTNAME, code))
-			redirect = '/subscribe/confirm/phone'
+			redirect = '/subscribe/confirm/phone?number=' + urllib.quote(phone.phone)
 		if email is not None and not email.confirmed:
 			email.confirm_code = code
 			email.put()
@@ -203,7 +204,7 @@ class SubscribeHandler(BaseRequestHandler):
 		if number.startswith('8'):
 			number = '7' + number[1:]
 		if not number.startswith('7'):
-			raise Exception('Phone number must be of this form: +71112223344')
+			number = '7' + number
 		return '+' + number
 
 
@@ -237,7 +238,9 @@ class SubscribeHandler(BaseRequestHandler):
 
 class UnsubscribeHandler(SubscribeHandler):
 	def get(self):
-		self.render('unsubscribe.html')
+		self.render('unsubscribe.html', {
+			'phone': self.request.get('phone'),
+		})
 
 	def _process(self, phone, email):
 		redirect = None
@@ -252,7 +255,7 @@ class UnsubscribeHandler(SubscribeHandler):
 			phone.confirm_code = code
 			phone.put()
 			send_sms(phone.phone, u'Код подтверждения отказа от напоминаний на %s: %s' % (config.HOSTNAME, code))
-			redirect = '/unsubscribe/confirm/phone'
+			redirect = '/unsubscribe/confirm/phone?number=' + urllib.quote(phone.phone)
 		return redirect
 
 
@@ -465,7 +468,9 @@ class SubscribePhoneHandler(BaseRequestHandler):
 	confirmed_value = True
 
 	def get(self):
-		self.render(self.get_template)
+		self.render(self.get_template, {
+			'phone_number': self.request.get('number'),
+		})
 
 	def post(self):
 		code = self.request.get('code')
