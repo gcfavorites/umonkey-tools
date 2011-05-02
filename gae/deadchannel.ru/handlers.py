@@ -6,6 +6,7 @@ import datetime
 import logging
 import os
 import random
+import re
 import urlparse
 import wsgiref.handlers
 
@@ -198,10 +199,12 @@ class SubscribeHandler(BaseRequestHandler):
 
 
 	def __normalize_phone_number(self, number):
-		number = self.request.get('phone_number')
-		if number.startswith('8'): number = '+7' + number[1:]
-		number = number.replace(' ', '')
-		return number
+		number = re.sub('[^0-9]', '', self.request.get('phone_number'))
+		if number.startswith('8'):
+			number = '7' + number[1:]
+		if not number.startswith('7'):
+			raise Exception('Phone number must be of this form: +71112223344')
+		return '+' + number
 
 
 	def add(self):
