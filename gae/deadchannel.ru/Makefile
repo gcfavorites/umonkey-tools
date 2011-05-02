@@ -4,7 +4,7 @@ clean:
 	rm -f dump bulkloader-* *.pyc
 
 upload:
-	cat .hg/gaepass | appcfg.py -e "$(MAIL)" --passin update .
+	cat .gaepass | appcfg.py -e "$(MAIL)" --passin update .
 
 serve: .tmp/blobstore
 	dev_appserver.py --enable_sendmail --use_sqlite --blobstore_path=.tmp/blobstore --datastore_path=.tmp/datastore -a 0.0.0.0 .
