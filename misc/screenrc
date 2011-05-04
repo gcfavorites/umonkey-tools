@@ -1,0 +1,15 @@
+termcapinfo xterm* ti@:te@
+vbell off
+altscreen on
+startup_message off
+
+hardstatus alwayslastline
+hardstatus string '%{= kW}%-Lw%{= KW}%50>%n%f* %t%{= kW}%+Lw%< %{= kG}%-=%D %d %M %Y %c:%s%{-}'
+
+#shelltitle "%|screen:" # wtf?
+screen -t "mail" mutt
+screen -t "rss" newsbeuter
+#screen -t "irssi" irssi
+#screen -t "jabber" freetalk
+screen -t "@umonkey" ttytter -ansi -readline
+screen -t "@tmradio" ttytter-tmradio
