@@ -1,0 +1,5 @@
+This folder contains vim settings that I use on daily basis.  They are grouped
+in files, but can be added directly to ~/.vimrc; to install them all, I symlink
+this folder to ~/.vim/plugins, e.g.:
+
+  ln -fs ~/src/umonkey-tools/misc/vim_plugins ~/.vim/plugins
