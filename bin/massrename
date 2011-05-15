@@ -1,0 +1,39 @@
+#!/bin/sh
+# This simple script lets you rename and move multiple files in a batch after
+# reviewing the destination.  You give it the source files, it lets you edit
+# the destinations using your preferred editor, then moves the files.
+#
+# Target folders are created when needed.  If target file exists, an error is
+# shows and the source file remains in place.
+#
+# License: public domain.
+
+if [ -z "$1" ]; then
+	echo "Usage: $0 files..."
+	exit 1
+fi
+
+TMPFILE=/tmp/massrename.$USER.txt
+
+while [ -n "$1" ]; do
+	echo "$1 $1"
+	shift
+done > $TMPFILE
+
+$EDITOR $TMPFILE
+
+while :; do
+	read src dst || break
+	if [ "$src" != "$dst" ]; then
+		folder=$(dirname $dst)
+		test -d "$folder" || mkdir -p "$folder"
+		if [ -f "$dst" ]; then
+			echo "ER: $dst already exists."
+		else
+			echo "MV: $src >> $dst"
+			mv "$src" "$dst"
+		fi
+	fi
+done < $TMPFILE
+
+rm -f $TMPFILE
