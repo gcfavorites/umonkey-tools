@@ -1,0 +1,62 @@
+#!/usr/bin/env python
+
+import re
+import sys
+import urllib
+import urllib2
+
+
+def fetch(url, args=None, post=False):
+    if args and not post:
+        url += '?' + urllib.urlencode(args)
+
+    data = post and urllib.urlencode(args) or None
+    print 'Fetching %s' % url
+    u = urllib2.urlopen(urllib2.Request(url), data)
+    return u.read()
+
+
+def find_downloadable(playable):
+    links = []
+    r = re.compile('(http://freedownloads.last.fm/download/[^"]+\.mp3)')
+    for page in playable:
+        data = fetch('http://www.last.fm' + page)
+        for url in r.findall(data):
+            links.append(url)
+    return links
+
+
+def find_playable(title):
+    page = 1
+    pages = None
+    links = []
+
+    r1 = re.compile('class="previewbutton[^>]+href="([^"]+)"')
+    r2 = re.compile('page=(\d+)" class="lastpage"')
+
+    while True:
+        data = fetch('http://www.last.fm/search/overview', {
+            'q': title.encode('utf-8'),
+            'type': 'track',
+            'page': str(page),
+        })
+        if pages is None:
+            tmp = r2.search(data)
+            if not tmp:
+                print >>sys.stderr, 'Could not find page count, fix me!'
+                return []
+            pages = int(tmp.group(1))
+        for link in r1.findall(data):
+            links.append(link)
+        page += 1
+        if page > pages:
+            break
+    return links
+
+
+if __name__ == '__main__':
+    for arg in sys.argv[1:]:
+        pages = find_playable(arg.decode('utf-8'))
+        pages = find_downloadable(pages)
+        for page in pages:
+            print page
