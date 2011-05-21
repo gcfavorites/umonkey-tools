@@ -4,7 +4,7 @@ altscreen on
 startup_message off
 
 hardstatus alwayslastline
-hardstatus string '%{= kW}%-Lw%{= KW}%50>%n%f* %t%{= kW}%+Lw%< %{= kG}%-=%D %d %M %Y %c:%s%{-}'
+hardstatus string '%{= kW}%-Lw%{= KW}%50>%n%f* %t%{= kW}%+Lw%< %{= kG}%-=%H:%l | %y.%m.%d %c%{-}'
 
 #shelltitle "%|screen:" # wtf?
 screen -t "mail" mutt
