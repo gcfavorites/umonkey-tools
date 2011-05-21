@@ -140,7 +140,7 @@ class morg:
 				labels = [l for l in issue['labels'] if l != label]
 				if labels:
 					line += u'  [%s]' % u', '.join(sorted(labels))
-				print line
+				print line.encode('utf-8')
 			if not self._config('less-hints'):
 				print "||    |"
 				print "||    +- issue id (use: morg issue edit id)"
