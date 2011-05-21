@@ -19,7 +19,7 @@ def fetch(url, args=None, post=False):
 def find_downloadable(playable):
     links = []
     r = re.compile('(http://freedownloads.last.fm/download/[^"]+\.mp3)')
-    for page in playable:
+    for page in sorted(playable):
         data = fetch('http://www.last.fm' + page)
         for url in r.findall(data):
             links.append(url)
