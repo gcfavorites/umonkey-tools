@@ -157,12 +157,13 @@ def load_megaplan_issues(tracker):
 
     issues = {}
     c = megaplan.Client(tracker['host'], tracker['access_id'], tracker['secret_key'])
-    for task in c.get_tasks_by_status(status = 'status' in tracker and tracker['status'] or 'inprocess'):
+    for task in c.get_tasks_by_status(status = 'status' in tracker and tracker['status'] or 'actual'):
         url = 'https://%s/task/%s/card/' % (c.hostname, task['Id'])
         issues[url] = {
             'text': task['Name'],
             'time': int(time.mktime(time.strptime(task['TimeCreated'], '%Y-%m-%d %H:%M:%S'))),
             'project': tracker['name'],
+            'sort': task.get('Deadline') or '9999-99-99',
         }
     return issues
 
@@ -193,7 +194,7 @@ def format_grouped_list(issues):
     projects = list(set([issue['project'] for issue in issues.values()]))
     for project in projects:
         purls = [url for url in issues.keys() if issues[url]['project'] == project]
-        purls = sorted(purls, key=lambda url: issues[url]['time'])
+        purls = sorted(purls, key=lambda url: (issues[url].get('sort'), issues[url]['time']))
         output += '%s (%u):\n\n' % (project.encode('utf-8'), len(purls))
         for url in purls:
             output += '- %s\n  %s\n' % (issues[url]['text'].encode('utf-8'), url)
