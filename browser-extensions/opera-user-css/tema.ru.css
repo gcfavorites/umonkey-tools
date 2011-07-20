@@ -1,0 +1,9 @@
+/**
+ * Уменьшение левого отступа, чтобы картинки полностью влезали в EEE PC.
+ */
+table.pole {
+	margin-left: 0 !important;
+}
+table.pole td {
+	padding-left: 4px !important;
+}
