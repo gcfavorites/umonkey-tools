@@ -1,0 +1,15 @@
+#!/bin/sh
+
+if [ -z "$(which text2wave)" ]; then
+	echo "Please install festival first, e.g.:"
+	echo "sudo apt-get install festival festvox-ru"
+	exit 1
+fi
+
+if [ -z "$1" ]; then
+	echo "Usage: $0 filename.txt"
+	echo "Writes output to filename.txt.wav and plays it using mplayer."
+	exit 1
+fi
+
+text2wave -f 44100 -eval '(voice_msu_ru_nsh_clunits)' "$1" -o "$1.wav" && mplayer "$1.wav"
