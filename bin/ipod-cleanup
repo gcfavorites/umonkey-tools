@@ -4,6 +4,7 @@
 # Removes played episodes from an iPod.
 
 import os
+import subprocess
 import sys
 
 try:
@@ -12,14 +13,13 @@ except:
     print "Please install python-gpod."
     sys.exit(1)
 
-def main(argv = sys.argv):
-    mountpoint = argv[1]
 
+def process_folder(mountpoint):
     itdb = gpod.itdb_parse(mountpoint, None)
     if itdb is None:
-        print "iPod files not found."
-    itdb.mountpoint = mountpoint
+        print "iPod files not found in %s." % path
 
+    itdb.mountpoint = mountpoint
     playlist = gpod.itdb_playlist_podcasts(itdb)
 
     save = False
@@ -70,5 +70,21 @@ def main(argv = sys.argv):
     else:
       print "* nothing to do"
 
+
+def main():
+    folders = sys.argv[1:]
+    if not folders:
+        for line in subprocess.check_output(["mount"]).split("\n"):
+            parts = line.split(" ")
+            if len(parts) < 5:
+                continue
+            if parts[4] != "vfat":
+                continue
+            folders.append(parts[2])
+
+    for folder in folders:
+        process_folder(folder)
+
+
 if __name__ == "__main__":
-    sys.exit( main())
+    main()
