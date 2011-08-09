@@ -2,6 +2,7 @@
 
 import re
 import sys
+import time
 import urllib
 import urllib2
 
@@ -12,14 +13,21 @@ def fetch(url, args=None, post=False):
 
     data = post and urllib.urlencode(args) or None
     print 'Fetching %s' % url
-    u = urllib2.urlopen(urllib2.Request(url), data)
-    return u.read()
+    for x in range(3):
+        try:
+            u = urllib2.urlopen(urllib2.Request(url), data)
+            return u.read()
+        except Exception, e:
+            if x < 2:
+                print 'Error: %s, retrying in 1 second.' % e
+                time.sleep(1)
+    return ''
 
 
 def find_downloadable(playable):
     links = []
     r = re.compile('(http://freedownloads.last.fm/download/[^"]+\.mp3)')
-    for page in sorted(playable):
+    for page in sorted(playable, key=lambda u: u.lower()):
         data = fetch('http://www.last.fm' + page)
         for url in r.findall(data):
             links.append(url)
@@ -46,6 +54,7 @@ def find_playable(title):
                 print >>sys.stderr, 'Could not find page count, fix me!'
                 return []
             pages = int(tmp.group(1))
+            print 'There are %u pages.' % pages
         for link in r1.findall(data):
             links.append(link)
         page += 1
@@ -58,5 +67,13 @@ if __name__ == '__main__':
     for arg in sys.argv[1:]:
         pages = find_playable(arg.decode('utf-8'))
         pages = find_downloadable(pages)
-        for page in pages:
-            print page
+
+        if pages:
+            for page in pages:
+                print page
+            f = open('urls.txt', 'wb')
+            f.write('\n'.join(pages))
+            f.close()
+            print "Wrote urls.txt"
+        else:
+            print 'No downloadable files.'
