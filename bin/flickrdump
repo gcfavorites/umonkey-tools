@@ -1,0 +1,144 @@
+import os
+import sys
+import traceback
+import urllib2
+
+try:
+    import flickrapi
+except ImportError:
+    print "Please install flickrapi, see http://stuvel.eu/flickrapi"
+    exit(1)
+
+
+def fetch_photos(user_id, api_key, secret_key):
+    api = flickrapi.FlickrAPI(api_key, api_secret)
+
+    """
+    (token, frob) = api.get_token_part_one(perms="read")
+    if not token:
+        raw_input("Press ENTER after you authorized this program")
+    api.get_token_part_two((token, frob))
+    """
+
+    page = 1
+    pages = 2
+
+    while page < pages:
+        photos = api.photos_search(user_id=user_id, page=page)[0]
+
+        attrs = dict(photos.items())
+        pages = int(attrs["pages"])
+
+        print "Looking at page %s out of %s" % (page, pages)
+
+        for photo in photos:
+            try:
+                photo_id = photo.get("id")
+
+                if os.path.exists("%s.yaml" % photo_id):
+                    continue
+
+                info = get_photo_info(api, photo_id)
+
+                sizes = get_photo_sizes(api, photo_id)
+                if "Original" in sizes:
+                    info["source"] = sizes["Original"]
+
+                info["ctx"] = get_photo_contexts(api, photo_id)
+                write_photo(photo_id, info)
+            except KeyboardInterrupt:
+                print "Interrupted."
+                exit(1)
+            except Exception, e:
+                print "Error fetching photo %s: %s\n%s" % (photo_id, e, traceback.format_exc(e))
+
+        page += 1
+
+
+def get_photo_info(api, photo_id):
+    data = {"tags": []}
+
+    info = api.photos_getInfo(photo_id=photo_id)[0]
+    for sub in info:
+        if sub.tag == "title":
+            data["title"] = sub.text
+        elif sub.tag == "description":
+            if sub.text:
+                data["description"] = sub.text
+        elif sub.tag == "dates":
+            attrs = dict(sub.items())
+            if "taken" in attrs:
+                data["date"] = attrs["taken"]
+        elif sub.tag == "location":
+            attrs = dict(sub.items())
+            if "latitude" in attrs and "longitude" in attrs:
+                data["location"] = "%s,%s" % (attrs["latitude"], attrs["longitude"])
+        elif sub.tag == "tags":
+            for tag in sub:
+                attrs = dict(tag.items())
+                data["tags"].append(attrs["raw"])
+        elif sub.tag == "urls":
+            for url in sub:
+                attrs = dict(url.items())
+                if attrs["type"] == "photopage":
+                    data["url"] = url.text
+        elif sub.tag == "visibility":
+            for k, v in sub.items():
+                if int(v):
+                    data[k] = v
+        else:
+            pass  # print sub.tag, sub.text, sub.items()
+
+    return data
+
+
+def get_photo_sizes(api, photo_id):
+    data = {}
+    for size in api.photos_getSizes(photo_id=photo_id)[0]:
+        attrs = dict(size.items())
+        data[attrs["label"]] = attrs["source"]
+    return data
+
+
+def get_photo_contexts(api, photo_id):
+    data = {}
+    items = api.photos_getAllContexts(photo_id=photo_id)
+    if len(items):
+        for ctx in items[0]:
+            print ctx.tag, dict(ctx.items())
+    return data
+
+
+def write_photo(photo_id, data):
+    output = u""
+    for k, v in sorted(data.items()):
+        if not v:
+            continue
+        if k != "description":
+            if type(v) == list:
+                v = u", ".join(v)
+            output += u"%s: %s\n" % (k, v)
+    if "description" in data:
+        output += u"---\n%s" % data["description"]
+
+    filename = "%s.yaml" % photo_id
+    file(filename, "wb").write(output.encode("utf-8"))
+    print "Wrote %s" % filename
+
+    if "source" in data:
+        filename = "%s.jpg" % photo_id
+        file(filename, "wb").write(fetch(data["source"]).read())
+        print "Wrote %s" % filename
+
+
+def fetch(url):
+    return urllib2.urlopen(urllib2.Request(url))
+
+
+fetch_photos("49664173@N00")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 4:
+        print "Usage: %s user_id api_key secret_key" % sys.argv[0]
+        exit(1)
+    fetch_photos(sys.argv[0], sys.argv[1], sys.argv[2])
