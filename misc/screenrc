@@ -4,7 +4,7 @@ altscreen on
 startup_message off
 
 hardstatus alwayslastline
-hardstatus string '%{= kW}%-Lw%{= KW}%50>%n%f* %t%{= kW}%+Lw%< %{= kG}%-=%H:%l | %y.%m.%d %c%{-}'
+hardstatus string '%{= kW}%-Lw%{= KW}%50>%n%f* %t%{= kW}%+Lw%< %{= kG}%-=%H:%l | %d.%m %c%{-}'
 
 #shelltitle "%|screen:" # wtf?
 screen -t "mail" mutt
@@ -13,3 +13,4 @@ screen -t "rss" newsbeuter
 #screen -t "jabber" freetalk
 screen -t "@umonkey" ttytter -ansi -readline
 screen -t "@tmradio" ttytter-tmradio
+screen -t "rss.dl" podbeuter
