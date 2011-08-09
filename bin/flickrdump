@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# encoding=utf-8
+
 import os
 import sys
 import traceback
@@ -10,7 +13,7 @@ except ImportError:
     exit(1)
 
 
-def fetch_photos(user_id, api_key, secret_key):
+def fetch_photos(user_id, api_key, api_secret):
     api = flickrapi.FlickrAPI(api_key, api_secret)
 
     """
@@ -31,12 +34,17 @@ def fetch_photos(user_id, api_key, secret_key):
 
         print "Looking at page %s out of %s" % (page, pages)
 
+        idx = 0
         for photo in photos:
+            idx += 1
+
             try:
                 photo_id = photo.get("id")
 
-                if os.path.exists("%s.yaml" % photo_id):
+                if os.path.exists("%s.yaml" % photo_id) and os.path.exists("%s.jpg" % photo_id):
                     continue
+
+                print "[%u/%u] extracting %s.jpg" % (idx, len(photos), photo_id)
 
                 info = get_photo_info(api, photo_id)
 
@@ -123,22 +131,20 @@ def write_photo(photo_id, data):
 
     filename = "%s.yaml" % photo_id
     file(filename, "wb").write(output.encode("utf-8"))
-    print "Wrote %s" % filename
+    # print "Wrote %s" % filename
 
     if "source" in data:
         filename = "%s.jpg" % photo_id
         file(filename, "wb").write(fetch(data["source"]).read())
-        print "Wrote %s" % filename
+        # print "Wrote %s" % filename
 
 
 def fetch(url):
     return urllib2.urlopen(urllib2.Request(url))
 
 
-fetch_photos("49664173@N00")
-
 if __name__ == "__main__":
     if len(sys.argv) != 4:
         print "Usage: %s user_id api_key secret_key" % sys.argv[0]
         exit(1)
-    fetch_photos(sys.argv[0], sys.argv[1], sys.argv[2])
+    fetch_photos(sys.argv[1], sys.argv[2], sys.argv[3])
