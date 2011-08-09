@@ -1,0 +1,7 @@
+#!/bin/sh
+if [ -z "$1" ]; then
+	echo "Usage: $0 filename.jpg"
+	exit 1
+fi
+
+python ~/src/sites/umonkey.net/macros.py new-photo $*
