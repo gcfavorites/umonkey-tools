@@ -6,3 +6,4 @@ gae/.*\/config\.py
 gae/\.gae/
 misc/tmradio-client/debian/DEBIAN/control
 misc/tmradio-client/debian/usr
+lib/python/podcatcher/podcatcher.*
