@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+# encoding=utf-8
+
+import os
+import subprocess
+import sys
+import tempfile
+
+import mutagen
+import mutagen.easyid3 as easyid3
+
+
+def edit_tags(filename):
+    tags = mutagen.File(filename, easy=True)
+    text = u"\n".join(sorted([u"%s: %s" % (k, v[0]) for k, v in tags.items()]))
+
+    tfname = filename + ".txt"
+    file(tfname, "wb").write(text.encode("utf-8"))
+    subprocess.Popen(["editor", tfname]).wait()
+
+    for line in file(tfname, "rb").read().decode("utf-8").split("\n"):
+        if line:
+            tag, value = line.split(":", 1)
+            tags[tag] = [value.strip()]
+
+    tags.save()
+    os.unlink(tfname)
+
+
+def process_file(filename):
+    tmpname = tempfile.mktemp(suffix=".wav")
+    print >>sys.stderr, "Resampling to %s" % tmpname
+    subprocess.Popen(["sox", filename, "-r", "44100", "-c", "2", tmpname]).wait()
+
+    mp3name = os.path.splitext(filename)[0] + ".mp3"
+    print >>sys.stderr, "Transcoding to %s" % mp3name
+    subprocess.Popen(["lame", "--preset", "extreme", tmpname, mp3name]).wait()
+    os.unlink(tmpname)
+
+    print >>sys.stderr, "Calculating ReplayGain for %s" % mp3name
+    subprocess.Popen(["mp3gain", mp3name])
+
+
+if __name__ == "__main__":
+    easyid3.EasyID3.RegisterTXXXKey('ardj', 'ardj')
+    for arg in sys.argv[1:]:
+        # edit_tags(arg)
+        process_file(arg)
