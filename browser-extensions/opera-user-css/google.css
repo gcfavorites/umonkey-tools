@@ -1,0 +1,13 @@
+/**
+ * Disable the +1 button.
+ */
+button.esw {
+	display: none !important;
+}
+
+/**
+ * Disable the zoom button.
+ */
+button.vspib {
+	display: none !important;
+}
