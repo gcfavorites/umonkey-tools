@@ -1,0 +1,19 @@
+#!/bin/sh
+# SSH Agent Forwarding fix for GNU Screen.
+#
+# This script fixed the agent forwarding problem when you reattach to an
+# existing GNU Screen session.  Name it "ssh", copy to ~/bin and add that to
+# $PATH.
+#
+# Longer description: http://umonkey.net/blog/157/
+#
+# License: Public Domain.
+
+export SSH_AUTH_SOCK=$(find /tmp/ssh-* -name "agent.*" -user $USER 2>/dev/null | head -1)
+COMMAND=/usr/bin/$(basename $0)
+if [ -x "$COMMAND" ]; then
+    $COMMAND $*
+else
+    echo "Oops: no $COMMAND"
+    exit 1
+fi
