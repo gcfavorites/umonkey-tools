@@ -1,0 +1,43 @@
+#!/bin/bash
+#
+# This script unloads all PulseAudio modules with the specified name.
+#
+# The problem is that pactl only lets you unload modules by ID which you can
+# only find in a text listing, which you need to parse in scripts to disable a
+# specific device.  Which is quite complex.  This script solves that problem.
+#
+# @author hex@umonkey.net (umonkey)
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 module_name ..."
+    echo "Listing available modules:"
+fi
+
+MODLIST=""
+LAST_ID=""
+
+while read prefix arg args; do
+    if [ "$prefix" = "Module" ]; then
+        LAST_ID="${arg:1}"
+    elif [ "$prefix" = "Name:" -a -n "$LAST_ID" ]; then
+        if [ -z "$1" ]; then
+            echo "Found module: $LAST_ID ($arg)"
+            LAST_ID=""
+        else
+            case $arg in
+            $1)
+                # echo "Module $LAST_ID ($arg) matches, will unload."
+                MODLIST="$LAST_ID $MODLIST"
+                LAST_ID=""
+                ;;
+            esac
+        fi
+    fi
+done < <( pactl list )
+
+if [ -n "$1" ]; then
+    for id in $MODLIST; do
+        echo "pactl unload-module $id"
+        pactl unload-module $id
+    done
+fi
