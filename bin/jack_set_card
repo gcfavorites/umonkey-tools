@@ -1,0 +1,58 @@
+#!/bin/sh
+#
+# Changes the JACK sound device on the fly with minimal damage to running programs.
+#
+# The damage mostly lies in PulseAudio, which usually segfaults if jackd dies,
+# and with PulseAudio dies Skype, hangs mplayer and other bad things happen.
+# This script properly unloads PulseAudio modules then loads them when JACK is
+# ready to be restarted; if you don't use PulseAudio, JACK is just started.
+
+AVAILABLE_CARDS="$(aplay -L | grep CARD= | cut -d: -f2 | cut -d, -f1 | cut -d= -f2 | sort -u | xargs echo)"
+if [ -n "$1" ]; then
+    CARDNAME="$1"
+    if [ -z "$(aplay -L | grep CARD=$1, )" ]; then
+        echo "No such card: $1, available options: $AVAILABLE_CARDS."
+        exit 1
+    fi
+elif [ -n "$(aplay -L | grep 'CARD=USB')" ]; then
+    CARDNAME="USB"
+else
+    CARDNAME="Intel"
+fi
+
+CONFIG="/usr/bin/jackd -dalsa -dhw:$CARDNAME -r44100 -p1024 -n2 -s -H -M"
+CONFIG_NAME=$HOME/.jackdrc
+
+if [ "$CONFIG" = "$(cat $CONFIG_NAME)" ]; then
+    echo "Current card: $CARDNAME, available options: $AVAILABLE_CARDS."
+    exit 0
+fi
+
+echo "Switching to $CARDNAME."
+echo -n "$CONFIG" > $CONFIG_NAME
+
+HAVE_JACK="$(pgrep -u $USER jackd)"
+HAVE_PULSE="$(pgrep -u $USER pulseaudio)"
+
+if [ -n "$HAVE_PULSE" ]; then
+    echo "Unloading PulseAudio modules."
+    pactl-unload-by-name "module-jack-*"
+fi
+
+if [ -n "$HAVE_JACK" ]; then
+    echo "Stopping JACK."
+    pkill -9 -u $USER jackd
+fi
+
+if [ -n "$HAVE_PULSE" ]; then
+    echo "Loading PulseAudio modules."
+    pactl load-module module-jack-sink
+    pactl load-module module-jack-source
+else
+    echo "Starting the JACK daemon."
+    . $CONFIG_NAME
+fi
+
+pkill -u $USER jack.plumbing
+echo "Restarting jack.plumbing"
+jack.plumbing >/dev/null 2>&1 &
