@@ -6,11 +6,16 @@ startup_message off
 hardstatus alwayslastline
 hardstatus string '%{= kW}%-Lw%{= KW}%50>%n%f* %t%{= kW}%+Lw%< %{= kG}%-=%H:%l | %d.%m %c%{-}'
 
-#shelltitle "%|screen:" # wtf?
-screen -t "mail" mutt
-screen -t "rss" newsbeuter
-#screen -t "irssi" irssi
-#screen -t "jabber" freetalk
-screen -t "@umonkey" ttytter -ansi -readline
-screen -t "@tmradio" ttytter-tmradio
-screen -t "rss.dl" podbeuter
+setenv PREEXEC mutt
+screen -t "mail" $SHELL
+
+setenv PREEXEC newsbeuter
+screen -t "rss" $SHELL
+
+setenv PREEXEC "ttytter -ansi -readline"
+screen -t "@umonkey" $SHELL
+
+setenv PREEXEC "ttytter-tmradio"
+screen -t "@tmradio" $SHELL
+
+unsetenv PREEXEC
