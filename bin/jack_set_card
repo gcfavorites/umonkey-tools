@@ -38,16 +38,21 @@ if [ "$CONFIG" = "$(cat $CONFIG_NAME)" ]; then
     exit 0
 fi
 
-echo "Switching to $CARDNAME."
-echo -n "$CONFIG" > $CONFIG_NAME
-
 HAVE_JACK="$(pgrep -u $USER jackd)"
 HAVE_PULSE="$(pgrep -u $USER pulseaudio)"
 
 if [ -n "$HAVE_PULSE" ]; then
+    if [ -z "$(which pactl-unload-by-name)" ]; then
+        echo "Please install pactl-unload-by-name (copy to your \$PATH) from here:"
+        echo "http://umonkey-tools.googlecode.com/hg/bin/pactl-unload-by-name"
+        exit 1
+    fi
     echo "Unloading PulseAudio modules."
     pactl-unload-by-name "module-jack-*"
 fi
+
+echo "Switching to $CARDNAME."
+echo -n "$CONFIG" > $CONFIG_NAME
 
 if [ -n "$HAVE_JACK" ]; then
     echo "Stopping JACK."
