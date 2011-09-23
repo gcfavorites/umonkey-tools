@@ -1,11 +1,17 @@
 #!/bin/sh
 #
-# Changes the JACK sound device on the fly with minimal damage to running programs.
+# Changes the JACK sound device on the fly with minimal damage to running
+# programs.  Useful for those who frequently unplug their USB sound cards, e.g.
+# if you need to move your laptop to the kitchen and continue watching the
+# movie with the built-in audio.
 #
 # The damage mostly lies in PulseAudio, which usually segfaults if jackd dies,
 # and with PulseAudio dies Skype, hangs mplayer and other bad things happen.
 # This script properly unloads PulseAudio modules then loads them when JACK is
 # ready to be restarted; if you don't use PulseAudio, JACK is just started.
+#
+# @author hex@umonkey.net (Justin Forest)
+# @license Public Domain
 
 AVAILABLE_CARDS="$(aplay -L | grep CARD= | cut -d: -f2 | cut -d, -f1 | cut -d= -f2 | sort -u | xargs echo)"
 if [ -n "$1" ]; then
