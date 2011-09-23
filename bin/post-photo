@@ -5,3 +5,4 @@ if [ -z "$1" ]; then
 fi
 
 python ~/src/sites/umonkey.net/macros.py new-photo $*
+make -C ~/src/sites/umonkey.net build

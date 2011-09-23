@@ -26,7 +26,7 @@ def fetch_photos(user_id, api_key, api_secret):
     page = 1
     pages = 2
 
-    while page < pages:
+    while page <= pages:
         photos = api.photos_search(user_id=user_id, page=page)[0]
 
         attrs = dict(photos.items())
