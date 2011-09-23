@@ -20,8 +20,11 @@ def edit_tags(filename):
 
     for line in file(tfname, "rb").read().decode("utf-8").split("\n"):
         if line:
-            tag, value = line.split(":", 1)
-            tags[tag] = [value.strip()]
+            try:
+                tag, value = line.split(":", 1)
+                tags[tag] = [value.strip()]
+            except Exception, e:
+                print >>sys.stderr, "Could not set a tag: %s" % e
 
     tags.save()
     os.unlink(tfname)
@@ -37,12 +40,20 @@ def process_file(filename):
     subprocess.Popen(["lame", "--preset", "extreme", tmpname, mp3name]).wait()
     os.unlink(tmpname)
 
+    edit_tags(mp3name)
+
     print >>sys.stderr, "Calculating ReplayGain for %s" % mp3name
-    subprocess.Popen(["mp3gain", mp3name])
+    subprocess.Popen(["mp3gain", mp3name], stdout=subprocess.PIPE)
+
+    print >>sys.stderr, "Done."
 
 
 if __name__ == "__main__":
+    edit_only = "-e" in sys.argv
     easyid3.EasyID3.RegisterTXXXKey('ardj', 'ardj')
     for arg in sys.argv[1:]:
-        # edit_tags(arg)
-        process_file(arg)
+        if os.path.exists(arg):
+            if edit_only:
+                edit_tags(arg)
+            else:
+                process_file(arg)
