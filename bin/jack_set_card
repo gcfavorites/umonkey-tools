@@ -57,12 +57,14 @@ echo -n "$CONFIG" > $CONFIG_NAME
 if [ -n "$HAVE_JACK" ]; then
     echo "Stopping JACK."
     pkill -9 -u $USER jackd
+    sleep 1
 fi
 
 if [ -n "$HAVE_PULSE" ]; then
-    echo "Loading PulseAudio modules."
-    pactl load-module module-jack-sink
-    pactl load-module module-jack-source
+    echo "Loading PulseAudio JACK sink."
+    pactl load-module module-jack-sink >/dev/null
+    echo "Loading PulseAudio JACK source."
+    pactl load-module module-jack-source >/dev/null
 else
     echo "Starting the JACK daemon."
     . $CONFIG_NAME
