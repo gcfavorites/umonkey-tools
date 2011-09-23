@@ -17,7 +17,8 @@ except:
 def process_folder(mountpoint):
     itdb = gpod.itdb_parse(mountpoint, None)
     if itdb is None:
-        print "iPod files not found in %s." % path
+        print "iPod files not found in %s." % mountpoint
+        return
 
     itdb.mountpoint = mountpoint
     playlist = gpod.itdb_playlist_podcasts(itdb)

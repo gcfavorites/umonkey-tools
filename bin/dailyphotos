@@ -28,7 +28,7 @@ if __name__ == '__main__':
     dry_run = '-n' in sys.argv
 
     for fn in sys.argv[1:]:
-        if fn.lower().endswith('.jpg'):
+        if fn.lower().endswith('.jpg') and os.path.exists(fn):
             date = PIL.Image.open(fn)._getexif().get(EXIF_DATE_ORIGINAL)
             if date:
                 date = date.split(' ', 1)[0].replace(':', '')
