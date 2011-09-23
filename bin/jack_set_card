@@ -63,6 +63,8 @@ else
     . $CONFIG_NAME
 fi
 
-pkill -u $USER jack.plumbing
-echo "Restarting jack.plumbing"
-jack.plumbing >/dev/null 2>&1 &
+if [ -n "$(which jack.plumbing)" ]; then
+    echo "Restarting jack.plumbing"
+    pkill -u $USER jack.plumbing
+    jack.plumbing >/dev/null 2>&1 &
+fi
