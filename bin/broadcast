@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+# Broadcasting script.
+
+if [ -z "$1" ]; then
+  echo "Usage: $0 config"
+  echo "Configuratio files are stored in ~/.config/darkice"
+  ls -ldh ~/.config/darkice/*.cfg 2>/dev/null
+  exit 1
+fi
+
+CONFIG="$HOME/.config/darkice/$1.cfg"
+if [ ! -f "$CONFIG" ]; then
+  echo "Configuration file $CONFIG does not exist."
+  exit 1
+fi
+
+if [ -z "$(which darkice)" ]; then
+    echo "Need to install darkice."
+    sudo apt-get install darkice
+fi
+
+# Stop broadcasting when this script ends.
+trap "pkill darkice" INT
+
+
+# Stop some CPU and network hungry programs.
+pkill -9 opera
+pkill -9 rtorrent
+
+
+# Start plumbing if the config file exists.
+PLUMBING=$HOME/.jack.plumbing
+test -f ~/.jack.plumbing && PLUMBING=~/.jack.plumbing || PLUMBING=/etc/jack.plumbing
+if [ -f "$PLUMBING" ]; then
+    echo "Maintaining port connections according to $PLUMBING"
+    jack.plumbing >$HOME/jack.plumbing.log 2>&1 &
+else
+    echo "WARNING: port connections not configured, see man jack.plumbing"
+fi
+
+
+# Stop any running instance of mplayer.
+pkill mplayer
+
+# Start broadcasting, log to a file and wait for 1 second to connect.
+darkice -v 10 -c "$CONFIG" >>"$HOME/darkice_$1.log" 2>&1 &
+sleep 1
+
+# Play any intros.
+for f in intro*mp3; do
+  if [ -f "$f" ]; then
+    echo "Playing $f, press Q to skip."
+    mplayer -nolirc -really-quiet $f
+  else
+    echo "(I would now play intro*mp3, but you don't have any.)"
+  fi
+done
+
+echo "Press ^C to disconnect from the server and stop."
+wait
