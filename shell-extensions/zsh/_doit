@@ -1,7 +1,9 @@
 #compdef doit
+#
+# zsh completion script for doit.
 
 _doit() {
-	local curcontext="$curcontext" state line
+	local curcontext="$curcontext" state line tasks
 	typeset -A opt_args
 
 	_arguments "1: :->task"
@@ -9,7 +11,20 @@ _doit() {
 	case $state in
 	task)
 		if [ -f dodo.py ]; then
-			compadd "$@" $(GREP_OPTIONS="" grep -E '^def task_[^_]' dodo.py | sort | sed -re 's/^def task_([a-z_]*).*/\1/g' | xargs echo)
+			tasks=()
+			while read line
+			do
+				case "$line" in
+				# Private task, ignore.
+				(def[ \t]*task__*)
+					;;
+				(def[ \t]*task_[[:alnum:]_]*)
+					line=${line##def[ \t]*task_}
+					line=${line%%\(*}
+					tasks[$(($#tasks+1))]=$line
+				esac
+			done < dodo.py
+			compadd "$@" $tasks
 		fi
 		;;
 	*)
