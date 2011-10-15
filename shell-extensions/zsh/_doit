@@ -1,0 +1,18 @@
+#compdef doit
+
+_doit() {
+	local curcontext="$curcontext" state line
+	typeset -A opt_args
+
+	_arguments "1: :->task"
+
+	case $state in
+	task)
+		if [ -f dodo.py ]; then
+			compadd "$@" $(GREP_OPTIONS="" grep -E '^def task_[^_]' dodo.py | sort | sed -re 's/^def task_([a-z_]*).*/\1/g' | xargs echo)
+		fi
+		;;
+	*)
+		_files
+	esac
+}
