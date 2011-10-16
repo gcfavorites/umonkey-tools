@@ -2,11 +2,25 @@
 #
 # zsh completion script for doit.
 
+parser="
+try: import dodo
+except: exit(0)
+match = lambda name: name.startswith('task_') and not name.startswith('task__')
+tasks = [f for f in dir(dodo) if match(f)]
+args = lambda params: ['--' + param['long'] for param in params]
+pnames = lambda data: isinstance(data, dict) and args(data.get('params', [])) or []
+ftask = lambda task: (task[5:], ' '.join(pnames(getattr(dodo, task)())))
+tlist = [' '.join(ftask(task)) for task in tasks]
+print '\\\\n'.join(tlist)
+"
+
 _doit() {
-	local curcontext="$curcontext" state line tasks
+	local curcontext="$curcontext" state line tasks args
 	typeset -A opt_args
 
-	_arguments "1: :->task"
+	_arguments \
+        "1:Commands:->task" \
+        "*:Arguments:->args"
 
 	case $state in
 	task)
@@ -27,6 +41,14 @@ _doit() {
 			compadd "$@" $tasks
 		fi
 		;;
+    args)
+        echo $parser | python | while read line args
+        do
+            if [[ $words[2] = $line ]]; then
+                compadd - ${(s: :)args}
+            fi
+        done
+        ;;
 	*)
 		_files
 	esac
