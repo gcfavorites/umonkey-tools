@@ -14,42 +14,61 @@ tlist = [' '.join(ftask(task)) for task in tasks]
 print '\\\\n'.join(tlist)
 "
 
+parser2="
+try: import dodo
+except: exit(0)
+istask = lambda fn: fn.startswith('task_') and not fn.startswith('task__') and fn != 'task_default'
+doc = lambda fn: getattr(getattr(dodo, fn), '__doc__') or ''
+ftask = lambda tn: tn[5:] + '\\:\\'' + doc(tn).split('\\\\n')[0].replace('\'', '') + '\\''
+tasks = [ftask(t) for t in dir(dodo) if istask(t)]
+print '1:Select target:((' + ' '.join(tasks) + '))'
+"
+
 _doit() {
 	local curcontext="$curcontext" state line tasks args
 	typeset -A opt_args
 
-	_arguments \
-        "1:Commands:->task" \
-        "*:Arguments:->args"
+	_arguments "`echo $parser2 | python`"
 
-	case $state in
-	task)
-		if [ -f dodo.py ]; then
-			tasks=()
-			while read line
-			do
-				case "$line" in
-				# Private task, ignore.
-				(def[ \t]*task__*)
-					;;
-				(def[ \t]*task_[[:alnum:]_]*)
-					line=${line##def[ \t]*task_}
-					line=${line%%\(*}
-					tasks[$(($#tasks+1))]=$line
-				esac
-			done < dodo.py
-			compadd "$@" $tasks
-		fi
-		;;
-    args)
-        echo $parser | python | while read line args
-        do
-            if [[ $words[2] = $line ]]; then
-                compadd - ${(s: :)args}
-            fi
-        done
-        ;;
-	*)
-		_files
-	esac
+#	_arguments "1:Select target:((one\:'first description' two\:second three\:third))"
+
+#	_arguments \
+#		"(-r -l -x)c[center justify]" \
+#		"(-S -s -o -W -m)k[use kerning]" \
+#		"(-r -l -x)help[show some help]"
+#
+#	_arguments \
+#        "1:Commands:->task" \
+#        "*:Arguments:->args"
+#
+#	case $state in
+#	task)
+#		if [ -f dodo.py ]; then
+#			tasks=()
+#			while read line
+#			do
+#				case "$line" in
+#				# Private task, ignore.
+#				(def[ \t]*task__*)
+#					;;
+#				(def[ \t]*task_[[:alnum:]_]*)
+#					line=${line##def[ \t]*task_}
+#					line=${line%%\(*}
+#					tasks[$(($#tasks+1))]=$line
+#				esac
+#			done < dodo.py
+#			compadd "$@" $tasks
+#		fi
+#		;;
+#    args)
+#        echo $parser | python | while read line args
+#        do
+#            if [[ $words[2] = $line ]]; then
+#                compadd - ${(s: :)args}
+#            fi
+#        done
+#        ;;
+#	*)
+#		_files
+#	esac
 }
