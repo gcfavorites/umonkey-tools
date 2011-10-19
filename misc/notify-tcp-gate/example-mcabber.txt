@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# This is an example event handler that sends pop-up notifications from
+# screen/ssh to your workstation using notify-tcp-gate.  To enable this
+# script, add the following to your ~/.mcabber/mcabberrc:
+#
+#   set events_command = path/to/this/script
+#
+# Tweak the script according to your reality.
+
+notify()
+{
+	echo $1 | netcat localhost 8111 2>/dev/null
+}
+
+case "$*" in
+MSG\ MUC\ *)
+	notify "mcabber\nNew message in $3"
+	;;
+MSG\ IN\ robot@tmradio.net\ *)
+	;;
+MSG\ IN\ *)
+	notify "mcabber\nMessage from $3"
+esac
