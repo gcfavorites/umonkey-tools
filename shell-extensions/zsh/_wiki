@@ -1,0 +1,22 @@
+#compdef wiki
+#
+# zsh autocomplete for wiki.
+
+_wiki() {
+	echo "LALA" >> ~/zsh.log
+	local curcontext="$curcontext" state response
+	typeset -A opt_args
+
+	_arguments "1:Page name:->page"
+
+	case $state in
+	page)
+		response=()
+		ls -1 "$HOME/.local/share/wiki/" | while read fn
+		do
+			response[$(($#response+1))]=$fn
+		done
+		compadd "$@" $response
+		;;
+	esac
+}
