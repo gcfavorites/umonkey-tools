@@ -7,7 +7,8 @@ import subprocess
 import sys
 import tempfile
 
-DEFAULT_PATH = "tmradio:incoming/"
+DEFAULT_PATH = "cloud.umonkey.net:/radio/incoming/"
+#DEFAULT_PATH = "tmradio:incoming/"
 
 if __name__ == '__main__':
     fn = None
