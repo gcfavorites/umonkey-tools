@@ -48,7 +48,7 @@ def print_tasks(filename):
     print "1:Select target:((%s))" % " ".join(sorted(tasks))
 
 
-def get_options(filename, option):
+def get_options(filename, option, existing):
     mod = load_module(filename)
 
     fn = getattr(mod, "task_" + option, None)
@@ -62,7 +62,8 @@ def get_options(filename, option):
     if "params" not in info:
         return []  # nothing to show
 
-    return ["--" + param["long"] for param in info["params"]]
+    params = ["--" + param["long"] for param in info["params"]]
+    return [param for param in params if param not in existing]
 
 
 def print_help(filename):
@@ -70,19 +71,19 @@ def print_help(filename):
     print "2:Select command:((%s))" % " ".join(names)
 
 
-def print_options(filename, option):
+def print_options(filename, option, existing):
     if option == "help":
         print_help(filename)
     else:
-        options = get_options(filename, option)
+        options = get_options(filename, option, existing)
         print "*:Select parameter:((%s))" % " ".join(options)
 
 
 if __name__ == "__main__":
     sys.path.insert(0, ".")
 
-    if len(sys.argv) == 2:
+    if len(sys.argv) <= 2:
         print_tasks(sys.argv[1])
 
-    elif len(sys.argv) == 3:
-        print_options(sys.argv[1], sys.argv[2])
+    elif len(sys.argv) >= 3:
+        print_options(sys.argv[1], sys.argv[2], sys.argv[5:])
