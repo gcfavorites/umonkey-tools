@@ -9,7 +9,9 @@ having port 8111 forwarded back to you, then you send messages to that port.
 See the README.markdown file for details.
 """
 
+import signal
 import socket
+import time
 
 import pynotify
 
@@ -22,6 +24,8 @@ def serve():
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     srv.bind((HOST, PORT))
     srv.listen(5)
+
+    pynotify.init("tcp-gate")
 
     #print "Listening for messages on %s:%u" % (HOST, PORT)
 
@@ -47,5 +51,17 @@ def serve():
         #print "Terminated."
             
 
+def sigterm_handler(sig, frame):
+    exit(1)
+
+
 if __name__ == "__main__":
-    serve()
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
+    while True:
+        try:
+            serve()
+        except:
+            pass
+        print "Restarting in 1 second."
+        time.sleep(1)
