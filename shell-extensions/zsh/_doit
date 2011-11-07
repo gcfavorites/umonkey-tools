@@ -9,12 +9,7 @@
 _doit() {
 	local curcontext="$curcontext"
 	typeset -A opt_args
-
-    if (( $CURRENT == 2 )); then
-        _arguments "`doit-zsh dodo.py`"
-    else
-        _arguments "`doit-zsh dodo.py ${words[2]} ${words}`"
-    fi
+	_arguments "`doit-zsh $CURRENT $words`"
 }
 
 _doit "$@"
