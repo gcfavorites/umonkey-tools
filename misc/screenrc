@@ -1,21 +1,24 @@
-termcapinfo xterm* ti@:te@
+#termcapinfo xterm* ti@:te@
+
 vbell off
 altscreen on
 startup_message off
+
+# Do NOT do this.  Breaks painting coloured spaces in newsbeuter, etc.
+#term xterm
 
 hardstatus alwayslastline
 hardstatus string '%{= kW}%-Lw%{= KW}%50>%n%f* %t%{= kW}%+Lw%< %{= kG}%-=%H:%l | %d.%m %c%{-}'
 
 setenv PREEXEC mutt
-screen -t "mail" $SHELL
+screen -t "mail" 0 $SHELL
 
 setenv PREEXEC newsbeuter
-screen -t "rss" $SHELL
+screen -t "rss" 1 $SHELL
 
-setenv PREEXEC "ttytter -ansi -readline"
-screen -t "@umonkey" $SHELL
+setenv PREEXEC ttytter
+screen -t "@umonkey" 2 $SHELL
 
-setenv PREEXEC "ttytter-tmradio"
-screen -t "@tmradio" $SHELL
+screen -t "cloud" 4 ssh-screener-loop cloud.umonkey.net
 
 unsetenv PREEXEC
