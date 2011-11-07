@@ -1,0 +1,21 @@
+#compdef blog
+
+_blog() {
+	local curcontext="$curcontext" state pages page
+	typeset -A opt_args
+
+	_arguments "1:Page file:->page"
+
+	case $state in
+	page)
+		pages=()
+		find $BLOGDIR/input -name "*.md" | while read page
+		do
+			page=${page##$BLOGDIR/input/}
+			pages[$(($#pages+1))]=$page
+		done
+		compadd "$@" $pages
+	esac
+}
+
+_blog "$@"
