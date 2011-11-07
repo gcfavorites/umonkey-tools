@@ -25,8 +25,9 @@ trap "pkill darkice" INT
 
 
 # Stop some CPU and network hungry programs.
-#pkill -9 opera
-pkill -9 rtorrent
+if -x $HOME/.config/darkice/pre-start; then
+    $HOME/.config/darkice/pre-start
+fi
 
 
 # Start plumbing if the config file exists.
@@ -39,9 +40,6 @@ else
     echo "WARNING: port connections not configured, see man jack.plumbing"
 fi
 
-
-# Stop any running instance of mplayer.
-#pkill mplayer
 
 # Start broadcasting, log to a file and wait for 1 second to connect.
 darkice -v 10 -c "$CONFIG" >>"$HOME/darkice_$1.log" 2>&1 &
