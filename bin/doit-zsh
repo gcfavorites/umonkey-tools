@@ -45,7 +45,7 @@ def print_tasks(filename):
     tasks.append("auto\\:'automatically run doit when a dependency changes'")
     tasks.append("help\\:'show help / reference'")
 
-    print "1:Select target:((%s))" % " ".join(sorted(tasks))
+    print "1:Targets:((%s))" % " ".join(sorted(tasks))
 
 
 def get_options(filename, option, existing):
@@ -68,7 +68,7 @@ def get_options(filename, option, existing):
 
 def print_help(filename):
     mod, names = get_task_names(filename)
-    print "2:Select command:((%s))" % " ".join(names)
+    print "2:Command to help you with:((%s))" % " ".join(names)
 
 
 def print_options(filename, option, existing):
@@ -76,14 +76,35 @@ def print_options(filename, option, existing):
         print_help(filename)
     else:
         options = get_options(filename, option, existing)
-        print "*:Select parameter:((%s))" % " ".join(options)
+        print "*:Parameters:((%s))" % " ".join(options)
+
+
+def get_script_name(args):
+    name = "dodo.py"
+    args = list(args)  # copy
+
+    for idx, arg in enumerate(args):
+        if arg == "-f":
+            name = args[idx + 1]
+            del args[idx:idx + 1]
+            args[1] = int(args[1]) - 2
+            break
+        elif arg.startswith("-f"):
+            name = arg[2:]
+            del args[idx]
+            args[1] = int(args[1]) - 1
+            break
+
+    return name, args
 
 
 if __name__ == "__main__":
     sys.path.insert(0, ".")
 
-    if len(sys.argv) <= 2:
-        print_tasks(sys.argv[1])
+    script_name, args = get_script_name(sys.argv)
 
-    elif len(sys.argv) >= 3:
-        print_options(sys.argv[1], sys.argv[2], sys.argv[5:])
+    if int(args[1]) == 2:
+        print_tasks(script_name)
+
+    elif int(args[1]) > 2:
+        print_options(script_name, args[3], args[4:])
