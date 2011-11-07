@@ -1,0 +1,28 @@
+#!/bin/sh
+# Uploads images to imgtmp.com, a service that hosts images for 24 hours.
+#
+# Image URLs are stored in $HOME/.imgtmp.log for your convenience.
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 filename"
+    exit 1
+fi
+
+UPLOAD_URL="http://imgtmp.com/img/add"
+CURL_OPTIONS="-L -s --cookie-jar $HOME/.imgtmp.cookies --referer 'http://imgtmp.com/'"
+
+OUTPUT=$(mktemp --suffix=.imgtmp)
+curl $CURL_OPTIONS --form "data[Img][fp]"=@$1 --form _method=POST -o $OUTPUT $UPLOAD_URL
+
+TARGET_URL=$(cat $OUTPUT | grep "http://f.imgtmp.com/" | sed -re 's@.*(http://f.imgtmp.com/[^.]+\.(jpg|png)).*@\1@g')
+
+if [ -n "$TARGET_URL" ]; then
+    rm -f $OUTPUT
+    echo $TARGET_URL >> ~/.imgtmp.log
+    echo $TARGET_URL
+    xdg-open "$TARGET_URL"
+else
+    mv $OUTPUT $HOME/imgtmp.html
+    echo "Oops, could not find an URL in the output, please inspect $HOME/imgtmp.html" >&1
+    exit 1
+fi
