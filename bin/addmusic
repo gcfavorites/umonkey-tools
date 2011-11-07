@@ -7,8 +7,10 @@ import subprocess
 import sys
 import tempfile
 
-DEFAULT_PATH = "cloud.umonkey.net:/radio/incoming/"
-#DEFAULT_PATH = "tmradio:incoming/"
+import yaml
+
+UPLOAD_HOST = "radio@cloud.umonkey.net"
+UPLOAD_PATH = "/radio/incoming/"
 
 if __name__ == '__main__':
     fn = None
@@ -28,9 +30,7 @@ if __name__ == '__main__':
         command.append('-b')
         command.append(fn)
 
-    upload_path = os.environ.get("ARDJ_UPLOAD_PATH")
-    if not upload_path:
-        upload_path = DEFAULT_PATH
+    upload_path = UPLOAD_HOST + ":" + UPLOAD_PATH
     command.append(upload_path)
 
     print "Uploading to %s" % upload_path
@@ -38,6 +38,8 @@ if __name__ == '__main__':
     subprocess.Popen(command).wait()
     if os.path.exists(fn):
         os.unlink(fn)
+
+    subprocess.Popen(["ssh", UPLOAD_HOST, "ardj", "add-incoming-tracks"]).wait()
 
     subprocess.Popen(["notify-send", "addmusic", "%u files added." % (len(sys.argv) - 1)]).wait()
 
