@@ -14,9 +14,8 @@ def load_module(filename):
     return dodo
 
 
-def print_tasks(filename):
+def get_task_names(filename):
     mod = load_module(filename)
-
     tasks = []
     for member in dir(mod):
         if not member.startswith("task_"):
@@ -25,11 +24,26 @@ def print_tasks(filename):
             continue
         if member == "task_default":
             continue
+        tasks.append(member[5:])
+    return mod, tasks
 
-        func = getattr(mod, member)
+
+def print_tasks(filename):
+    mod, task_names = get_task_names(filename)
+
+    tasks = []
+    for name in task_names:
+        func = getattr(mod, "task_" + name, None)
 
         doc = getattr(func, "__doc__", "").split("\n")[0].replace("'", "")
-        tasks.append("%s\\:'%s'" % (member[5:], doc))
+        tasks.append("%s\\:'%s'" % (name, doc))
+
+    tasks.append("clean\\:'clean action / remove targets'")
+    tasks.append("list\\:'list tasks from dodo file'")
+    tasks.append("forget\\:'clear successful run status from DB'")
+    tasks.append("ignore\\:'ignore task (skip) on subsequent runs'")
+    tasks.append("auto\\:'automatically run doit when a dependency changes'")
+    tasks.append("help\\:'show help / reference'")
 
     print "1:Select target:((%s))" % " ".join(sorted(tasks))
 
@@ -37,7 +51,7 @@ def print_tasks(filename):
 def get_options(filename, option):
     mod = load_module(filename)
 
-    fn = getattr(mod, "task_" + option)
+    fn = getattr(mod, "task_" + option, None)
     if fn is None:
         return []  # no such command
 
@@ -51,9 +65,17 @@ def get_options(filename, option):
     return ["--" + param["long"] for param in info["params"]]
 
 
+def print_help(filename):
+    mod, names = get_task_names(filename)
+    print "2:Select command:((%s))" % " ".join(names)
+
+
 def print_options(filename, option):
-    options = get_options(filename, option)
-    print "*:Select parameter:((%s))" % " ".join(options)
+    if option == "help":
+        print_help(filename)
+    else:
+        options = get_options(filename, option)
+        print "*:Select parameter:((%s))" % " ".join(options)
 
 
 if __name__ == "__main__":
