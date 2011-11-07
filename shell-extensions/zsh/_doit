@@ -72,3 +72,5 @@ _doit() {
 #		_files
 #	esac
 }
+
+_doit "$@"
