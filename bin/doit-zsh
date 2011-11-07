@@ -1,0 +1,66 @@
+#!/usr/bin/env python
+
+import os
+import sys
+
+
+def load_module(filename):
+    """Loads and returns the specified module (always loads ./dodo.py
+    currently)."""
+    if not os.path.exists(filename):
+        return None
+
+    import dodo
+    return dodo
+
+
+def print_tasks(filename):
+    mod = load_module(filename)
+
+    tasks = []
+    for member in dir(mod):
+        if not member.startswith("task_"):
+            continue
+        if member.startswith("task__"):
+            continue
+        if member == "task_default":
+            continue
+
+        func = getattr(mod, member)
+
+        doc = getattr(func, "__doc__", "").split("\n")[0].replace("'", "")
+        tasks.append("%s\\:'%s'" % (member[5:], doc))
+
+    print "1:Select target:((%s))" % " ".join(sorted(tasks))
+
+
+def get_options(filename, option):
+    mod = load_module(filename)
+
+    fn = getattr(mod, "task_" + option)
+    if fn is None:
+        return []  # no such command
+
+    info = fn()
+    if type(info) != dict:
+        return []  # unexpected result
+
+    if "params" not in info:
+        return []  # nothing to show
+
+    return ["--" + param["long"] for param in info["params"]]
+
+
+def print_options(filename, option):
+    options = get_options(filename, option)
+    print "*:Select parameter:((%s))" % " ".join(options)
+
+
+if __name__ == "__main__":
+    sys.path.insert(0, ".")
+
+    if len(sys.argv) == 2:
+        print_tasks(sys.argv[1])
+
+    elif len(sys.argv) == 3:
+        print_options(sys.argv[1], sys.argv[2])
