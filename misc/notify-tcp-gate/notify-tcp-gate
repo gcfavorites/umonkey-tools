@@ -25,6 +25,8 @@ def serve():
     srv.bind((HOST, PORT))
     srv.listen(5)
 
+    last_ts = time.time()
+
     pynotify.init("tcp-gate")
 
     #print "Listening for messages on %s:%u" % (HOST, PORT)
@@ -43,7 +45,9 @@ def serve():
 
             parts = data.strip().decode("utf-8").split("\n")
             if len(parts) >= 2:
-                pynotify.Notification(parts[0], parts[1], "dialog-warning").show()
+                if time.time() - last_ts > 5:
+                    pynotify.Notification(parts[0], parts[1], "dialog-warning").show()
+                    last_ts = time.time()
 
             client.close()
     except KeyboardInterrupt:
