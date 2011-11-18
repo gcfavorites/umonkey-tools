@@ -8,7 +8,9 @@ import sys
 def run(command):
     if type(command) != list:
         command = [normalize_command_arg(arg) for arg in command.split(" ")]
-    print "> %s" % " ".join(command)
+
+    prefix = os.geteuid() == 0 and "#" or "$"
+    print "%s %s" % (prefix, " ".join(command))
     subprocess.Popen(command).wait()
 
 
@@ -36,6 +38,16 @@ def main_task(task_name, args):
 
     func = globals()[func_name]
     return func(*args)
+
+
+def need_root():
+    """retarts the command with root privileges, if necessary"""
+    if os.geteuid() == 0:
+        return
+    try:
+        run("sudo %s" % " ".join(sys.argv))
+    finally:
+        exit(0)
 
 
 def get_task_list():
@@ -103,15 +115,16 @@ def task_clean():
 
 def task_upgrade_packages():
     """upgrade installed packages"""
-    run("sudo apt-get update")
-    run("sudo apt-get dist-upgrade")
+    need_root()
+    run("apt-get update")
+    run("apt-get dist-upgrade")
 
 
 def task_purge_packages():
     """remove data used by packages that were uninstalled"""
-    run("sudo apt-get autoremove --purge")
-    #run("dpkg -l | awk '/^rc/ { print $2 }' | xargs --no-run-if-empty sudo dpkg --purge")
-    run("sudo apt-get clean")
+    run("apt-get autoremove --purge")
+    #run("dpkg -l | awk '/^rc/ { print $2 }' | xargs --no-run-if-empty dpkg --purge")
+    run("apt-get clean")
 
 
 def task_upgrade():
