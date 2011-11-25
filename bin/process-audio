@@ -10,14 +10,39 @@ import mutagen
 import mutagen.easyid3 as easyid3
 
 
-def edit_tags(filename):
-    tags = mutagen.File(filename, easy=True)
-    text = u"\n".join(sorted([u"%s: %s" % (k, v[0]) for k, v in tags.items()]))
+def is_padding_enabled():
+    if "--nopad" in sys.argv:
+        return False
+    return True
 
-    tfname = filename + ".txt"
+
+def get_tags_fname(filename):
+    return os.path.splitext(filename)[0] + ".txt"
+
+
+def extract_tags(filename):
+    """Extracts existing tags to a text file."""
+    tfname = get_tags_fname(filename)
+
+    if os.path.exists(tfname):
+        print "Not extracting tags: %s already exists." % tfname
+        return
+
+    tags = mutagen.File(filename, easy=True)
+    if not tags:
+        text = ""
+    else:
+        text = u"\n".join(sorted([u"%s: %s" % (k, v[0]) for k, v in tags.items()]))
+
     file(tfname, "wb").write(text.encode("utf-8"))
     subprocess.Popen(["editor", tfname]).wait()
 
+
+def save_tags(filename):
+    """Adds tags from a text file to the audio file."""
+    tfname = get_tags_fname(filename)
+
+    tags = mutagen.File(filename, easy=True)
     for line in file(tfname, "rb").read().decode("utf-8").split("\n"):
         if line:
             try:
@@ -27,27 +52,47 @@ def edit_tags(filename):
                 print >>sys.stderr, "Could not set a tag: %s" % e
 
     tags.save()
-    os.unlink(tfname)
 
 
 def process_file(filename):
     tmpname = tempfile.mktemp(suffix=".wav")
     print >>sys.stderr, "Resampling to %s" % tmpname
 
+    extract_tags(filename)
+
     command = ["sox", filename, "-r", "44100", "-c", "2", tmpname]
-    if "--pad" in sys.argv:
-        command.extend(["pad", "0.5", "0.5"])
+    if is_padding_enabled():
+        command.extend(["pad", "0.5", "1"])
     subprocess.Popen(command).wait()
 
+    transcode_mp3(tmpname, filename)
+    transcode_ogg(tmpname, filename)
+
+    os.unlink(tmpname)
+
+
+def transcode_mp3(tmpname, filename):
     mp3name = os.path.splitext(filename)[0] + ".mp3"
     print >>sys.stderr, "Transcoding to %s" % mp3name
     subprocess.Popen(["lame", "--preset", "extreme", tmpname, mp3name]).wait()
-    os.unlink(tmpname)
 
-    edit_tags(mp3name)
+    save_tags(mp3name)
 
     print >>sys.stderr, "Calculating ReplayGain for %s" % mp3name
     subprocess.Popen(["mp3gain", mp3name], stdout=subprocess.PIPE).wait()
+
+    print >>sys.stderr, "Done."
+
+
+def transcode_ogg(tmpname, filename):
+    oggname = os.path.splitext(filename)[0] + ".ogg"
+    print >>sys.stderr, "Transcoding to %s" % oggname
+    subprocess.Popen(["oggenc", "-q", "6", "-o", oggname, tmpname]).wait()
+
+    save_tags(oggname)
+
+    print >>sys.stderr, "Calculating ReplayGain for %s" % oggname
+    subprocess.Popen(["vorbisgain", oggname], stdout=subprocess.PIPE).wait()
 
     print >>sys.stderr, "Done."
 
