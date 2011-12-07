@@ -11,6 +11,7 @@ See the README.markdown file for details.
 
 import signal
 import socket
+import sys
 import time
 
 import pynotify
@@ -27,14 +28,12 @@ def serve():
 
     last_ts = time.time()
 
-    pynotify.init("tcp-gate")
-
     #print "Listening for messages on %s:%u" % (HOST, PORT)
 
     try:
         while True:
             (client, address) = srv.accept()
-            #print "Incoming connection from %s:%s" % address
+            print "Incoming connection from %s:%s" % address
 
             data = ""
             while True:
@@ -45,17 +44,22 @@ def serve():
 
             parts = data.strip().decode("utf-8").split("\n")
             if len(parts) >= 2:
-                if time.time() - last_ts > 5:
-                    pynotify.Notification(parts[0], parts[1], "dialog-warning").show()
+                if time.time() - last_ts > 15:
+                    try:
+                        pynotify.init("tcp-gate")
+                        pynotify.Notification(parts[0], parts[1], "dialog-warning").show()
+                        pynotify.uninit()
+                    except Exception, e:
+                        print >> sys.stderr, "Could not send the notification: %s" % e
                     last_ts = time.time()
 
             client.close()
-    except KeyboardInterrupt:
+    finally:
         srv.close()
-        #print "Terminated."
-            
+
 
 def sigterm_handler(sig, frame):
+    print "Caught SIGTERM."
     exit(1)
 
 
@@ -63,9 +67,19 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, sigterm_handler)
 
     while True:
+        delay = 1
         try:
             serve()
-        except:
-            pass
-        print "Restarting in 1 second."
-        time.sleep(1)
+        except KeyboardInterrupt:
+            print "Interrupted."
+            exit(0)
+        except socket.error, e:
+            print "Socket error %u: %s" % (e.errno, e.strerror)
+            if e.errno == 98:
+                exit(1)
+            delay = 15
+        except Exception, e:
+            print "ERROR %s: %s" % (type(e), e)
+
+        print "Restarting in %u second(s)." % delay
+        time.sleep(delay)
