@@ -12,7 +12,7 @@ UPLOAD_URL="http://imgtmp.com/img/add"
 CURL_OPTIONS="-L -s --cookie-jar $HOME/.imgtmp.cookies --referer 'http://imgtmp.com/'"
 
 OUTPUT=$(mktemp --suffix=.imgtmp)
-curl $CURL_OPTIONS --form "data[Img][fp]"=@$1 --form _method=POST -o $OUTPUT $UPLOAD_URL
+curl $CURL_OPTIONS --form "data[Img][fp]"=@"$1" --form _method=POST -o $OUTPUT $UPLOAD_URL
 
 TARGET_URL=$(cat $OUTPUT | grep "http://f.imgtmp.com/" | sed -re 's@.*(http://f.imgtmp.com/[^.]+\.(jpg|png)).*@\1@g')
 
@@ -24,5 +24,10 @@ if [ -n "$TARGET_URL" ]; then
 else
     mv $OUTPUT $HOME/imgtmp.html
     echo "Oops, could not find an URL in the output, please inspect $HOME/imgtmp.html" >&1
+
+    if which notify-send >/dev/null; then
+        notify-send -i dialog-warning "imgtmp error" "Could not upload the image, see ~/imgtmp.html."
+    fi
+
     exit 1
 fi
