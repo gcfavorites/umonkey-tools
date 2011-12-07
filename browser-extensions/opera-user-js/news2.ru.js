@@ -24,9 +24,14 @@
 			if (!div.length)
 				return;  // layout changed
 
+			var desc = document.getElementsByClassName("news_description");
+			if (!desc.length)
+				return;  // layout changed
+			var limit = desc[0].offsetTop;
+
 			var y = document.documentElement.scrollTop;
 
-			if (y > 160) {
+			if (y > limit - 10) {
 				div[0].className = "vote_placeholder pinned";
 			} else {
 				div[0].className = "vote_placeholder";
