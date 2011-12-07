@@ -20,11 +20,11 @@ def get_tags_fname(filename):
     return os.path.splitext(filename)[0] + ".txt"
 
 
-def extract_tags(filename):
+def extract_tags(filename, retry=False):
     """Extracts existing tags to a text file."""
     tfname = get_tags_fname(filename)
 
-    if os.path.exists(tfname):
+    if os.path.exists(tfname) and not retry:
         print "Not extracting tags: %s already exists." % tfname
         return
 
@@ -36,6 +36,11 @@ def extract_tags(filename):
 
     file(tfname, "wb").write(text.encode("utf-8"))
     subprocess.Popen(["editor", tfname]).wait()
+
+
+def edit_tags(filename):
+    extract_tags(filename, retry=True)
+    save_tags(filename)
 
 
 def save_tags(filename):
