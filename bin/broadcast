@@ -25,7 +25,7 @@ trap "pkill darkice" INT
 
 
 # Stop some CPU and network hungry programs.
-if -x $HOME/.config/darkice/pre-start; then
+if [ -x $HOME/.config/darkice/pre-start ]; then
     $HOME/.config/darkice/pre-start
 fi
 
@@ -43,17 +43,13 @@ fi
 
 # Start broadcasting, log to a file and wait for 1 second to connect.
 darkice -v 10 -c "$CONFIG" >>"$HOME/darkice_$1.log" 2>&1 &
-sleep 1
 
-# Play any intros.
-for f in intro*mp3; do
-  if [ -f "$f" ]; then
-    echo "Playing $f, press Q to skip."
-    mplayer -nolirc -really-quiet $f
-  else
-    echo "(I would now play intro*mp3, but you don't have any.)"
-  fi
-done
+
+# Launch a meter, a recorder or something else.
+if [ -x $HOME/.config/darkice/post-start ]; then
+    $HOME/.config/darkice/post-start
+fi
+
 
 echo "Press ^C to disconnect from the server and stop."
 wait
