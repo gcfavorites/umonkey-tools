@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+
+"""Simple time span calculator.
+
+I use it to calculate time spent on work, e.g.:
+
+    $ timecalc 2:27 + 4:13
+    06:40, 400 min.
+
+LICENSE: public domain.
+"""
+
+import re
+import sys
+
+
+def parse(value):
+    m = re.search("^(\d{1,2}):(\d{2})$", value)
+    if m is None:
+        print >> sys.stderr, "Bad value: %s, must be HH:MM" % value
+        exit(1)
+
+    h = int(m.group(1))
+    m = int(m.group(2))
+
+    return h * 60 + m
+
+
+def format(value):
+    h = value / 60
+    m = value - h * 60
+    return "%02d:%02d" % (h, m)
+
+
+if len(sys.argv) < 2:
+    print >> sys.stderr, "Usage: %s HH:MM [sign HH:MM]*" % sys.argv[0]
+    exit(1)
+
+total = 0
+sign = 1
+
+for value in sys.argv[1:]:
+    if value == "-":
+        sign = -1
+    elif value == "+":
+        sign = 1
+    else:
+        total += parse(value) * sign
+
+print "%s, %u min." % (format(total), total)
