@@ -335,8 +335,8 @@ def task_live(name=None):
 def task_deploy_ardj():
     """upload ardj to the cloud"""
     run("tar cf ~/tmp/ardj.tar --directory ~/src/ardj/src/ardj --exclude *.pyc .")
-    run("scp ~/tmp/ardj.tar cloud.umonkey.net:")
-    run("ssh -t cloud.umonkey.net sudo tar xf ardj.tar --directory /usr/lib/python2.6/dist-packages/ardj/ ; rm ardj.tar ; sudo restart ardj-server")
+    run("scp ~/tmp/ardj.tar cloud.tmradio.net:ardj-deploy.tar")
+    run("ssh -t cloud.tmradio.net sudo tar xf ardj-deploy.tar --directory /usr/lib/python2.6/dist-packages/ardj/ ; rm ardj-deploy.tar ; sudo restart ardj-server")
     run("rm -f ~/tmp/ardj.tar")
 
 
