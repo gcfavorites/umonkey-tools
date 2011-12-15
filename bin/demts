@@ -10,6 +10,8 @@ fi
 while [ -n "$1" ]; do
 	NAME=$(basename "$1" .MTS)
 	DIR=$(dirname "$1")
-	ffmpeg -i "$1" -vcodec dnxhd -b 220M -acodec copy "$DIR/$NAME.mov"
+    if [ ! -f "$NAME.mov" ]; then
+        ffmpeg -i "$1" -vcodec dnxhd -b 220M -acodec copy "$NAME.mov"
+    fi
 	shift
 done
