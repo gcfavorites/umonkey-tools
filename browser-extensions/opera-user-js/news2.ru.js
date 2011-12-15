@@ -1,5 +1,5 @@
 // ==UserScript==
-// @include http://news2.ru/*
+// @include http://news2.ru/story/*
 // ==/UserScript==
 //
 // Pins the vote box to the top of news2.ru story pages, so that you wouldn't
@@ -14,7 +14,7 @@
 		if (init_css) {
 			css = document.createElement("style");
 			css.type = "text/css";
-			css.innerHTML = ".vote_placeholder.pinned { position: fixed; top: 10px } .news_body { margin-left: 60px }";
+			css.innerHTML = ".vote_placeholder.pinned { position: fixed; top: 10px; z-index: 100; } .news_body { margin-left: 60px }";
 			document.body.appendChild(css);
 			init_css = false;
 		}
