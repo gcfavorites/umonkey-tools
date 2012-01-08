@@ -10,7 +10,8 @@
 
 		for (idx in tags) {
 			var tag = tags[idx];
-			tag.innerHTML = tag.getAttribute("href").substring(1);
+			if (tag.childNodes.length == 1 && tag.childNodes[0].nodeName == "#text")
+				tag.innerHTML = tag.getAttribute("href").substring(1);
 		}
 	}, false);
 })();
