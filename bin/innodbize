@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+
+import subprocess
+import sys
+
+
+def run(command, stdin):
+    p = subprocess.Popen(command, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    out, err = p.communicate(stdin)
+    return out, err, p.returncode
+
+
+def convert_database(name):
+    out, err, code = run(["mysql", "--silent", name], "show tables")
+    if code != 0:
+        print "Could not list tables in %s: %s" % (name, err)
+        return
+
+    for table in out.strip().split("\n"):
+        print "Converting table %s.%s" % (name, table)
+        sql = "ALTER TABLE `%s` ENGINE=InnoDB;" % table
+        out, err, code = run(["mysql", name], sql)
+        if code != 0:
+            print "Could not convert table %s: %s" % (table, err)
+            exit(1)
+
+    
+def main(args):
+    if len(args) < 2:
+        print "Usage: %s dbname..." % args[0]
+
+    for name in args[1:]:
+        convert_database(name)
+
+if __name__ == "__main__":
+    main(sys.argv)
