@@ -2,10 +2,14 @@
 // @include https://blekko.com/ws/*
 // ==/UserScript==
 //
-// Displays links to Google and Yandex on search result pages.
+// Blekko is nice, but doesn't search well across Russian web sites (and some
+// other types of sites).  This script adds links to Google and Yandex on
+// search result pages.  See it in action on a screenshot:
 //
-// Since blekko.com uses https, you must enable user.js on secure pages in
-// Opera (you'll still get a confirmation every time a script changes):
+// http://files.umonkey.net/share/0003/blekko-userjs-screenshot.png
+//
+// Since blekko.com uses https, you must enable UserJS on secure pages in Opera
+// (you'll still get a confirmation every time a script changes):
 //
 // http://www.opera.com/docs/userjs/using/#securepages
 
