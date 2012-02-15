@@ -4,14 +4,16 @@
 //
 // Displays links to Google and Yandex on search result pages.
 //
-// code.umonkey.net
+// Since blekko.com uses https, you must enable user.js on secure pages in
+// Opera (you'll still get a confirmation every time a script changes):
+//
+// http://www.opera.com/docs/userjs/using/#securepages
 
 (function () {
 	function make_link(text, href) {
 		var a = document.createElement("a");
 		a.appendChild(document.createTextNode(text));
 		a.setAttribute("href", href);
-		a.setAttribute("target", "_blank");
 
 		var arrow = document.createElement("span");
 		arrow.setAttribute("class", "arrow");
