@@ -20,6 +20,9 @@ if __name__ == '__main__':
         fn = tempfile.mkstemp(prefix='addmusic_', suffix='.txt')[1]
         fp = open(fn, 'wb')
         for item in sys.argv[1:]:
+            if not os.path.exists(item):
+                print >> sys.stderr, "Not found: %s" % item
+                exit(1)
             item = item.replace(' ', '\\ ')
             item = item.replace('"', '\\"')
             item = item.replace("'", "\\'")
@@ -35,9 +38,15 @@ if __name__ == '__main__':
 
     print "Uploading to %s" % upload_path
 
-    subprocess.Popen(command).wait()
-    if os.path.exists(fn):
-        os.unlink(fn)
+    try:
+        p = subprocess.Popen(command)
+        p.wait()
+    except KeyboardInterrupt:
+        p.terminate()
+        exit(1)
+    finally:
+        if os.path.exists(fn):
+            os.unlink(fn)
 
     subprocess.Popen(["ssh", UPLOAD_HOST, "ardj", "add-incoming-tracks"]).wait()
 
