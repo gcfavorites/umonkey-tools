@@ -6,8 +6,8 @@ button.esw {
 }
 
 /**
- * Disable the zoom button.
+ * Disable the preview feature.
  */
-button.vspib {
+.vspib {
 	display: none !important;
 }
