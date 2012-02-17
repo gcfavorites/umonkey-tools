@@ -105,6 +105,13 @@ def transcode_ogg(tmpname, filename):
 if __name__ == "__main__":
     edit_only = "-e" in sys.argv
     easyid3.EasyID3.RegisterTXXXKey('ardj', 'ardj')
+
+    filenames = [n for n in sys.argv[1:] if not n.startswith("-")]
+
+    if not filenames:
+        print "Usage: %s files..." % sys.argv[0]
+        exit(1)
+
     for arg in sys.argv[1:]:
         if os.path.exists(arg):
             if edit_only:
