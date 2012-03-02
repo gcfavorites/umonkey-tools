@@ -1,0 +1,276 @@
+#!/usr/bin/env python
+# encoding=utf-8
+
+"""PulseAudio to JACK bridge.
+
+This script temporarily redirects PulseAudio to JACK, so that you could play
+music using MPlayer or MOC and send the audio to Skype or darkice.  Settings
+are changed when the script runs, restored when it's interrupted.
+
+Send your complaints and suggestions to hex@umonkey.net.
+"""
+
+import os
+import subprocess
+import sys
+import time
+
+
+JACKRC = "/usr/bin/jackd -d alsa -P hw:%s -C hw:%s -r 44100 -p 1024 -n 2 -s -H -M"
+
+PACONF = """
+load-module module-jack-source
+load-module module-jack-sink
+load-module module-native-protocol-unix
+load-module module-default-device-restore
+load-module module-rescue-streams
+load-module module-always-sink
+load-module module-intended-roles
+load-module module-suspend-on-idle
+load-module module-console-kit
+"""
+
+PLUMBING_RULES = """
+; Use jack_lsp to see available ports.
+; PulseAudio is used for Skype, Flash, maybe something else.
+
+; Feed PulseAudio with microphone and mplayer.
+(connect "system:capture_1" "PulseAudio JACK Source:front-left")
+(connect "system:capture_1" "PulseAudio JACK Source:front-right")
+;(connect "MPlayer \[[0-9]+\]:out_0" "PulseAudio JACK Source:front-left")
+;(connect "MPlayer \[[0-9]+\]:out_1" "PulseAudio JACK Source:front-right")
+;(connect "mplayer_mc:out_0" "PulseAudio JACK Source:front-left")
+;(connect "mplayer_mc:out_1" "PulseAudio JACK Source:front-right")
+(connect "moc:output0" "PulseAudio JACK Source:front-left")
+(connect "moc:output1" "PulseAudio JACK Source:front-right")
+
+; Feed darkice with the microphone, mplayer and PulseAudio.
+(connect "system:capture_1" "darkice:left")
+(connect "system:capture_1" "darkice:right")
+(connect "MPlayer \[[0-9]+\]:out_0" "darkice:left")
+(connect "MPlayer \[[0-9]+\]:out_1" "darkice:right")
+(connect "mplayer_mc:out_0" "darkice:left")
+(connect "mplayer_mc:out_1" "darkice:right")
+(connect "PulseAudio JACK Sink:front-left" "darkice:left")
+(connect "PulseAudio JACK Sink:front-right" "darkice:right")
+(connect "moc:output0" "darkice:left")
+(connect "moc:output1" "darkice:right")
+
+; Feed IDJC with mplayer and PulseAudio.
+(connect "MPlayer \[[0-9]+\]:out_0" "idjc-mx:aux_in_l")
+(connect "MPlayer \[[0-9]+\]:out_1" "idjc-mx:aux_in_r")
+(connect "mplayer_mc:out_0" "idjc-mx:aux_in_l")
+(connect "mplayer_mc:out_1" "idjc-mx:aux_in_r")
+(connect "PulseAudio JACK Sink:front-left" "idjc-mx:aux_in_l")
+(connect "PulseAudio JACK Sink:front-right" "idjc-mx:aux_in_r")
+
+; Feed jack_meter with players.
+(connect "MPlayer \[[0-9]+\]:out_0" "meter:in")
+(connect "MPlayer \[[0-9]+\]:out_1" "meter:in")
+(connect "moc:output0" "meter:in")
+(connect "moc:output1" "meter:in")
+(connect "PulseAudio JACK Sink:front-left" "meter:in")
+(connect "PulseAudio JACK Sink:front-right" "meter:in")
+"""
+
+JACK_METER_PORTS = [
+    "system:capture_1",
+]
+
+
+def run_child(command):
+    # print ">", " ".join(command)
+    p = subprocess.Popen(command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    return p
+
+
+def run(command):
+    """Runs a command, returns its output (stdout)."""
+    return run_child(command).communicate()[0]
+
+
+def is_program(name):
+    """Returns True if the named program is available."""
+    for path in os.getenv("PATH", "").split(os.pathsep):
+        filename = os.path.join(path, name)
+        if os.path.exists(filename) and os.access(filename, os.X_OK):
+            return True
+
+
+def replace_file(filename, contents):
+    """Renames the file by adding the ~ suffix, writes new contents to it."""
+    realname = os.path.expanduser(filename)
+    backup = realname + "~"
+
+    if os.path.exists(realname):
+        print "Backing up %s" % filename
+        if os.path.exists(backup):
+            os.unlink(backup)
+        os.rename(realname, backup)
+
+    print "Writing new %s" % filename
+    file(realname, "wb").write(contents)
+
+
+def restore_file(filename):
+    """Restores the file from a backup."""
+    realname = os.path.expanduser(filename)
+    backup = realname + "~"
+
+    print "Restoring %s" % filename
+
+    if os.path.exists(realname):
+        os.unlink(realname)
+
+    if os.path.exists(backup):
+        os.rename(backup, realname)
+
+
+def find_alsa_devices():
+    """Returns names of all devices available to ALSA."""
+    devices = []
+    for line in run(["aplay", "-l"]).split("\n"):
+        if line.startswith("card "):
+            name = line.split(" ")[2]
+            if name not in devices:
+                devices.append(name)
+    return devices
+
+
+def get_devices(args):
+    """Returns device names for playback and capture."""
+    devices = find_alsa_devices()
+    if not devices:
+        print >> sys.stderr, "No audio devices."
+        exit(1)
+
+    out_device = args[0] if len(args) else devices[0]
+    in_device = args[1] if len(args) >= 2 else out_device
+
+    for name in in_device, out_device:
+        if name not in devices:
+            print "Device %s is not available, choose from: %s." % (name, ", ".join(devices))
+            exit(1)
+
+    return out_device, in_device
+
+
+def pa_unload_alsa():
+    """Tells PulseAudio to unload the ALSA module (otherwise JACK can't use it)."""
+    module_id = None
+    for line in run(["pactl", "list"]).rstrip().split("\n"):
+        if line.startswith("Module #"):
+            module_id = line[8:]
+        elif line.strip() == "Name: module-alsa-card" and module_id:
+            print "Unloading PulseAudio module %s (ALSA)" % module_id
+            run(["pactl", "unload-module", module_id])
+
+
+def wait_for(command):
+    sys.stdout.write("Waiting for %s to start..." % command)
+    sys.stdout.flush()
+
+    while not get_pid_of("pulseaudio"):
+        sys.stdout.write(".")
+        sys.stdout.flush()
+
+        time.sleep(1)
+
+    print
+
+
+def restart_pulseaudio():
+    run(["pactl", "exit"])
+    time.sleep(1)
+    wait_for("pulseaudio")
+
+
+def start_jack(out_device, in_device):
+    pa_unload_alsa()
+
+    print "Starting JACK."
+
+    command = JACKRC % (out_device, in_device)
+    jack = run_child(command.split(" "))
+
+    if run(["jack_wait", "-w", "-t", "10"]).strip() == "timeout":
+        print "Could not start JACK, error log:"
+        print jack.communicate()[1].rstrip()
+        exit(1)
+
+    replace_file("~/.jackdrc", command)
+
+    return jack
+
+
+def disable_tty_echo():
+    """Disable output as you type (not to ruin the meter by accidental
+    typing)."""
+    subprocess.Popen(["stty", "-echo"]).wait()
+
+
+def enable_tty_echo():
+    """Enable console output."""
+    subprocess.Popen(["stty", "echo"]).wait()
+
+
+def get_pid_of(name):
+    return run(["pgrep", name]).strip()
+
+
+def main(args):
+    for program in ("jackd", "pulseaudio", "jack.plumbing"):
+        if not is_program(program):
+            print >> sys.stderr, "Please install %s first." % program
+            exit(1)
+
+    out_device, in_device = get_devices(args)
+    print "Input device: %s, output device: %s." % (in_device, out_device)
+
+    plumber = monitor = jack = None
+
+    try:
+        jack = start_jack(out_device, in_device)
+
+        replace_file("~/.pulse/default.pa", PACONF)
+        replace_file("~/.jack.plumbing", PLUMBING_RULES)
+
+        restart_pulseaudio()
+
+        disable_tty_echo()
+
+        print "Starting the plumber."
+        plumber = run_child(["jack.plumbing"])
+
+        print "Starting level monitor.  Press ^C to stop."
+        monitor = subprocess.Popen(["jack_meter"] + JACK_METER_PORTS,
+            stderr=subprocess.PIPE)
+        monitor.wait()
+    except KeyboardInterrupt:
+        print "\nInterrupted."
+    finally:
+        restore_file("~/.pulse/default.pa")
+        restore_file("~/.jackdrc")
+        restore_file("~/.jack.plumbing")
+        enable_tty_echo()
+
+    if monitor is not None:
+        monitor.terminate()
+
+    if plumber is not None:
+        print "Stopping the plumber."
+        plumber.terminate()
+
+    if jack is not None:
+        jack.terminate()
+        jack.wait()
+
+    restart_pulseaudio()
+
+    print "Waiting for JACK to stop."
+    run(["jack_wait", "-q"])
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
