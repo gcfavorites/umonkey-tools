@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim set: fileencoding=utf-8 tw=0:
+# vim: set fileencoding=utf-8 tw=0:
 
 """Personal automation script.  Replaces and organizes a number of
 smaller scripts.
@@ -13,9 +13,13 @@ To enable zsh completion, add this to ~/.zshrc:
 
 import glob
 import itertools
+import json
 import os
+import re
 import subprocess
 import sys
+import time
+import urllib2
 
 
 PACKAGE_NAMES = [
@@ -77,14 +81,55 @@ UBUNTU_PACKAGE_NAMES = [
 ]
 
 
-def run(command):
+class UsageError(Exception):
+    pass
+
+
+def _fetch(url, login=None, password=None, data=None):
+    import urllib2
+
+    req = urllib2.Request(url)
+
+    if password is not None:
+        import base64
+        hash = base64.encodestring("%s:%s" % (login, password))[:-1]
+        req.add_header("Authorization", "Basic %s" % hash)
+
+    print "Fetching %s" % url
+    return urllib2.urlopen(req, data).read()
+
+
+def _fetch_json(*args, **kwargs):
+    result = _fetch(*args, **kwargs)
+    return json.loads(result)
+
+
+def _glob(pattern):
+    names = [os.path.realpath(fn) for fn in glob.glob(pattern)]
+    return list(set(names))
+
+
+def run(command, stdin_data=None, grab=False):
     if type(command) != list:
         command = [normalize_command_arg(arg) for arg in command.split(" ")]
         command = list(itertools.chain(*command))
 
     prefix = os.geteuid() == 0 and "#" or "$"
     print "%s %s" % (prefix, " ".join(command))
-    subprocess.Popen(command).wait()
+
+    if stdin_data is not None:
+        grab = True
+
+    stdout = stderr = stdin = None
+    if grab:
+        stdout = stderr = stdin = subprocess.PIPE
+
+    p = subprocess.Popen(command, stdout=stdout, stdin=stdin, stderr=stderr)
+    out, err = p.communicate(stdin_data)
+
+    if grab:
+        return out, err, p.returncode
+    return p.returncode
 
 
 def normalize_command_arg(arg):
@@ -107,7 +152,11 @@ def main(args):
         args.pop(0)
     else:
         command = "help"
-    return main_task(command, args)
+    try:
+        return main_task(command, args)
+    except UsageError, e:
+        print >> sys.stderr, e
+        exit(1)
 
 
 def main_task(task_name, args):
@@ -146,11 +195,49 @@ def task_help():
     commands = get_task_list()
 
     maxlen = max([len(k) for k, v in commands])
-    fmt = "  %%-%us -- %%s" % (maxlen + 2)
+    fmt = "  go %%-%us -- %%s" % (maxlen + 2)
 
     print "Available commands:"
     for name, desc in commands:
         print fmt % (name, desc)
+
+
+def task_download_tracks(*args):
+    import json
+
+    fetch_json = lambda url: json.loads(_fetch(url))
+
+    if not args:
+        data = fetch_json("http://music.tmradio.net/api/status.json")
+        if not data:
+            print "Nothing is playing."
+            return
+        args = [data["id"]]
+
+    for track_id in args:
+        data = fetch_json("http://music.tmradio.net/track/info.json?id=" + str(track_id))
+        if not data:
+            print "Unknown track: %s" % track_id
+            continue
+
+        url = data.get("download")
+        if url is None:
+            url = "http://files.tmradio.net/.music/" + data["filename"]
+
+        fn, exc = os.path.splitext(data["filename"])
+
+        filename = (u"%s -- %s%s" % (data["artist"], data["title"], exc)).encode("utf-8")
+        if os.path.exists(filename):
+            print "File %s exists." % filename
+            continue
+
+        try:
+            file(filename, "wb").write(_fetch(url))
+            print "Saved as %s" % filename
+        except urllib2.URLError, e:
+            print "Download failed: %s" % e
+            if os.path.exists(filename):
+                os.unlink(filename)
 
 
 def task_dump_zsh_completion(filename=None):
@@ -165,7 +252,7 @@ def task_dump_zsh_completion(filename=None):
 
     if filename is not None:
         if not os.path.exists(os.path.dirname(filename)):
-            os.mkdirs(os.path.dirname(filename))
+            os.makedirs(os.path.dirname(filename))
         file(filename, "wb").write(output.encode("utf-8"))
     else:
         print output
@@ -176,6 +263,64 @@ def task_ardj_database(*args):
     run("ssh -t cloud.tmradio.net ardj db-console")
 
 
+def task_backup(*args):
+    """copies sensitive data to secure locations"""
+    if not os.path.exists("/media/Elements"):
+            print >> sys.stderr, "Elements not mounted, skipping some backups."
+    else:
+        run("rsync -avz $HOME/Videos/todo /media/Elements/data/Personal/Video/")
+        run("rsync -avc $HOME/Pictures /media/Elements/data/Personal/Photo")
+        run("tar cf /media/Elements/data/Personal/ecryptfs.tar $HOME/.Private")
+
+    run("$HOME/Private/backup")
+
+
+def task_backup_s3(*args):
+    """copies sensitive data to S3"""
+    s3cfg = dict([re.split("\s+=\s+", l) for l in file(os.path.expanduser("~/.s3cfg"), "r").read().split("\n") if "=" in l])
+
+    os.putenv("AWS_ACCESS_KEY_ID", s3cfg["access_key"])
+    os.putenv("AWS_SECRET_ACCESS_KEY", s3cfg["secret_key"])
+
+    command = ["duplicity", "--s3-use-new-style", "--verbosity", "8", "--exclude-filelist", "~/.config/backup.skip"]
+    if "-n" in args:
+        command.append("--dry-run")
+    command.append(os.getenv("HOME"))
+    command.append("s3+http://backup.umonkey.net/")
+
+    run(command)
+
+
+def task_clean():
+    dirs = (
+        ("~/.adobe/Flash_Player/AssetCache", 7),
+        ("~/.config/roxterm.sourceforge.net/Sessions", 7),
+        ("~/.dropbox-dist", 0),
+        ("~/.local/gpodder-downloads", 7),
+        ("~/.local/share/Trash", 0),
+        ("~/.local/share/zeitgeist", 0),
+        ("~/.macromedia/Flash_Player", 7),
+        ("~/.opera/application_cache", 7),
+        ("~/.opera/cache", 7),
+        ("~/.opera/icons", 7),
+        ("~/.opera/thumbnails", 7),
+        ("~/.shotwell/thumbs", 7),
+        ("~/.thumbnails", 7),
+        ("~/tmp", 30),
+    )
+
+    for root, days in dirs:
+        ts_limit = int(time.time()) - 60 * 60 * 24 * days
+        for path, folders, files in os.walk(os.path.expanduser(root)):
+            for file in files:
+                filepath = os.path.join(path, file)
+                if os.stat(filepath).st_ctime < ts_limit:
+                    print "-file %s" % filepath
+                    os.unlink(filepath)
+
+    task_clean_mail()
+
+
 def task_clean_mail(*args):
     """delete old mail from the archive mailbox"""
     run("fdm -a archive fetch")
@@ -184,6 +329,47 @@ def task_clean_mail(*args):
 def task_clean_vcs():
     """purge and compress git repositories"""
     run("find . -name .git -exec git --git-dir={} gc \\;")
+
+
+def task_chroot(name=None):
+    """opens a chrooted shell"""
+    if name is None:
+        name = "default"
+    run("sudo schroot -c %s -u root" % name)
+
+
+def task_create_repository(*args):
+    """creates a new Mercurial repository in Bitbucket"""
+    if len(args) != 1:
+        raise UsageError("Usage: go create-repository user/name")
+
+    user, repo = args[0].split("/", 1)
+
+    credfn = os.path.expanduser("~/.config/access/bitbucket/" + user)
+    if not os.path.exists(credfn):
+        raise UsageError("Error: file %s not found (must contain a password)" % credfn)
+
+    password = file(credfn, "rb").read().strip()
+
+    from bitbucket import BitBucket
+    cli = BitBucket(user, password)
+    if cli.new_repository(repo) is not None:
+        print "OK, http://bitbucket.org/%s/%s" % (user, repo)
+        task_setup_repos()
+
+
+def task_deploy_ardj():
+    """upload ardj to the cloud"""
+    run("tar cf ~/tmp/ardj.tar --directory ~/src/ardj/src/ardj --exclude *.pyc .")
+    run("scp ~/tmp/ardj.tar cloud.tmradio.net:ardj-deploy.tar")
+    run("scp -r share/web/static/* cloud.tmradio.net:/radio/sites/music.tmradio.net/static/")
+    run("ssh -t cloud.tmradio.net sudo tar xf ardj-deploy.tar --directory /usr/lib/python2.6/dist-packages/ardj/ ; rm ardj-deploy.tar ; sudo restart ardj-server")
+    run("rm -f ~/tmp/ardj.tar")
+
+
+def task_edit_fmh():
+    """edit freemusichub.net data and commit"""
+    run("make -C ~/src/sites/fmh edit build publish")
 
 
 def task_edit_hotline_config():
@@ -197,17 +383,396 @@ def task_edit_self():
     run("%s dump-zsh-completion ~/.config/zsh/completion/_%s" % (sys.argv[0], os.path.basename(sys.argv[0])))
 
 
+def task_edit_sms():
+    """edit sms config for tmradio"""
+    run("ssh -t cloud.tmradio.net vim /home/radio/.config/sms.yaml")
+
+
 def task_edit_tmradio_schedule():
     """edits the tmradio.net schedule and commits changes"""
-    run("editor ~/src/sites/tmradio.net/src/input/schedule.txt")
-    run("make -C ~/src/sites/tmradio.net/src commit")
+    run("editor ~/src/sites/tmradio.net/input/schedule.txt")
+    run("make -C ~/src/sites/tmradio.net commit")
 
 
-def task_clean():
-    run("rm -rf ~/.local/share/zeitgeist ~/.local/share/Trash/* ~/.dropbox-dist")
-    run("find ~/tmp ~/.adobe/Flash_Player/AssetCache ~/.thumbnails ~/.config/roxterm.sourceforge.net/Sessions ~/.local/gpodder-downloads ~/.local/share/Trash ~/.macromedia/Flash_Player ~/.opera/cache ~/.opera/application_cache ~/.opera/icons ~/.shotwell/thumbs -type f -mtime +30 -print -delete")
-    run("find ~/tmp -empty -delete")
-    #task_clean_mail()
+def task_edit_openbox_config():
+    """edit and reload the openbox config"""
+    run("editor ~/.config/openbox/mintlxde-rc.xml")
+    run("pkill -USR2 openbox")
+
+
+def task_edit_quotes():
+    """edit all quote files"""
+    run("~/bin/quotes")
+
+
+def task_edit_podcasts():
+    """edit podcast-merger.conf on cloud.umonkey.net"""
+    run("ssh -t cloud.umonkey.net vim .config/podcast-merger.conf")
+
+
+def task_calendar():
+    """edit calendar events"""
+    run("vim ~/.gcalrc")
+    run("gcal -cdl@t7")
+    run("scp -q ~/.gcalrc cloud.umonkey.net:")
+
+
+def task_edit_hotline_config():
+    """edit the hotline config"""
+    run("ssh -t radio@cloud.umonkey.net vim .config/hotline.yaml")
+
+
+def task_force_update_rss():
+    """force update of the RSS cache"""
+    run("ssh -t cloud.umonkey.net sudo -u rss-proxy env HOME=/var/lib/rss-proxy /usr/local/bin/rss-proxy update")
+
+
+def task_hold_package(name):
+    """locks a package to the currently installed version"""
+    need_root()
+
+
+def task_install_packages():
+    """install commonly used packages"""
+    need_root()
+    run("apt-get install %s" % " ".join(PACKAGE_NAMES))
+
+
+def task_install_shortcuts():
+    """install local desktop files system-wide"""
+    need_root()
+    run("desktop-file-install ~/.local/share/applications/umonkey-*.desktop")
+
+
+def task_import_audio():
+    """import audio files from Zoom"""
+    import glob
+    import shutil
+    import time
+
+    _folder = os.path.expanduser("~/Private/data/audio/recordings")
+
+    files = _glob("/media/*/STEREO/FOLDER*/*.WAV")
+    if not files:
+        print "Nothing to import (device not mounted?)"
+        print "The files would be copied to %s" % _folder
+        return
+
+    dst = os.path.join(_folder, time.strftime("%Y-%m-%d"))
+    if not os.path.exists(dst):
+        os.makedirs(dst)
+
+    for idx, _src in enumerate(files):
+        print "Importing [%u/%u] %s" % (idx + 1, len(files), os.path.basename(_src))
+        _dst = os.path.join(dst, os.path.basename(_src))
+        if os.path.exists(_dst):
+            print "  target exists -- skipped"
+        else:
+            shutil.move(_src, _dst)
+
+    print "Done.  Your files are in %s" % dst
+
+
+def task_import_phone():
+    """imports stuff from the mobile phone"""
+    import glob
+    import shutil
+    _files = _glob("/media/*/u1/bwDailyMoney/*.csv")
+    if _files:
+        _dst = os.path.expanduser("~/Private/data/money")
+        for src in _files:
+            dst = os.path.join(_dst, os.path.basename(src))
+            print dst
+            shutil.copy(src, dst)
+
+
+def task_import_video():
+    """import video files from Lumix"""
+    import glob
+    import shutil
+    import time
+
+    _target = os.path.expanduser("~/Videos/todo")
+
+    _files = glob.glob("/media/*/PRIVATE/AVCHD/BDMV/STREAM/*.MTS") \
+        + _glob("/media/disk/MP_ROOT/*/*.MPG")
+
+    if not _files:
+        print "No files to import."
+        print "Would copy them to %s" % _target
+        return
+
+    _target = os.path.join(_target, time.strftime("%Y-%m-%d"))
+    if not os.path.exists(_target):
+        print "Creating folder %s" % _target
+        os.makedirs(_target)
+
+    for idx, _src in enumerate(_files):
+        print "Importing [%u/%u] %s" % (idx + 1, len(_files), os.path.basename(_src))
+
+        _dst = os.path.join(_target, os.path.basename(_src))
+        if os.path.exists(_dst):
+            print "  target file exists -- skipped"
+        else:
+            shutil.move(_src, _dst)
+
+
+def task_import_photo():
+    """import photos from Lumix"""
+    import glob
+    import shutil
+    import time
+
+    files = _glob("/media/*/DCIM/*/*.JPG")
+
+    if not files:
+        print "Nothing to import."
+        return
+
+    folder = os.path.expanduser("~/Pictures/Photo/%s" % time.strftime("%Y-%m-%d"))
+    if not os.path.exists(folder):
+        print "Creating folder %s" % folder
+        os.makedirs(folder)
+
+    for fn in files:
+        name = os.path.basename(fn)
+        dst = os.path.join(folder, name)
+        if os.path.exists(dst):
+            print "File %s exists -- leaving %s" % (name, dst)
+            continue
+        print "Moving %s" % name
+        shutil.move(fn, dst)
+
+
+def task_izumr_old():
+    run("ssh -t izumr.mongo1 mongo izumr")
+
+
+def task_izumr_new():
+    run("ssh -t izumr.mongo1 mongo izumr2")
+
+
+def task_live(name=None):
+    """start broadcasting"""
+    if name is None:
+        name = "test"
+    run("broadcast %s" % name)
+
+
+def task_list_installed_packages():
+    """lists installed packages"""
+    run("dpkg --get-selections")
+
+
+def task_mail_tasks():
+    """email actual tasks"""
+    run("ssh cloud.umonkey.net src/tremor/tremor -mail")
+
+
+def task_publish(*paths):
+    """uploads a file to temporary storage"""
+    import tempfile
+
+    for path in paths:
+        name = os.path.basename(path)
+        full_path = tempfile.mktemp(suffix='', prefix='', dir="/tmp/") + "/" + name
+        s3_path = "s3://files.umonkey.net" + full_path
+        run(["s3cmd", "-PMH", "put", path, s3_path])
+
+
+def task_purge_packages():
+    """remove data used by packages that were uninstalled"""
+    run("apt-get autoremove --purge")
+    #run("dpkg -l | awk '/^rc/ { print $2 }' | xargs --no-run-if-empty dpkg --purge")
+    run("apt-get clean")
+
+
+def task_radio(*args):
+    """run make on radio@cloud"""
+    run(["ssh", "-oClearAllForwardings=yes", "radio@cloud.umonkey.net", "make", "-C", "/radio"] + list(args))
+
+
+def task_rebuild_tmradio_website():
+    """rebuilds www.tmradio.net"""
+    task_radio("update-website", "ping-rss")
+
+
+def task_recloud():
+    """reset the cloud ssh connection"""
+    run(["pkill", "-f", "ssh -ACXt cloud.umonkey.net"])
+
+
+def task_record_mic():
+    """record voice using jack_capture (mono)"""
+    fname = time.strftime("~/tmp/rec/%Y-%m-%d_%H_%M_%S.wav")
+    run("jack_capture --channels 1 --port system:capture_1 " + fname)
+
+
+def task_record_mplayer():
+    """record whatever mplayer is playing"""
+    fname = os.path.expanduser(time.strftime("~/tmp/rec/%Y-%m-%d_%H_%M_%S.wav"))
+    run(["jack_capture", "--format", "flac", "--port", "MPlayer*", fname])
+
+
+def task_record_skype():
+    """record local voice and skype using jack_capture"""
+    fname = os.path.expanduser(time.strftime("~/tmp/rec/%Y-%m-%d_%H_%M_%S.wav"))
+    run(["jack_capture",
+        "--port", "system:capture_1",
+        "--port", "PulseAudio JACK Sink:front-right",
+        fname])
+
+
+def task_record_skype_with_mplayer():
+    """record local voice and skype and mplayer using jack_capture"""
+    fname = time.strftime("~/tmp/rec/%Y-%m-%d_%H_%M_%S.wav")
+    run(["jack_capture",
+        "--port", "system:capture_1",
+        "--port", "PulseAudio JACK Sink:front-right",
+        "--port", "moc:output0",
+        "--port", "moc:output1",
+        fname])
+
+
+def task_reset_routes():
+    """remove all default routes"""
+    import re
+    output = run(["route", "-n"], True)[0]
+    for line in output.split("\n"):
+        if line.startswith("0.0.0.0"):
+            gw = re.split("\s+", line)[1]
+            run(["sudo", "route", "delete", "default", "gw", gw])
+
+
+def task_restart_ardj_server():
+    """restart ardj-server in the cloud"""
+    run("ssh cloud.umonkey.net sudo restart ardj-server")
+
+
+def task_sms(text):
+    """send myself an sms"""
+    run(["mail", "e5u6e3eq@sms.ru"], text)
+
+
+def task_setup_repos():
+    """configure Bitbucket repositories"""
+    from bitbucket import BitBucket
+
+    webhook = "http://cloud.umonkey.net/webhooks"
+    access = {
+        "molinos": {
+            "umonkey": "admin",
+            "shoorka": "admin",
+            "keleran": "write",
+            "shurick_hair": "read",
+        },
+    }
+
+    analytics_key = "UA-18002512-6"
+
+    accounts = _glob(os.path.expanduser("~/.config/access/bitbucket/*"))
+    for fn in accounts:
+        user = os.path.basename(fn)
+        password = file(fn, "rb").read().strip()
+
+        print "Checking account %s ..." % user
+
+        cli = BitBucket(user, password)
+        for repo in cli.user(user).repositories():
+            has_hook = False
+            _repo = cli.repository(user, repo["name"])
+            for service in _repo.services():
+                if service["service"]["type"] != "POST":
+                    continue
+                if service["service"]["fields"][0]["value"] != webhook:
+                    continue
+                has_hook = True
+            if not has_hook:
+                _service = _repo.new_service(type="post", URL=webhook)
+                print "Installed webhook %s for %s/%s (id=%u)" % (webhook, user, repo["name"], _service["id"])
+
+            _access = access.get(user)
+            if _access is not None:
+                _current = dict([(x["user"]["username"], x["privilege"]) for x in _repo.privileges()])
+                for _login, _perm in _access.items():
+                    _have_perm = _current.get(_login)
+                    if _have_perm != _perm:
+                        print user, _login, _perm, _access, _repo.privileges()
+                        print "Changing permission for %s to %s/%s from %s to %s" % (_login, user, repo["name"], _have_perm, _perm)
+
+            if user == "umonkey":
+                _repo.set_analytics_key(analytics_key)
+
+
+def task_share_files(*files):
+    """uploads files to a public folder"""
+    import shutil
+    import tempfile
+
+    DIRNAME = os.path.expanduser("~/src/sites/umonkey.net/files/share")
+    if not os.path.exists(DIRNAME):
+        print >> sys.stderr, "Folder %s not found." % DIRNAME
+        exit(1)
+
+    files = [f for f in files if os.path.exists(f)]
+    if not files:
+        print >> sys.stderr, "Please specify files to share."
+        exit(1)
+
+    template = "\n-- \n%s" % time.strftime("%d.%m.%Y, %H:%M")
+    readme = tempfile.mktemp(suffix=".txt", prefix="readme-")
+    file(readme, "wb").write(template)
+
+    if run(["vim", readme]) != 0:
+        print >> sys.stderr, "Editing failed."
+        os.unlink(readme)
+        exit(1)
+
+    if template == file(readme, "rb").read():
+        print >> sys.stderr, "Not changed (cancel)."
+        os.unlink(readme)
+        exit(1)
+
+    idx = 1
+    while True:
+        dirname = os.path.join(DIRNAME, "%04x" % idx)
+        if not os.path.exists(dirname):
+            break
+        idx += 1
+
+    os.makedirs(dirname)
+    shutil.move(readme, os.path.join(dirname, "README.txt"))
+    for fn in files:
+        dst = os.path.join(dirname, os.path.basename(fn))
+        shutil.copy(fn, dst)
+        os.chmod(dst, 0664)
+
+    run(["make", "-C", "~/src/sites/umonkey.net/files", "upload"])
+
+    url = "http://files.umonkey.net/share/%s/" % os.path.basename(dirname)
+    run(["xdg-open", url])
+
+
+def task_start_mongo():
+    """starts mongodb"""
+    lockfn = "/home/mongodb/data/mongod.lock"
+    if os.path.exists(lockfn):
+        print "Removing %s" % lockfn
+        os.unlink(lockfn)
+    run("sudo /usr/sbin/service mongodb start")
+
+
+def task_stop_most():
+    """stops mongodb, nginx etc"""
+    run("sudo /usr/sbin/service mongodb stop")
+    run("sudo /usr/sbin/service nginx stop")
+
+
+def task_setup_pbuilder():
+    """configures the build environment"""
+    # http://arcierisinasce.wordpress.com/2011/01/29/linux-mint-repository-on-debian/
+    run("sudo ln -fs /usr/share/debootstrap/scripts/sid /usr/share/debootstrap/scripts/debian")
+    run("sudo pbuilder create --distribution debian --debootstrapopts --variant=buildd")
 
 
 def task_upgrade_gae():
@@ -245,11 +810,9 @@ def task_upgrade_packages():
     run("apt-get dist-upgrade")
 
 
-def task_purge_packages():
-    """remove data used by packages that were uninstalled"""
-    run("apt-get autoremove --purge")
-    #run("dpkg -l | awk '/^rc/ { print $2 }' | xargs --no-run-if-empty dpkg --purge")
-    run("apt-get clean")
+def task_upgrade_paper():
+    """upgrade paper.mirkforce.net"""
+    run(["ssh", "-t", "cloud.tmradio.net", "/radio/.apps/paper/.hg/upgrade"])
 
 
 def task_upgrade():
@@ -258,138 +821,20 @@ def task_upgrade():
     task_purge_packages()
 
 
-def task_list_installed_packages():
-    """lists installed packages"""
-    run("dpkg --get-selections")
+def task_via_eltel():
+    """start routing packets via eltel"""
+    task_reset_routes()
+    run("sudo route add default gw 10.26.7.1")
 
 
-def task_edit_openbox_config():
-    """edit and reload the openbox config"""
-    run("editor ~/.config/openbox/mintlxde-rc.xml")
-    run("pkill -USR2 openbox")
-
-
-def task_edit_quotes():
-    """edit all quote files"""
-    run("~/bin/quotes")
-
-
-def task_edit_podcasts():
-    """edit podcast-merger.conf on cloud.umonkey.net"""
-    run("ssh -t cloud.umonkey.net vim .config/podcast-merger.conf")
-
-
-def task_edit_calendar():
-    """edit calendar events"""
-    run("vim ~/.gcalrc")
-    run("gcal -c")
-
-
-def task_edit_hotline_config():
-    """edit the hotline config"""
-    run("ssh -t radio@cloud.umonkey.net vim .config/hotline.yaml")
-
-
-def task_install_shortcuts():
-    """install local desktop files system-wide"""
-    need_root()
-    run("desktop-file-install ~/.local/share/applications/umonkey-*.desktop")
-
-
-def task_start_mongo():
-    """starts mongodb"""
-    run("sudo /usr/sbin/service mongodb start")
-
-
-def task_stop_most():
-    """stops mongodb, nginx etc"""
-    run("sudo /usr/sbin/service mongodb stop")
-    run("sudo /usr/sbin/service nginx stop")
-
-
-def task_install_packages():
-    """install commonly used packages"""
-    need_root()
-    run("apt-get install %s" % " ".join(PACKAGE_NAMES))
-
-
-def task_hold_package(name):
-    """locks a package to the currently installed version"""
-    need_root()
-
-
-def task_chroot(name=None):
-    """opens a chrooted shell"""
-    if name is None:
-        name = "default"
-    run("sudo schroot -c %s -u root" % name)
-
-
-def task_live(name=None):
-    """start broadcasting"""
-    if name is None:
-        name = "test"
-    run("broadcast %s" % name)
-
-
-def task_deploy_ardj():
-    """upload ardj to the cloud"""
-    run("tar cf ~/tmp/ardj.tar --directory ~/src/ardj/src/ardj --exclude *.pyc .")
-    run("scp ~/tmp/ardj.tar cloud.tmradio.net:ardj-deploy.tar")
-    run("ssh -t cloud.tmradio.net sudo tar xf ardj-deploy.tar --directory /usr/lib/python2.6/dist-packages/ardj/ ; rm ardj-deploy.tar ; sudo restart ardj-server")
-    run("rm -f ~/tmp/ardj.tar")
-
-
-def task_izumr_old():
-    run("ssh -t izumr.mongo1 mongo izumr")
-
-
-def task_izumr_new():
-    run("ssh -t izumr.mongo1 mongo izumr2")
-
-
-def task_setup_pbuilder():
-    """configures the build environment"""
-    # http://arcierisinasce.wordpress.com/2011/01/29/linux-mint-repository-on-debian/
-    run("sudo ln -fs /usr/share/debootstrap/scripts/sid /usr/share/debootstrap/scripts/debian")
-    run("sudo pbuilder create --distribution debian --debootstrapopts --variant=buildd")
-
-
-def task_radio(*args):
-    """run make on radio@cloud"""
-    run(["ssh", "radio@cloud.umonkey.net", "make", "-C", "/radio"] + list(args))
-
-
-def task_recloud():
-    """reset the cloud ssh connection"""
-    run(["pkill", "-f", "ssh -ACXt cloud.umonkey.net"])
-
-
-def task_record_jack():
-    """record voice using jack_capture"""
-    run("jack_capture --channels 1 --port system:capture_1")
-
-
-def task_record_skype():
-    """record local voice and skype using jack_capture"""
-    run(["jack_capture",
-        "--port", "system:capture_1",
-        "--port", "PulseAudio JACK Sink:front-right"])
-
-
-def task_record_skype_with_mplayer():
-    """record local voice and skype and mplayer using jack_capture"""
-    run(["jack_capture",
-        "--port", "system:capture_1",
-        "--port", "PulseAudio JACK Sink:front-right",
-        "--port", "mplayer_mc:out_0",
-        "--port", "mplayer_mc:out_1"])
-
-
-def task_restart_ardj_server():
-    """restart ardj-server in the cloud"""
-    run("ssh cloud.umonkey.net sudo restart ardj-server")
+def task_via_hotline():
+    """start routing via hotline (3G)"""
+    task_reset_routes()
+    run("sudo route add default gw 10.26.7.81")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    try:
+        main(sys.argv[1:])
+    except KeyboardInterrupt:
+        print "Interrupted."
