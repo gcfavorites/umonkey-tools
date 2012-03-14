@@ -78,6 +78,16 @@ JACK_METER_PORTS = [
 ]
 
 
+def get_exe_path(name):
+    """Returns full path to the specified program or raises an exception if it
+    could not be found."""
+    for folder in os.getenv("PATH").split(os.pathsep):
+        path = os.path.join(folder, name)
+        if os.path.exists(path):
+            return path
+    raise Exception("Could not find %s: make sure the appropriate package is installed." % name)
+
+
 def run_child(command):
     # print ">", " ".join(command)
     p = subprocess.Popen(command,
