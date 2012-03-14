@@ -23,6 +23,10 @@ fi
 # Stop broadcasting when this script ends.
 trap "pkill darkice" INT
 
+# Mute the internal interface.
+amixer -c0 cset iface=MIXER,name='Master Playback Switch' on
+amixer -c0 cset iface=MIXER,name='Capture Switch' off
+
 
 # Stop some CPU and network hungry programs.
 if [ -x $HOME/.config/darkice/pre-start ]; then
