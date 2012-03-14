@@ -4,21 +4,11 @@ vbell off
 altscreen on
 startup_message off
 
+# Number of lines in the backlog by default.
+defscrollback 1000
+
 # Do NOT do this.  Breaks painting coloured spaces in newsbeuter, etc.
 #term xterm
 
 hardstatus alwayslastline
 hardstatus string '%{= kW}%-Lw%{= KW}%50>%n%f* %t%{= kW}%+Lw%< %{= kG}%-=%H:%l | %d.%m %c%{-}'
-
-setenv PREEXEC mutt
-screen -t "mail" 0 $SHELL
-
-setenv PREEXEC newsbeuter
-screen -t "rss" 1 $SHELL
-
-setenv PREEXEC ttytter
-screen -t "@umonkey" 2 $SHELL
-
-screen -t "cloud" 4 ssh-screener-loop cloud.umonkey.net
-
-unsetenv PREEXEC
