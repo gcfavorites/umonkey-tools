@@ -38,11 +38,13 @@ def show_totals():
     print "Displaying totals from", fn
 
     data = {}
+    dates = []
     last_date = None
 
     for line in file(fn, "rb").read().split("\n"):
         if re.match("^\d{2}/\d{2}$", line):
             last_date = line
+            dates.append(line)
             continue
 
         tmp = re.search("^  (\d{2}:\d{2})-(\d{2}:\d{2})", line)
@@ -59,8 +61,8 @@ def show_totals():
             data[last_date] += dur
             continue
 
-    for k, v in sorted(data.items()):
-        print k, format(v)
+    for date in reversed(dates):
+        print date, format(data[date])
 
 
 def run(args):
@@ -77,7 +79,8 @@ def run(args):
         elif value == "+":
             sign = 1
         else:
-            total += parse(value) * sign
+            value = parse(value)
+            total += value * sign
 
     print "%s, %u min." % (format(total), total)
 
