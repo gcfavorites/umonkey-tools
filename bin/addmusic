@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-"""Uploads music to tmradio.net"""
+"""Uploads music to tmradio.net
+
+Always fresh at:
+http://umonkey-tools.googlecode.com/hg-history/tip/bin/addmusic
+"""
 
 import os
 import subprocess
@@ -9,7 +13,7 @@ import tempfile
 
 import yaml
 
-UPLOAD_HOST = "radio@cloud.umonkey.net"
+UPLOAD_HOST = "cloud.tmradio.net"
 UPLOAD_PATH = "/radio/incoming/"
 
 if __name__ == '__main__':
