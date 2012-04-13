@@ -9,6 +9,10 @@ having port 8111 forwarded back to you, then you send messages to that port.
 See the README.markdown file for details.
 """
 
+import os
+if "DISPLAY" not in os.environ:
+    os.environ["DISPLAY"] = "0:0"
+
 import signal
 import socket
 import sys
@@ -42,16 +46,9 @@ def serve():
                     break
                 data += tmp
 
-            parts = data.strip().decode("utf-8").split("\n")
-            if len(parts) >= 2:
-                if time.time() - last_ts > 15:
-                    try:
-                        pynotify.init("tcp-gate")
-                        pynotify.Notification(parts[0], parts[1], "dialog-warning").show()
-                        pynotify.uninit()
-                    except Exception, e:
-                        print >> sys.stderr, "Could not send the notification: %s" % e
-                    last_ts = time.time()
+            if data.strip() and (time.time() - last_ts > 15):
+                process_message(data)
+                last_ts = time.time()
 
             client.close()
     finally:
@@ -63,7 +60,19 @@ def sigterm_handler(sig, frame):
     exit(1)
 
 
-if __name__ == "__main__":
+def process_message(text):
+    lines = text.strip().decode("utf-8").split("\n")
+    if len(lines) < 2:
+        lines.insert(0, "message")
+    if len(lines) < 3:
+        lines.append("dialog-warning")
+
+    pynotify.init("tcp-gate")
+    pynotify.Notification(lines[0], lines[1], lines[2]).show()
+    pynotify.uninit()
+
+
+def serve_http():
     signal.signal(signal.SIGTERM, sigterm_handler)
 
     while True:
@@ -83,3 +92,19 @@ if __name__ == "__main__":
 
         print "Restarting in %u second(s)." % delay
         time.sleep(delay)
+
+
+def serve_inetd():
+    process_message(sys.stdin.read())
+
+
+if __name__ == "__main__":
+    command = sys.argv[1] if len(sys.argv) > 1 else None
+
+    if command == "serve":
+        serve_http()
+    elif command == "inetd":
+        serve_inetd()
+    else:
+        print "Usage: %s serve|inetd" % sys.argv[0]
+        
