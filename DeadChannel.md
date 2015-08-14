@@ -1,0 +1,3 @@
+**Dead Channel** is a group of people from St. Petersburg (Russia), who like [industrial music](http://en.wikipedia.org/wiki/Industrial_music) and everything associated with it.  The [www.deadchannel.ru](http://www.deadchannel.ru/) web site is an aggregated playbill where all related events are listed.  The main objective of that website is to notify people about upcoming events, and make that process simple.
+
+The web site is built on top of [Google App Engine](http://code.google.com/appengine/), the source code is [available](http://code.google.com/p/umonkey-tools/source/browse/gae/deadchannel.ru).  The notifications are sent via email and SMS, the latter are sent using the [sms.ru API](http://sms.ru/?panel=api) is used.
